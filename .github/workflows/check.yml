@@ -1,0 +1,40 @@
+name: check
+
+on: push
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: testing
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping -ppassword" --health-interval=5s --health-retries=10
+
+    env:
+      DB_HOST: 127.0.0.1
+      DB_DATABASE: testing
+      DB_USERNAME: root
+      DB_PASSWORD: password
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: pdo_mysql
+          coverage: pcov
+
+      - uses: ramsey/composer-install@v4
+
+      - run: cp .env.example .env
+
+      - run: npm ci && npm run build
+
+      - run: composer check

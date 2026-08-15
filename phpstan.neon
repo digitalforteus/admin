@@ -1,0 +1,19 @@
+includes:
+    - vendor/pestphp/pest/extension.neon
+
+parameters:
+    level: 9
+    paths:
+        - app
+        - tests
+    ignoreErrors:
+        -
+            identifier: property.uninitializedReadonly
+        -
+            identifier: class.notFound
+
+services:
+    -
+        class: Tests\PHPStan\TestCaseMethodsOnTestCall
+        tags:
+            - phpstan.broker.methodsClassReflectionExtension
