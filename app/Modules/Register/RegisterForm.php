@@ -38,6 +38,19 @@ readonly class RegisterForm
     ])]
     public string $email;
 
+    public const string phone = 'phone';
+
+    #[Describe([Describe::cast => [self::class, 'sanitize']])]
+    #[TextInput([
+        TextInput::legend => 'Phone Number',
+        TextInput::type => 'tel',
+        TextInput::placeholder => 'Phone Number',
+        TextInput::autocomplete => 'tel',
+        TextInput::title => 'User phone number',
+        TextInput::required => true,
+    ])]
+    public string $phone;
+
     public const string password = 'password';
 
     #[TextInput([

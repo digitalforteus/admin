@@ -52,7 +52,7 @@ Head::title('Sessions')
 
         <div class="mt-6 overflow-x-auto rounded-box border border-base-300 bg-base-100">
             <table class="table">
-                <thead><tr><th>Last activity</th><th>User</th><th>IP address</th><th>User agent</th><th>Session ID</th><th><span class="sr-only">Actions</span></th></tr></thead>
+                <thead><tr><th>Last activity</th><th>User</th><th>IP address</th><th>User agent</th><th><span class="sr-only">Actions</span></th></tr></thead>
                 <tbody>
                     @forelse($sessions as $session)
                         <tr>
@@ -65,18 +65,17 @@ Head::title('Sessions')
                                 @endif
                             </td>
                             <td class="font-mono text-xs">{{$session->ip_address ?? '—'}}</td>
-                            <td class="max-w-md break-words text-sm">{{$session->user_agent ?? '—'}}</td>
-                            <td class="max-w-xs break-all font-mono text-xs">{{$session->id}}</td>
+                            <td><div class="max-w-md truncate text-sm" title="{{$session->user_agent}}">{{$session->user_agent ?? '—'}}</div></td>
                             <td class="text-right">
                                 <form method="POST" action="{{Admin::session->url([Admin::sessionParameter => $session->id])}}">
                                     @csrf
                                     @method('DELETE')
-                                    <button class="btn btn-ghost btn-xs text-error" aria-label="Revoke session {{$session->id}}">Revoke</button>
+                                    <button class="btn btn-ghost text-error" aria-label="Revoke session {{$session->id}}">Revoke</button>
                                 </form>
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="6" class="py-8 text-center text-base-content/65">No sessions found.</td></tr>
+                        <tr><td colspan="5" class="py-8 text-center text-base-content/65">No sessions found.</td></tr>
                     @endforelse
                 </tbody>
             </table>

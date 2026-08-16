@@ -36,12 +36,13 @@ test('the cells line up with the headings, in order', function (): void {
 
 test('the last session renders as a time and an absent one as a dash', function (): void {
     $User = User::factory()->createOne();
+    $lastSessionAt = now()->subHour();
 
     expect(UserRow::from($User->toArray())->lastSession())->toBe('—')
         ->and(UserRow::from([
             ...$User->toArray(),
-            UserRow::last_session_at => now()->timestamp,
-        ])->lastSession())->toBe(now()->toDayDateTimeString());
+            UserRow::last_session_at => $lastSessionAt->timestamp,
+        ])->lastSession())->toBe($lastSessionAt->diffForHumans());
 });
 
 test('initials are taken from the first and last word of the name', function (): void {

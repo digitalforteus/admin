@@ -35,6 +35,17 @@ readonly class RegisterRequest
     }])]
     public string $email;
 
+    public const string phone = 'phone';
+
+    #[Describe([Describe::cast => [self::class, 'sanitize']])]
+    #[Request([Request::rules => static function () {
+        return [
+            Rule::required,
+            ...Users::phone->rules(),
+        ];
+    }])]
+    public string $phone;
+
     public const string password = 'password';
 
     #[Request([Request::rules => static function () {

@@ -28,6 +28,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property string $id
  * @property string $name
  * @property string $email
+ * @property string|null $phone
  * @property Carbon|null $email_verified_at
  * @property string $password
  * @property Theme $theme
@@ -59,6 +60,7 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
     protected $fillable = [
         Users::name->value,
         Users::email->value,
+        Users::phone->value,
         Users::password->value,
         Users::theme->value,
     ];

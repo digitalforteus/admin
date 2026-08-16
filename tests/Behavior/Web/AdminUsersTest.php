@@ -44,6 +44,22 @@ test('the page lists a user', function (): void {
         ->assertSee($User->email);
 });
 
+test('only unverified users have an unverified email chip', function (): void {
+    $Verified = User::factory()->createOne([Users::email_verified_at->value => now()]);
+    $Unverified = User::factory()->createOne([Users::email_verified_at->value => null]);
+
+    $content = (string) $this->actingAs(adminUser())
+        ->get(Admin::users->value)
+        ->assertOk()
+        ->assertDontSee('Email Verified At')
+        ->getContent();
+
+    expect($content)
+        ->toContain('<a href="'.Admin::user->url([Admin::userParameter => $Verified->id]).'" class="link">'.$Verified->email.'</a>')
+        ->toContain('<a href="'.Admin::user->url([Admin::userParameter => $Unverified->id]).'" class="link">'.$Unverified->email.'</a>')
+        ->and(substr_count($content, '>Unverified</span>'))->toBe(1);
+});
+
 test('the page lists each users last session time', function (): void {
     $User = User::factory()->createOne();
     $lastSessionAt = now()->subHour()->startOfSecond();
@@ -58,7 +74,7 @@ test('the page lists each users last session time', function (): void {
         ->get(Admin::users->value)
         ->assertOk()
         ->assertSee('Last session')
-        ->assertSee($lastSessionAt->toDayDateTimeString());
+        ->assertSee($lastSessionAt->diffForHumans());
 });
 
 test('the page queries its user table once', function (): void {

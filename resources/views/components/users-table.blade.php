@@ -31,7 +31,6 @@
                     </th>
                 @endforeach
                 <th>Last session</th>
-                <th class="w-0"><span class="sr-only">Edit</span></th>
             </tr>
             </thead>
             <tbody>
@@ -49,16 +48,20 @@
                                                  onerror="this.previousElementSibling.classList.remove('hidden'); this.parentElement.classList.add('bg-neutral'); this.remove()">
                                         </div>
                                     </div>
-                                    <span>{{ $cell }}</span>
+                                    <a href="{{ $UserRow->editUrl() }}" class="link"><span>{{ $cell }}</span></a>
+                                </div>
+                            @elseif($loop->index === 1)
+                                <div class="flex items-center gap-2">
+                                    <a href="{{ $UserRow->editUrl() }}" class="link">{{ $cell }}</a>
+                                    @if(! $UserRow->emailVerified())
+                                        <span class="badge badge-warning badge-sm">Unverified</span>
+                                    @endif
                                 </div>
                             @else
                                 {{ $cell }}
                             @endif
                         </td>
                     @endforeach
-                    <td class="whitespace-nowrap">
-                        <a href="{{ $UserRow->editUrl() }}" class="btn btn-ghost btn-xs">Edit</a>
-                    </td>
                 </tr>
             @empty
                 <tr>

@@ -65,6 +65,11 @@ readonly class UserRow
         return $this->picture ?? Gravatar::url($this->email);
     }
 
+    public function emailVerified(): bool
+    {
+        return $this->collect()->get(self::email_verified_at) !== null;
+    }
+
     /** @return list<string> */
     public function cells(): array
     {
@@ -79,7 +84,7 @@ readonly class UserRow
         $timestamp = $this->collect()->get(self::last_session_at);
 
         return is_numeric($timestamp)
-            ? Carbon::createFromTimestamp((int) $timestamp)->toDayDateTimeString()
+            ? Carbon::createFromTimestamp((int) $timestamp)->diffForHumans()
             : '—';
     }
 

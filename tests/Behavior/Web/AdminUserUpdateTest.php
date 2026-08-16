@@ -1,5 +1,6 @@
 <?php
 
+use App\Helpers\Gravatar;
 use App\Helpers\Role;
 use App\Helpers\Theme;
 use App\Models\User;
@@ -51,6 +52,8 @@ test('the page renders the account it edits', function (): void {
         ->get(editUrl($User))
         ->assertOk()
         ->assertSee($User->name)
+        ->assertSee('src="'.e(Gravatar::url($User->email)).'"', false)
+        ->assertSee('alt="'.e($User->name).'"', false)
         ->assertSee('value="'.$User->email.'"', false)
         ->assertSee('Administrator')
         ->assertSee($User->id)
@@ -65,7 +68,8 @@ test('the index links to the page for a listed user', function (): void {
     $this->actingAs(adminUser())
         ->get(Admin::users->value)
         ->assertOk()
-        ->assertSee(editUrl($User));
+        ->assertSee('<a href="'.editUrl($User).'" class="link">'.$User->email.'</a>', false)
+        ->assertDontSee('class="btn btn-ghost btn-xs">Edit</a>', false);
 });
 
 test('an unknown user is not found', function (): void {

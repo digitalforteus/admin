@@ -14,6 +14,7 @@ class RegisterFormFactory
         return [
             RegisterForm::name => RegisterForm::name,
             RegisterForm::email => 'john@example.com',
+            RegisterForm::phone => '317-555-0123',
             RegisterForm::password => RegisterForm::password,
             RegisterForm::password_confirmation => RegisterForm::password,
         ];

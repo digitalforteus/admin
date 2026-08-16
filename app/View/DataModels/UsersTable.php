@@ -51,7 +51,7 @@ readonly class UsersTable
      */
     public static function columns(): array
     {
-        return [Users::name, Users::email, Users::email_verified_at, Users::created_at];
+        return [Users::name, Users::email];
     }
 
     /** @return list<SortableHeader> */
@@ -79,7 +79,7 @@ readonly class UsersTable
 
     public function span(): int
     {
-        return count(self::columns()) + 2;
+        return count(self::columns()) + 1;
     }
 
     public function searching(): bool

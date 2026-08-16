@@ -58,6 +58,15 @@ enum Users: string
     case email = 'email';
 
     #[Column([
+        Column::name => self::phone,
+        Column::comment => 'The users phone number',
+        Column::type => ColumnType::varchar->value,
+        Column::length => 255,
+        Column::nullable => true,
+    ])]
+    case phone = 'phone';
+
+    #[Column([
         Column::name => self::email_verified_at,
         Column::comment => 'When the users email was verified',
         Column::type => ColumnType::timestamp->value,

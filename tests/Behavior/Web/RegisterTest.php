@@ -26,6 +26,7 @@ test('registration', function (): void {
     $this->assertDatabaseHas((new User)->getTable(), [
         Users::name->value => $RegisterForm->name,
         Users::email->value => $RegisterForm->email,
+        Users::phone->value => $RegisterForm->phone,
         Users::email_verified_at->value => null,
     ]);
 });
@@ -44,6 +45,15 @@ test('validation fails with invalid email', function (): void {
         Web::register->value,
         RegisterFormFactory::factory()->set([RegisterForm::email => ''])->context()
     )->assertSessionHasErrors(RegisterForm::email);
+
+    $this->assertGuest();
+});
+
+test('validation fails with missing phone number', function (): void {
+    $this->post(
+        Web::register->value,
+        RegisterFormFactory::factory()->set([RegisterForm::phone => ''])->context()
+    )->assertSessionHasErrors(RegisterForm::phone);
 
     $this->assertGuest();
 });
@@ -84,6 +94,7 @@ test('validation fails with missing required fields', function (): void {
         ->assertSessionHasErrors([
             RegisterForm::name,
             RegisterForm::email,
+            RegisterForm::phone,
             RegisterForm::password,
         ]);
 

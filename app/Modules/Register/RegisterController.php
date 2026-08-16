@@ -39,6 +39,7 @@ readonly class RegisterController
             $User = User::query()->create([
                 RegisterRequest::name => $RegisterRequest->name,
                 RegisterRequest::email => $RegisterRequest->email,
+                RegisterRequest::phone => $RegisterRequest->phone,
                 RegisterRequest::password => Hash::make($RegisterRequest->password),
             ]);
 

@@ -13,6 +13,7 @@ return new class extends Migration
             $Blueprint->ulid('id')->primary()->comment('The unique identifier of the user');
             $Blueprint->string('name')->comment('The users name');
             $Blueprint->string('email')->unique()->comment('The users email');
+            $Blueprint->string('phone')->nullable()->comment('The users phone number');
             $Blueprint->timestamp('email_verified_at')->nullable()->comment('When the users email was verified');
             $Blueprint->string('password')->comment('The users hashed password');
             $Blueprint->text('two_factor_secret')->nullable();

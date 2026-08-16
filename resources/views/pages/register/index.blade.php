@@ -9,6 +9,7 @@
         @csrf
         <x-text-input :textInput="RegisterForm::textInput(RegisterForm::name)"/>
         <x-text-input :textInput="RegisterForm::textInput(RegisterForm::email)"/>
+        <x-text-input :textInput="RegisterForm::textInput(RegisterForm::phone)"/>
         <x-text-input :textInput="RegisterForm::textInput(RegisterForm::password)"/>
         <x-text-input :textInput="RegisterForm::textInput(RegisterForm::password_confirmation)"/>
         <button class="btn btn-primary mt-4 w-full">Register</button>

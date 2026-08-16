@@ -1,5 +1,7 @@
 <?php
 
+use App\Helpers\Gravatar;
+use App\Helpers\Initials;
 use App\Helpers\Role;
 use App\Helpers\SvgName;
 use App\Helpers\Theme;
@@ -24,6 +26,7 @@ Head::title('User')
         ? $Authenticated
         : User::query()->findOrFail($userId);
     $user->load('oauthProviders');
+    $picture = $user->oauthProviders->first()?->picture ?? Gravatar::url($user->email);
     $action = Admin::user->url([Admin::userParameter => $user->id]);
     $verified = (bool) old(UsersUpdateRequest::verified, $user->email_verified_at !== null);
     $administrator = (bool) old(UsersUpdateRequest::admin, $user->hasRole(Role::admin->value));
@@ -38,10 +41,20 @@ Head::title('User')
         </a>
 
         <header class="mt-4 flex flex-col gap-2 border-b border-base-300 pb-5 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-wider text-base-content/55">User account</p>
-                <h1 class="mt-1 text-2xl font-semibold">{{$user->name}}</h1>
-                <p class="mt-1 font-mono text-xs text-base-content/55">{{$user->id}}</p>
+            <div class="flex items-center gap-3">
+                <div class="avatar avatar-placeholder">
+                    <div class="relative w-12 rounded-full text-neutral-content">
+                        <span class="hidden text-sm">{{Initials::from($user->name)}}</span>
+                        <img class="absolute inset-0" src="{{$picture}}" alt="{{$user->name}}"
+                             referrerpolicy="no-referrer"
+                             onerror="this.previousElementSibling.classList.remove('hidden'); this.parentElement.classList.add('bg-neutral'); this.remove()">
+                    </div>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-base-content/55">User account</p>
+                    <h1 class="mt-1 text-2xl font-semibold">{{$user->name}}</h1>
+                    <p class="mt-1 font-mono text-xs text-base-content/55">{{$user->id}}</p>
+                </div>
             </div>
             <div class="flex gap-2">
                 <a href="{{Admin::sessions->value.'?'.http_build_query([Admin::userParameter => $user->id])}}" class="btn btn-ghost btn-sm">Sessions</a>
