@@ -8,6 +8,7 @@ use App\Routes\Web;
 use App\Sources\Db\App\OauthProviders;
 use App\Sources\Db\App\Users;
 use Illuminate\Support\Facades\Hash;
+use Laravel\Fortify\Actions\EnableTwoFactorAuthentication;
 
 /** @return array<string, string> */
 function passwordForm(string $current = 'password', string $new = 'new-password-1234'): array
@@ -37,7 +38,65 @@ test('the page renders the password form', function (): void {
         ->assertSee('New Password')
         ->assertSee('Sign in methods')
         ->assertSee('No connected providers.')
+        ->assertSee('Two-factor authentication')
+        ->assertSee('Passkeys')
+        ->assertSee('Confirm password to manage passkeys')
+        ->assertSee('Enable')
         ->assertSee(Auth::settingsProfile->value);
+});
+
+test('passkeys can be managed after password confirmation', function (): void {
+    $User = User::factory()->createOne();
+    $Passkey = $User->passkeys()->create([
+        'name' => 'MacBook Pro',
+        'credential_id' => 'credential-id',
+        'credential' => [],
+    ]);
+
+    $this->actingAs($User)
+        ->withSession(['auth.password_confirmed_at' => time()])
+        ->get(Auth::settingsSecurity->value)
+        ->assertOk()
+        ->assertSee('MacBook Pro')
+        ->assertSee('data-passkey-register', escape: false)
+        ->assertSee(route('passkey.destroy', $Passkey));
+});
+
+test('two-factor authentication setup can be started', function (): void {
+    $User = User::factory()->createOne();
+
+    $this->actingAs($User)
+        ->withSession(['auth.password_confirmed_at' => time()])
+        ->from(Auth::settingsSecurity->value)
+        ->post(route('two-factor.enable'))
+        ->assertRedirect(Auth::settingsSecurity->value)
+        ->assertSessionHas('status', 'two-factor-authentication-enabled');
+
+    $User->refresh();
+
+    expect($User->two_factor_secret)->not->toBeNull()
+        ->and($User->two_factor_recovery_codes)->not->toBeNull()
+        ->and($User->two_factor_confirmed_at)->toBeNull();
+
+    $this->actingAs($User)
+        ->get(Auth::settingsSecurity->value)
+        ->assertOk()
+        ->assertSee('Finish setup')
+        ->assertSee('Authentication code');
+});
+
+test('enabled two-factor authentication and recovery codes are displayed', function (): void {
+    $User = User::factory()->createOne();
+    app(EnableTwoFactorAuthentication::class)($User);
+    $User->forceFill([Users::two_factor_confirmed_at->value => now()])->save();
+
+    $this->actingAs($User->refresh())
+        ->get(Auth::settingsSecurity->value)
+        ->assertOk()
+        ->assertSee('Enabled')
+        ->assertSee('Recovery codes')
+        ->assertSee($User->recoveryCodes()[0])
+        ->assertSee('Disable');
 });
 
 test('the page lists the users sign in providers', function (): void {

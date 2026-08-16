@@ -18,6 +18,7 @@ enum Auth: string
     use RendersRoute;
 
     public const string credentialParameter = 'credential';
+    public const string passkeyParameter = 'passkey';
     public const string sessionParameter = 'session';
 
     case dashboard = '/dashboard';
@@ -33,4 +34,13 @@ enum Auth: string
     case verificationNotice = '/email/verify';
     case verificationVerify = '/email/verify/{id}/{hash}';
     case verificationSend = '/email/verification-notification';
+    case passkeyManagementConfirm = '/settings/security/passkeys/confirm';
+    case passkeyConfirmOptions = '/passkeys/confirm/options';
+    case passkeyConfirm = '/passkeys/confirm';
+    case twoFactorAuthentication = '/user/two-factor-authentication';
+    case confirmedTwoFactorAuthentication = '/user/confirmed-two-factor-authentication';
+    case twoFactorRecoveryCodes = '/user/two-factor-recovery-codes';
+    case passkeyRegistrationOptions = '/user/passkeys/options';
+    case passkeys = '/user/passkeys';
+    case passkey = '/user/passkeys/{'.self::passkeyParameter.'}';
 }

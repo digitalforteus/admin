@@ -48,16 +48,19 @@ test('the password reset confirmation page renders next steps', function (): voi
         ->assertSee(Web::forgotPassword->value);
 });
 
-test('a password reset link is sent to an existing user', function (): void {
-    Notification::fake();
-    $User = User::factory()->createOne();
+test(
+    /**
+     * @throws Exception
+     */ 'a password reset link is sent to an existing user', function (): void {
+        Notification::fake();
+        $User = User::factory()->createOne();
 
-    $this->post(Web::forgotPassword->value, [
-        ForgotPasswordForm::email => strtoupper($User->email),
-    ])->assertRedirect(Web::forgotPasswordSent->value);
+        $this->post(Web::forgotPassword->value, [
+            ForgotPasswordForm::email => strtoupper($User->email),
+        ])->assertRedirect(Web::forgotPasswordSent->value);
 
-    Notification::assertSentTo($User, ResetPassword::class);
-});
+        Notification::assertSentTo($User, ResetPassword::class);
+    });
 
 test('forgot password does not disclose whether an account exists', function (): void {
     Notification::fake();
@@ -83,7 +86,8 @@ test('the reset password page renders the token action and email', function (): 
         ->assertOk()
         ->assertSee('Choose a new password')
         ->assertSee('user@example.com')
-        ->assertSee('action="'.$url.'"', false);
+        ->assertSee('action="'.route('password.update').'"', false)
+        ->assertSee('name="'.ResetPasswordForm::token.'" value="reset-token"', false);
 
     expect(route('password.reset', [
         ResetPasswordForm::token => 'reset-token',
@@ -98,9 +102,9 @@ test('a password can be reset with a valid token', function (): void {
         Users::remember_token->value => 'old-remember-token',
     ]);
     $token = Password::createToken($User);
-    $url = Web::resetPassword->url([ResetPasswordForm::token => $token]);
 
-    $this->post($url, [
+    $this->post(route('password.update'), [
+        ResetPasswordForm::token => $token,
         ResetPasswordForm::email => $User->email,
         ResetPasswordForm::password => 'new-password-1234',
         ResetPasswordForm::password_confirmation => 'new-password-1234',
@@ -119,7 +123,8 @@ test('an invalid password reset token is rejected', function (): void {
     ]);
     $url = Web::resetPassword->url([ResetPasswordForm::token => 'invalid-token']);
 
-    $this->from($url)->post($url, [
+    $this->from($url)->post(route('password.update'), [
+        ResetPasswordForm::token => 'invalid-token',
         ResetPasswordForm::email => $User->email,
         ResetPasswordForm::password => 'new-password-1234',
         ResetPasswordForm::password_confirmation => 'new-password-1234',
@@ -133,14 +138,27 @@ test('an invalid password reset token is rejected', function (): void {
 test('reset password validates the submitted fields', function (): void {
     $url = Web::resetPassword->url([ResetPasswordForm::token => 'token']);
 
-    $this->from($url)->post($url, [
+    $this->from($url)->post(route('password.update'), [
+        ResetPasswordForm::token => 'token',
         ResetPasswordForm::email => 'invalid',
+        ResetPasswordForm::password => 'new-password-1234',
+        ResetPasswordForm::password_confirmation => 'new-password-1234',
+    ])->assertRedirect($url)
+        ->assertSessionHasErrors(ResetPasswordForm::email)
+        ->assertSessionMissing(ResetPasswordForm::password);
+});
+
+test('reset password enforces the password policy', function (): void {
+    $User = User::factory()->createOne();
+    $token = Password::createToken($User);
+    $url = Web::resetPassword->url([ResetPasswordForm::token => $token]);
+
+    $this->from($url)->post(route('password.update'), [
+        ResetPasswordForm::token => $token,
+        ResetPasswordForm::email => $User->email,
         ResetPasswordForm::password => 'short',
         ResetPasswordForm::password_confirmation => 'different',
     ])->assertRedirect($url)
-        ->assertSessionHasErrors([
-            ResetPasswordForm::email,
-            ResetPasswordForm::password,
-        ])
+        ->assertSessionHasErrors(ResetPasswordForm::password)
         ->assertSessionMissing(ResetPasswordForm::password);
 });

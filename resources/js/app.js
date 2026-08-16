@@ -1,4 +1,19 @@
 import './bootstrap';
+import { Passkeys } from '@laravel/passkeys';
+
+const passkeyError = (button, error) => {
+    const message = button.parentElement?.parentElement?.querySelector('[data-passkey-error]')
+        ?? document.querySelector('[data-passkey-error]');
+
+    if (message) {
+        message.textContent = error instanceof Error ? error.message : 'The passkey operation failed.';
+        message.classList.remove('hidden');
+    }
+};
+
+document.querySelectorAll('[data-passkey-login], [data-passkey-register], [data-passkey-confirm]').forEach((button) => {
+    button.disabled = ! Passkeys.isSupported();
+});
 
 const dismissToast = (toast) => {
     if (! toast || toast.dataset.dismissing !== undefined) {
@@ -35,6 +50,47 @@ document.addEventListener('click', (event) => {
 
     if (button) {
         dismissToast(button.closest('[data-toast]'));
+    }
+
+    const passkeyLogin = event.target.closest('[data-passkey-login]');
+
+    if (passkeyLogin) {
+        passkeyLogin.disabled = true;
+        Passkeys.verify()
+            .then((response) => window.location.assign(response.redirect ?? '/'))
+            .catch((error) => passkeyError(passkeyLogin, error))
+            .finally(() => passkeyLogin.disabled = false);
+    }
+
+    const passkeyRegister = event.target.closest('[data-passkey-register]');
+
+    if (passkeyRegister) {
+        const name = document.querySelector('[data-passkey-name]')?.value.trim();
+
+        if (! name) {
+            passkeyError(passkeyRegister, new Error('Enter a name for this passkey.'));
+        } else {
+            passkeyRegister.disabled = true;
+            Passkeys.register({ name })
+                .then(() => window.location.reload())
+                .catch((error) => passkeyError(passkeyRegister, error))
+                .finally(() => passkeyRegister.disabled = false);
+        }
+    }
+
+    const passkeyConfirm = event.target.closest('[data-passkey-confirm]');
+
+    if (passkeyConfirm) {
+        passkeyConfirm.disabled = true;
+        Passkeys.verify({
+            routes: {
+                options: passkeyConfirm.dataset.passkeyConfirmOptions,
+                submit: passkeyConfirm.dataset.passkeyConfirmSubmit,
+            },
+        })
+            .then((response) => window.location.assign(response.redirect ?? '/'))
+            .catch((error) => passkeyError(passkeyConfirm, error))
+            .finally(() => passkeyConfirm.disabled = false);
     }
 
     const openDialog = event.target.closest('[data-delete-dialog-open]');

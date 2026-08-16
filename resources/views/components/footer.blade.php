@@ -11,11 +11,11 @@
         </a>
     </aside>
     <nav>
-        <h6 class="footer-title">Support</h6>
+        <h2 class="footer-title">Support</h2>
         <a href="{{Web::contact->value}}" class="link link-hover">Contact</a>
     </nav>
     <nav>
-        <h6 class="footer-title">Legal</h6>
+        <h2 class="footer-title">Legal</h2>
         <a href="{{Web::privacyPolicy->value}}" class="link link-hover">Privacy Policy</a>
         <a href="{{Web::termsOfService->value}}" class="link link-hover">Terms of Service</a>
     </nav>

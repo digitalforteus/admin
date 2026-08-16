@@ -40,11 +40,19 @@ enum Web: string
     #[ExcludeFromSitemap]
     case login = '/login';
     #[ExcludeFromSitemap]
+    case twoFactorChallenge = '/two-factor-challenge';
+    #[ExcludeFromSitemap]
+    case passkeyLoginOptions = '/passkeys/login/options';
+    #[ExcludeFromSitemap]
+    case passkeyLogin = '/passkeys/login';
+    #[ExcludeFromSitemap]
     case forgotPassword = '/forgot-password';
     #[ExcludeFromSitemap]
     case forgotPasswordSent = '/forgot-password/sent';
     #[ExcludeFromSitemap]
     case resetPassword = '/reset-password/{token}';
+    #[ExcludeFromSitemap]
+    case resetPasswordUpdate = '/reset-password';
     #[ExcludeFromSitemap]
     case googleRedirect = '/auth/google/redirect';
     #[ExcludeFromSitemap]

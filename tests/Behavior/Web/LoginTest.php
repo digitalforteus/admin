@@ -10,6 +10,7 @@ use App\Modules\Login\LoginFormFactory;
 use App\Routes\Web;
 use App\Sources\Db\App\OauthProviders;
 use App\Sources\Db\App\Users;
+use Laravel\Fortify\Actions\EnableTwoFactorAuthentication;
 use Laravel\Socialite\Contracts\Provider as SocialiteProvider;
 use Laravel\Socialite\Contracts\User as SocialiteUser;
 use Laravel\Socialite\Socialite;
@@ -199,6 +200,22 @@ test('login with valid credentials', function (): void {
     )->assertRedirect(Web::home->value);
 
     $this->assertAuthenticated();
+});
+
+test('login challenges a user with two-factor authentication enabled', function (): void {
+    $User = User::factory([Users::password->value => Users::password->value])->createOne();
+    app(EnableTwoFactorAuthentication::class)($User);
+    $User->forceFill([Users::two_factor_confirmed_at->value => now()])->save();
+
+    $this->post(Web::login->value, [
+        LoginForm::email => $User->email,
+        LoginForm::password => Users::password->value,
+        LoginForm::remember_token => true,
+    ])->assertRedirect(route('two-factor.login'));
+
+    $this->assertGuest();
+    expect(session('login.id'))->toBe($User->id)
+        ->and(session('login.remember'))->toBeTrue();
 });
 
 test('validation fails with invalid email', function (): void {

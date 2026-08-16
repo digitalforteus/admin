@@ -3,6 +3,7 @@
 use App\Models\User;
 use App\Modules\PasswordConfirmation\PasswordConfirmationForm;
 use App\Routes\Auth;
+use App\Routes\MiddlewareTag;
 use App\Routes\Web;
 use App\Sources\Db\App\Users;
 use Illuminate\Support\Facades\Hash;
@@ -32,7 +33,11 @@ test('the password confirmation page renders', function (): void {
 
 test('password confirmation middleware redirects until the password is verified', function (): void {
     Route::get('/password-confirmation-protected', static fn () => response('protected'))
-        ->middleware(['web', 'auth', 'password.confirm']);
+        ->middleware([
+            MiddlewareTag::web->value,
+            MiddlewareTag::auth->value,
+            MiddlewareTag::passwordConfirm->value,
+        ]);
     $User = User::factory()->createOne();
 
     $this->actingAs($User)

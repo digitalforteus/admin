@@ -7,12 +7,21 @@ use App\Helpers\Theme;
 use App\Models\PersonalAccessToken;
 use App\Models\User;
 use App\Modules\Api\Support\SchemaController;
+use App\Modules\PasswordReset\PasswordResetLinkResponse;
+use App\Modules\PasswordReset\ResetUserPassword;
+use App\Modules\Verification\EmailVerificationNotificationSentResponse;
+use App\Modules\Verification\VerifyEmailResponse;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Fortify\Contracts\EmailVerificationNotificationSentResponse as EmailVerificationNotificationSentResponseContract;
+use Laravel\Fortify\Contracts\FailedPasswordResetLinkRequestResponse;
+use Laravel\Fortify\Contracts\SuccessfulPasswordResetLinkRequestResponse;
+use Laravel\Fortify\Contracts\VerifyEmailResponse as VerifyEmailResponseContract;
+use Laravel\Fortify\Fortify;
 use Laravel\Head\Enums\Media;
 use Laravel\Head\Enums\OgType;
 use Laravel\Head\Enums\TwitterCard;
@@ -25,6 +34,12 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        Fortify::ignoreRoutes();
+        Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
+        $this->app->bind(SuccessfulPasswordResetLinkRequestResponse::class, PasswordResetLinkResponse::class);
+        $this->app->bind(FailedPasswordResetLinkRequestResponse::class, PasswordResetLinkResponse::class);
+        $this->app->bind(EmailVerificationNotificationSentResponseContract::class, EmailVerificationNotificationSentResponse::class);
+        $this->app->bind(VerifyEmailResponseContract::class, VerifyEmailResponse::class);
         View::addLocation(dirname(__DIR__).'/View/Components');
         Model::preventLazyLoading();
         Model::preventAccessingMissingAttributes();

@@ -2,6 +2,7 @@
 
 use App\Helpers\Role;
 use App\Routes\Admin;
+use App\Routes\MiddlewareTag;
 use Illuminate\Support\Str;
 use Opcodes\LogViewer\Enums\SortingMethod;
 use Opcodes\LogViewer\Enums\SortingOrder;
@@ -106,8 +107,8 @@ return [
     */
 
     'middleware' => [
-        'web',
-        'auth',
+        MiddlewareTag::web->value,
+        MiddlewareTag::auth->value,
         Role::admin->middleware(),
         AuthorizeLogViewer::class,
     ],
@@ -123,7 +124,7 @@ return [
 
     'api_middleware' => [
         EnsureFrontendRequestsAreStateful::class,
-        'auth',
+        MiddlewareTag::auth->value,
         Role::admin->middleware(),
         AuthorizeLogViewer::class,
     ],

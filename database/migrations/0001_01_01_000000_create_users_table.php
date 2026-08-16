@@ -15,6 +15,9 @@ return new class extends Migration
             $Blueprint->string('email')->unique()->comment('The users email');
             $Blueprint->timestamp('email_verified_at')->nullable()->comment('When the users email was verified');
             $Blueprint->string('password')->comment('The users hashed password');
+            $Blueprint->text('two_factor_secret')->nullable();
+            $Blueprint->text('two_factor_recovery_codes')->nullable();
+            $Blueprint->timestamp('two_factor_confirmed_at')->nullable();
             $Blueprint->string('remember_token', 100)->nullable()->comment('The token that keeps the user signed in between sessions');
             $Blueprint->string('theme', 16)->default(Theme::auto->value)->comment('The color theme the user prefers');
             $Blueprint->timestamp('created_at')->nullable()->comment('When the user was created');

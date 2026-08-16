@@ -17,6 +17,10 @@ use Illuminate\Http\Request;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Laravel\Fortify\TwoFactorAuthenticatable;
+use Laravel\Passkeys\Contracts\PasskeyUser;
+use Laravel\Passkeys\Passkey;
+use Laravel\Passkeys\PasskeyAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
@@ -28,13 +32,17 @@ use Spatie\Permission\Traits\HasRoles;
  * @property string $password
  * @property Theme $theme
  * @property string|null $remember_token
+ * @property string|null $two_factor_secret
+ * @property string|null $two_factor_recovery_codes
+ * @property Carbon|null $two_factor_confirmed_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read Collection<int, OauthProvider> $oauthProviders
+ * @property-read Collection<int, Passkey> $passkeys
  *
  * @mixin IdeHelperUser
  */
-class User extends Authenticatable implements MustVerifyEmail
+class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
 {
     /** @use HasApiTokens<PersonalAccessToken> */
     use HasApiTokens;
@@ -44,6 +52,8 @@ class User extends Authenticatable implements MustVerifyEmail
     use HasRoles;
     use HasUlids;
     use Notifiable;
+    use PasskeyAuthenticatable;
+    use TwoFactorAuthenticatable;
 
     /** @var list<string> */
     protected $fillable = [
@@ -53,15 +63,20 @@ class User extends Authenticatable implements MustVerifyEmail
         Users::theme->value,
     ];
 
-    /** @var array<string, string> */
+    /** @var array<string, mixed> */
     protected $attributes = [
         Users::theme->value => Theme::auto->value,
+        Users::two_factor_secret->value => null,
+        Users::two_factor_recovery_codes->value => null,
+        Users::two_factor_confirmed_at->value => null,
     ];
 
     /** @var list<string> */
     protected $hidden = [
         Users::password->value,
         Users::remember_token->value,
+        Users::two_factor_secret->value,
+        Users::two_factor_recovery_codes->value,
     ];
 
     /** @return array<string, string> */
@@ -71,6 +86,7 @@ class User extends Authenticatable implements MustVerifyEmail
             Users::email_verified_at->value => 'datetime',
             Users::password->value => 'hashed',
             Users::theme->value => Theme::class,
+            Users::two_factor_confirmed_at->value => 'datetime',
         ];
     }
 

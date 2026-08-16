@@ -75,6 +75,27 @@ enum Users: string
     case password = 'password';
 
     #[Column([
+        Column::name => self::two_factor_secret,
+        Column::type => ColumnType::text->value,
+        Column::nullable => true,
+    ])]
+    case two_factor_secret = 'two_factor_secret';
+
+    #[Column([
+        Column::name => self::two_factor_recovery_codes,
+        Column::type => ColumnType::text->value,
+        Column::nullable => true,
+    ])]
+    case two_factor_recovery_codes = 'two_factor_recovery_codes';
+
+    #[Column([
+        Column::name => self::two_factor_confirmed_at,
+        Column::type => ColumnType::timestamp->value,
+        Column::nullable => true,
+    ])]
+    case two_factor_confirmed_at = 'two_factor_confirmed_at';
+
+    #[Column([
         Column::name => self::remember_token,
         Column::comment => 'The token that keeps the user signed in between sessions',
         Column::type => ColumnType::varchar->value,

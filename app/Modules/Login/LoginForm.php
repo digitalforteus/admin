@@ -20,6 +20,7 @@ readonly class LoginForm
         TextInput::type => 'email',
         TextInput::icon => SvgName::email,
         TextInput::placeholder => 'Email',
+        TextInput::autocomplete => 'email webauthn',
         TextInput::title => 'User email address',
         TextInput::required => true,
     ])]

@@ -41,6 +41,10 @@ render(function (View $view) {
         </div>
         <button class="btn btn-primary mt-4 w-full">Login</button>
     </form>
+    <button type="button" class="btn btn-outline mt-3 w-full" data-passkey-login>
+        Sign in with a passkey
+    </button>
+    <p class="mt-2 hidden text-center text-sm text-error" data-passkey-error></p>
     <div class="divider text-xs uppercase">or continue with</div>
     <a href="{{Web::googleRedirect->value}}" class="btn btn-outline w-full">
         <x-svg :svg="[Svg::name => SvgName::google, Svg::classname => 'size-5']"/>
