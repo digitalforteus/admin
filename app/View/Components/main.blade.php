@@ -20,9 +20,7 @@
 <body class="h-screen overflow-y-scroll scrollbar-visible {{$Main->classnames}}">
 <x-google-tag-manager-noscript/>
 <x-topnav :topnav="$Main->topnav()"/>
-@if($Main->leftNav)
-{{--  <x-left-nav/>--}}
-@elseif($Main->adminNav)
+@if($Main->adminNav)
   <x-admin-nav/>
 @elseif($Main->settingsNav)
   <x-settings-nav/>

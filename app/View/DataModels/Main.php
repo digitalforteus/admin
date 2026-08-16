@@ -39,7 +39,7 @@ class Main
 
     public function nav(): bool
     {
-        return $this->leftNav || $this->adminNav || $this->settingsNav;
+        return $this->adminNav || $this->settingsNav;
     }
 
     /** @return array<string, mixed> */

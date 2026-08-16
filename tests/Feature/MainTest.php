@@ -33,7 +33,6 @@ test('the auto theme renders no attribute', function (): void {
 });
 
 test('any rail widens the content', function (): void {
-    expect(Main::from([Main::leftNav => true])->nav())->toBeTrue()
-        ->and(Main::from([Main::adminNav => true])->nav())->toBeTrue()
+    expect(Main::from([Main::adminNav => true])->nav())->toBeTrue()
         ->and(Main::from([Main::settingsNav => true])->nav())->toBeTrue();
 });

@@ -25,13 +25,6 @@ test('a left navigation case must describe an item with named attributes', funct
     'positional attribute' => [[Web::home], 'Left navigation attributes must be named.'],
 ]);
 
-test('the rail is shown to an authenticated user', function (): void {
-    $this->actingAs(User::factory()->createOne())
-        ->get(Web::home->value)
-        ->assertOk()
-        ->assertSee('lg:pl-56');
-});
-
 test('the settings pages carry their own rail instead', function (): void {
     $this->actingAs(User::factory()->createOne())
         ->get(Auth::settingsProfile->value)
