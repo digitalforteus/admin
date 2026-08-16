@@ -6,6 +6,7 @@ use App\Modules\Api\Admin\LogInvestigation\LogInvestigator;
 use App\Modules\Api\Support\ApiResponse;
 use App\Routes\Admin;
 use Illuminate\Http\Request;
+use Mockery\Expectation;
 use Mockery\MockInterface;
 use Opcodes\LogViewer\Facades\LogViewer;
 use Opcodes\LogViewer\Http\Controllers\LogsController;
@@ -57,6 +58,7 @@ test('investigate logs through the admin api', function (): void {
 
 test('malformed upstream log entries are ignored', function (): void {
     $this->mock(LogsController::class, function (MockInterface $Mock): void {
+        /** @var Expectation $Expectation */
         $Expectation = $Mock->expects('index');
         $Expectation->andReturn(response()->json([
             'logs' => [null, ['level' => 'ERROR']],
