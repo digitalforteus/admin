@@ -1,5 +1,6 @@
 <?php
 
+use App\Helpers\SessionKey;
 use App\Helpers\Theme;
 use App\Models\User;
 use App\Routes\Auth;
@@ -26,6 +27,15 @@ test('the layout renders a theme color for each declared theme', function (): vo
         ->assertSee('content="'.Theme::light->color().'" media="(prefers-color-scheme: light)"', false)
         ->assertSee('content="'.Theme::dark->color().'" media="(prefers-color-scheme: dark)"', false);
 });
+
+test('the google tag sends a sign up event', function (string $method): void {
+    session()->flash(SessionKey::sign_up_method->value, $method);
+
+    $this->get(Web::home->value)
+        ->assertOk()
+        ->assertSee("gtag('event', 'sign_up', {", false)
+        ->assertSee("method: '$method'", false);
+})->with(['Email', 'Google']);
 
 test('a page title is suffixed with the application name', function (): void {
     $name = Config::string('app.name');

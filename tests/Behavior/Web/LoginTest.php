@@ -66,7 +66,8 @@ test('google login creates a verified user', function (): void {
     expect($User->name)->toBe('Google User')
         ->and($User->hasVerifiedEmail())->toBeTrue()
         ->and($User->oauthProviders()->sole()->sub)->toBe('123456789')
-        ->and(session(SessionKey::user_picture->value))->toBe('https://example.com/avatar.jpg');
+        ->and(session(SessionKey::user_picture->value))->toBe('https://example.com/avatar.jpg')
+        ->and(session(SessionKey::sign_up_method->value))->toBe('Google');
 });
 
 test('google login updates the oauth provider', function (): void {
@@ -126,7 +127,8 @@ test('google login uses an existing user', function (): void {
 
     $this->assertAuthenticatedAs($User);
     expect($User->refresh()->hasVerifiedEmail())->toBeTrue()
-        ->and(User::query()->where(Users::email->value, 'google@example.com')->count())->toBe(1);
+        ->and(User::query()->where(Users::email->value, 'google@example.com')->count())->toBe(1)
+        ->and(session()->missing(SessionKey::sign_up_method->value))->toBeTrue();
 });
 
 test('google login rejects an unverified email', function (): void {

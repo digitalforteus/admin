@@ -1,5 +1,6 @@
 <?php
 
+use App\Helpers\SessionKey;
 use App\Models\User;
 use App\Modules\Register\RegisterForm;
 use App\Modules\Register\RegisterFormFactory;
@@ -21,6 +22,7 @@ test('registration', function (): void {
     )->assertRedirect(Auth::verificationNotice->value);
 
     $this->assertAuthenticated();
+    expect(session(SessionKey::sign_up_method->value))->toBe('Email');
     $this->assertDatabaseHas((new User)->getTable(), [
         Users::name->value => $RegisterForm->name,
         Users::email->value => $RegisterForm->email,

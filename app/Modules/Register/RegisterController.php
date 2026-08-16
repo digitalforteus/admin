@@ -2,6 +2,7 @@
 
 namespace App\Modules\Register;
 
+use App\Helpers\SessionKey;
 use App\Models\User;
 use App\Routes\Auth as AuthRoute;
 use Illuminate\Auth\Events\Registered;
@@ -34,9 +35,6 @@ readonly class RegisterController
                 ->withInput($RegisterRequest->toArray());
         }
 
-        // The transaction belongs to the connection the model is on, not to a
-        // facade: the row and the events that follow it either all land or none
-        // do.
         User::query()->getConnection()->transaction(static function () use ($RegisterRequest): void {
             $User = User::query()->create([
                 RegisterRequest::name => $RegisterRequest->name,
@@ -48,6 +46,8 @@ readonly class RegisterController
 
             event(new Registered($User));
         });
+
+        request()->session()->flash(SessionKey::sign_up_method->value, 'Email');
 
         return redirect(AuthRoute::verificationNotice->value);
     }

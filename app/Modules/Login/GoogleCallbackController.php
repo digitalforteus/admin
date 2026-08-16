@@ -76,6 +76,10 @@ readonly class GoogleCallbackController
         request()->session()->regenerate();
         request()->session()->put(SessionKey::user_picture->value, $GoogleUser->picture);
 
+        if ($User->wasRecentlyCreated) {
+            request()->session()->flash(SessionKey::sign_up_method->value, 'Google');
+        }
+
         return redirect()->intended(Web::home->value);
     }
 }
