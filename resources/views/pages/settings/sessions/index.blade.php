@@ -18,7 +18,7 @@ Head::title('Sessions')
     <x-status-toast/>
 
     @if($sessions)
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <p class="text-sm text-base-content/70">Review and revoke browsers signed in to your account.</p>
             @if($sessions->isNotEmpty())
                 <form method="POST" action="{{Auth::settingsSessions->value}}" onsubmit="return confirm('Sign out every session?')">

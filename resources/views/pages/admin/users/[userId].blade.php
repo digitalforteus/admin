@@ -34,13 +34,13 @@ Head::title('User')
     $lastSessionAt = SessionsQuery::lastActivity($user->id);
 @endphp
 <x-main>
-    <div class="mx-auto max-w-5xl p-4 sm:p-6">
+    <div class="mx-auto max-w-5xl p-4 lg:p-6">
         <a href="{{Admin::users->value}}" class="link link-hover inline-flex items-center gap-1 text-sm">
             <x-svg :svg="[Svg::name => SvgName::chevron_up, Svg::classname => 'h-3 w-3 -rotate-90 opacity-70']"/>
             Users
         </a>
 
-        <header class="mt-4 flex flex-col gap-2 border-b border-base-300 pb-5 sm:flex-row sm:items-end sm:justify-between">
+        <header class="mt-4 flex flex-col gap-2 border-b border-base-300 pb-5 lg:flex-row lg:items-end lg:justify-between">
             <div class="flex items-center gap-3">
                 <div class="avatar avatar-placeholder">
                     <div class="relative w-12 rounded-full text-neutral-content">
@@ -88,7 +88,7 @@ Head::title('User')
 
                         <fieldset class="fieldset gap-2">
                             <legend class="fieldset-legend">Theme</legend>
-                            <div class="grid gap-2 sm:grid-cols-3">
+                            <div class="grid gap-2 lg:grid-cols-3">
                                 @foreach(Theme::cases() as $Theme)
                                     <label class="flex cursor-pointer items-center gap-2 rounded-box border border-base-300 p-3 hover:bg-base-200">
                                         <input type="radio" name="{{UsersUpdateRequest::theme}}" value="{{$Theme->value}}"
@@ -118,7 +118,7 @@ Head::title('User')
 
                         <div class="divider">Set a new password</div>
                         <p class="text-sm text-base-content/65">Leave both fields blank to keep the current password.</p>
-                        <div class="grid gap-4 sm:grid-cols-2">
+                        <div class="grid gap-4 lg:grid-cols-2">
                             <x-text-input :textInput="UsersUpdateForm::textInput(UsersUpdateForm::password)"/>
                             <x-text-input :textInput="UsersUpdateForm::textInput(UsersUpdateForm::password_confirmation)"/>
                         </div>
@@ -154,7 +154,7 @@ Head::title('User')
                 @forelse($user->oauthProviders as $OauthProvider)
                     <article class="card border border-base-300 bg-base-100">
                         <div class="card-body gap-4">
-                            <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                            <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                                 <div class="flex min-w-0 items-center gap-3">
                                     <div class="avatar"><div class="w-12 rounded-full"><img src="{{$OauthProvider->picture}}" alt="{{$OauthProvider->name}}" referrerpolicy="no-referrer"></div></div>
                                     <div class="min-w-0">
@@ -172,7 +172,7 @@ Head::title('User')
                                 </form>
                             </div>
 
-                            <dl class="grid gap-x-6 gap-y-3 border-t border-base-300 pt-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                            <dl class="grid gap-x-6 gap-y-3 border-t border-base-300 pt-4 text-sm lg:grid-cols-3">
                                 <div><dt class="text-base-content/55">Provider name</dt><dd title="{{$OauthProvider->name}}">{{$OauthProvider->name}}</dd></div>
                                 <div><dt class="text-base-content/55">Given name</dt><dd title="{{$OauthProvider->given_name}}">{{$OauthProvider->given_name}}</dd></div>
                                 <div><dt class="text-base-content/55">Family name</dt><dd title="{{$OauthProvider->family_name}}">{{$OauthProvider->family_name}}</dd></div>
@@ -182,7 +182,7 @@ Head::title('User')
                                 <div><dt class="text-base-content/55">Email verified</dt><dd title="{{$OauthProvider->email_verified ? 'Yes' : 'No'}}">{{$OauthProvider->email_verified ? 'Yes' : 'No'}}</dd></div>
                                 <div><dt class="text-base-content/55">Compatibility verified</dt><dd title="{{$OauthProvider->verified_email ? 'Yes' : 'No'}}">{{$OauthProvider->verified_email ? 'Yes' : 'No'}}</dd></div>
                                 <div><dt class="text-base-content/55">Profile link</dt><dd class="break-all" title="{{$OauthProvider->link}}">{{$OauthProvider->link ?? '—'}}</dd></div>
-                                <div class="sm:col-span-2 lg:col-span-3"><dt class="text-base-content/55">Picture URL</dt><dd class="break-all text-xs" title="{{$OauthProvider->picture}}">{{$OauthProvider->picture}}</dd></div>
+                                <div class="lg:col-span-3"><dt class="text-base-content/55">Picture URL</dt><dd class="break-all text-xs" title="{{$OauthProvider->picture}}">{{$OauthProvider->picture}}</dd></div>
                             </dl>
                         </div>
                     </article>
@@ -193,7 +193,7 @@ Head::title('User')
         </section>
 
         <section class="mt-8 rounded-box border border-error/35 bg-error/5 p-5" aria-labelledby="danger-heading" data-delete-user>
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                     <h2 id="danger-heading" class="font-semibold text-error">Delete user</h2>
                     <p class="mt-1 text-sm text-base-content/70">Permanently removes this account and all connected data.</p>

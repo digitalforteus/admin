@@ -12,6 +12,9 @@ enum LeftNav
     #[NavItem([NavItem::label => 'Home', NavItem::icon => SvgName::home, NavItem::route => Web::home])]
     case home;
 
+    #[NavItem([NavItem::label => 'Contact', NavItem::icon => SvgName::mailbox, NavItem::route => Web::contact])]
+    case contact;
+
     /** @return list<NavItem> */
     public static function items(): array
     {

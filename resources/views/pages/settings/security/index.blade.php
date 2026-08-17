@@ -49,7 +49,7 @@ Head::title('Security')
     <div class="divider"></div>
 
     <section aria-labelledby="two-factor-heading" data-two-factor-settings>
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
                 <div class="flex items-center gap-2">
                     <h2 id="two-factor-heading" class="text-lg font-semibold">Two-factor authentication</h2>
@@ -87,7 +87,7 @@ Head::title('Security')
                 <div class="my-4 w-fit overflow-hidden rounded-box bg-white p-3">
                     {!! $User->twoFactorQrCodeSvg() !!}
                 </div>
-                <form class="flex max-w-sm flex-col gap-3 sm:flex-row" method="POST" action="{{route('two-factor.confirm')}}">
+                <form class="flex max-w-sm flex-col gap-3 lg:flex-row" method="POST" action="{{route('two-factor.confirm')}}">
                     @csrf
                     <input class="input grow @error('code', 'confirmTwoFactorAuthentication') input-error @enderror"
                            name="code" inputmode="numeric" autocomplete="one-time-code" required
@@ -100,7 +100,7 @@ Head::title('Security')
             </div>
         @elseif($User?->hasEnabledTwoFactorAuthentication())
             <div class="mt-5 rounded-box border border-base-300 p-4" data-recovery-codes>
-                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                     <div>
                         <h3 class="font-semibold">Recovery codes</h3>
                         <p class="mt-1 text-sm text-base-content/70">
@@ -112,7 +112,7 @@ Head::title('Security')
                         <button class="btn btn-outline btn-sm">Generate new codes</button>
                     </form>
                 </div>
-                <ul class="mt-4 grid gap-2 font-mono text-sm sm:grid-cols-2">
+                <ul class="mt-4 grid gap-2 font-mono text-sm lg:grid-cols-2">
                     @foreach($User->recoveryCodes() as $recoveryCode)
                         <li class="rounded bg-base-200 px-3 py-2" title="{{$recoveryCode}}">{{$recoveryCode}}</li>
                     @endforeach
@@ -133,7 +133,7 @@ Head::title('Security')
 
         <div class="mt-4 overflow-hidden rounded-box border border-base-300">
             @forelse($Passkeys as $Passkey)
-                <div class="flex flex-col gap-3 border-b border-base-300 p-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between" data-passkey>
+                <div class="flex flex-col gap-3 border-b border-base-300 p-4 last:border-b-0 lg:flex-row lg:items-center lg:justify-between" data-passkey>
                     <div>
                         <p class="font-medium" title="{{$Passkey->name}}">{{$Passkey->name}}</p>
                         <p class="text-sm text-base-content/60" title="{{$Passkey->authenticator ?? 'Passkey'}} · Added {{$Passkey->created_at?->diffForHumans()}}">
@@ -154,7 +154,7 @@ Head::title('Security')
         </div>
 
         @if($passwordConfirmed)
-            <div class="mt-4 flex max-w-lg flex-col gap-3 sm:flex-row">
+            <div class="mt-4 flex max-w-lg flex-col gap-3 lg:flex-row">
                 <input class="input grow" type="text" maxlength="255" autocomplete="off"
                        placeholder="Passkey name, e.g. MacBook Pro" aria-label="Passkey name" data-passkey-name>
                 <button type="button" class="btn btn-primary" data-passkey-register>Add passkey</button>
@@ -177,7 +177,7 @@ Head::title('Security')
 
         <div class="mt-4 overflow-hidden rounded-box border border-base-300">
             @forelse($OauthProviders as $OauthProvider)
-                <div class="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between" data-oauth-provider>
+                <div class="flex flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between" data-oauth-provider>
                     <div class="flex min-w-0 items-center gap-3">
                         <div class="avatar">
                             <div class="w-11 rounded-full">
@@ -195,7 +195,7 @@ Head::title('Security')
                         </div>
                     </div>
 
-                    <dl class="grid gap-1 text-sm sm:text-right">
+                    <dl class="grid gap-1 text-sm lg:text-right">
                         <div>
                             <dt class="sr-only">Email</dt>
                             <dd title="{{$OauthProvider->email}}">{{$OauthProvider->email}}</dd>

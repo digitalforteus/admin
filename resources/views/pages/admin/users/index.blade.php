@@ -18,7 +18,7 @@ if (! is_array($usersTable)) {
 }
 ?>
 <x-main>
-    <div class="mx-auto max-w-5xl p-4 sm:p-6" data-admin-users>
+    <div class="mx-auto max-w-5xl p-4 lg:p-6" data-admin-users>
         <h1 class="text-2xl font-semibold">Users</h1>
 
         <x-users-table :$usersTable/>

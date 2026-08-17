@@ -11,7 +11,7 @@ Head::title('User sessions')
 ?>
 <x-main>
     @php($sessions = SessionsQuery::get($user->id))
-    <div class="mx-auto max-w-5xl p-4 sm:p-6">
+    <div class="mx-auto max-w-5xl p-4 lg:p-6">
         <a href="{{Admin::user->url([Admin::userParameter => $user->id])}}" class="link link-hover text-sm" title="{{$user->name}}">← {{$user->name}}</a>
 
         <header class="mt-4 border-b border-base-300 pb-5">

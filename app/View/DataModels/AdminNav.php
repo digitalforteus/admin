@@ -8,6 +8,9 @@ use ReflectionEnumUnitCase;
 
 enum AdminNav
 {
+    #[NavItem([NavItem::label => 'Dashboard', NavItem::icon => SvgName::home, NavItem::route => Admin::index])]
+    case dashboard;
+
     #[NavItem([NavItem::label => 'Users', NavItem::icon => SvgName::user, NavItem::route => Admin::users])]
     case users;
 

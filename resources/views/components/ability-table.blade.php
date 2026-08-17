@@ -18,7 +18,7 @@
                 </summary>
                 <div class="border-t border-base-300 p-4">
                     <p class="text-sm text-base-content/70">Use this API's OpenAPI document with your personal access token.</p>
-                <dl class="mt-4 grid gap-3 text-sm md:grid-cols-2">
+                <dl class="mt-4 grid gap-3 text-sm lg:grid-cols-2">
                     <div>
                         <dt class="font-medium text-base-content/70">API base URL</dt>
                         <dd><code class="break-all font-mono" title="{{ $connection['base_url'] }}">{{ $connection['base_url'] }}</code></dd>

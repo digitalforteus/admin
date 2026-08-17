@@ -7,7 +7,7 @@ Head::title('Terms of Service')
     ->description('The terms that govern your use of this service.');
 ?>
 <x-main>
-    <div class="card card-compact m-auto max-w-3xl sm:mt-24">
+    <div class="card card-compact m-auto max-w-3xl lg:mt-24">
         <div class="card-body">
             <h1 class="card-title">Terms of Service</h1>
             <p class="text-sm opacity-70">Last updated: August 12, 2026</p>

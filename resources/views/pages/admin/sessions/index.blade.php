@@ -17,7 +17,7 @@ Head::title('Sessions')
         $email = request()->string('email')->trim()->toString();
         $sessions = SessionsQuery::get($User?->id, $email);
     @endphp
-    <div class="mx-auto max-w-6xl p-4 sm:p-6">
+    <div class="mx-auto max-w-6xl p-4 lg:p-6">
         <header class="border-b border-base-300 pb-5">
             <p class="text-xs font-semibold uppercase tracking-wider text-base-content/55">Administration</p>
             <h1 class="mt-1 text-2xl font-semibold">Sessions</h1>
@@ -31,7 +31,7 @@ Head::title('Sessions')
             @endif
         </header>
 
-        <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div class="mt-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <form method="GET" action="{{Admin::sessions->value}}" class="flex w-full max-w-xl gap-2">
                 <label class="form-control w-full">
                     <span class="label-text mb-1 text-sm font-medium">Search by email</span>

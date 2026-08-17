@@ -37,7 +37,6 @@ enum Web: string
     case contact = '/contact';
     case privacyPolicy = '/privacy-policy';
     case termsOfService = '/terms-of-service';
-    #[ExcludeFromSitemap]
     case login = '/login';
     #[ExcludeFromSitemap]
     case twoFactorChallenge = '/two-factor-challenge';

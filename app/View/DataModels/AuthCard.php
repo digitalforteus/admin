@@ -14,7 +14,7 @@ class AuthCard
 
     public const string maxWidth = 'maxWidth';
 
-    public string $maxWidth = 'sm:max-w-sm';
+    public string $maxWidth = 'lg:max-w-sm';
 
     public const string classname = 'classname';
 
@@ -22,7 +22,7 @@ class AuthCard
 
     public function classes(): string
     {
-        return trim("card sm:m-auto sm:mt-24 $this->maxWidth $this->classname");
+        return trim("card lg:m-auto lg:mt-24 $this->maxWidth $this->classname");
     }
 
     /** @return array<string, mixed> */

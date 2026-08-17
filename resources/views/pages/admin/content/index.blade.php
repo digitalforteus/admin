@@ -11,7 +11,7 @@ Head::title('Site content')
     ->hiddenFromRobots();
 ?>
 <x-main>
-    <div class="mx-auto max-w-5xl p-4 sm:p-6">
+    <div class="mx-auto max-w-5xl p-4 lg:p-6">
         <header class="border-b border-base-300 pb-5">
             <p class="text-xs font-semibold uppercase tracking-wider text-base-content/55">Administration</p>
             <h1 class="mt-1 text-2xl font-semibold">Site content</h1>

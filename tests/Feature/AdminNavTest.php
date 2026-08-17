@@ -4,11 +4,11 @@ use App\Routes\Admin;
 use App\View\DataModels\AdminNav;
 use App\View\ViewDirectory;
 
-test('the first entry is the links page', function (): void {
+test('the first entry is the dashboard', function (): void {
     $items = AdminNav::items();
 
-    expect($items[0]->label)->toBe('Users')
-        ->and($items[0]->route)->toBe(Admin::users);
+    expect($items[0]->label)->toBe('Dashboard')
+        ->and($items[0]->route)->toBe(Admin::index);
 });
 
 test('the users page is listed', function (): void {

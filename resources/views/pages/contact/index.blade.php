@@ -8,7 +8,7 @@ Head::title('Contact')
     ->description('Get in touch with our team.');
 ?>
 <x-main>
-    <div class="card card-compact m-auto max-w-3xl sm:mt-24">
+    <div class="card card-compact m-auto max-w-3xl lg:mt-24">
         <div class="card-body">
             <h1 class="card-title">Contact</h1>
 

@@ -205,6 +205,13 @@ backticks over comment lines. This file is the exception: it links code on purpo
 Tailwind 4 + daisyUI 5 utility classes (`btn`, `card`, `input-error`, `toast`) —
 no custom CSS layer.
 
+### Responsive breakpoint
+
+Use `lg:` as the only responsive breakpoint in Blade templates and in classes
+generated for Blade components. Do not use `sm:`, `md:`, `xl:`, `2xl:`, or
+arbitrary responsive breakpoint variants. Layouts have one transition: the
+base mobile layout below `lg`, and the expanded layout at `lg` and above.
+
 ### Dynamic data titles
 
 Every HTML element that displays dynamic application data carries a `title`

@@ -9,7 +9,7 @@ Head::title('Admin')
     ->hiddenFromRobots();
 ?>
 <x-main>
-    <div class="card card-compact m-auto max-w-3xl sm:mt-24" data-admin-dashboard>
+    <div class="card card-compact m-auto max-w-3xl lg:mt-24" data-admin-dashboard>
         <div class="card-body">
             <h1 class="card-title">Admin</h1>
 
@@ -17,7 +17,7 @@ Head::title('Admin')
                 This page is only reachable by a signed-in user holding the admin role.
             </p>
 
-            <dl class="mt-4 stats stats-vertical sm:stats-horizontal shadow">
+            <dl class="mt-4 stats stats-vertical lg:stats-horizontal shadow">
                 <div class="stat" data-registered-users>
                     <dt class="stat-title">Registered users</dt>
                     <dd class="stat-value text-2xl" title="{{User::count()}}">{{User::count()}}</dd>
