@@ -1,7 +1,7 @@
 @php
     use App\View\DataModels\LeftNav;
 @endphp
-<aside aria-label="Primary" class="fixed bottom-0 left-0 top-16 z-10 hidden w-56 border-r border-base-300 bg-base-200 lg:block">
+<aside aria-label="Primary" class="fixed bottom-0 left-0 top-16 z-10 hidden w-56 border-r border-base-300 bg-base-200 md:block">
     <ul class="menu w-full gap-1 p-2">
         @foreach(LeftNav::items() as $NavItem)
             <li>

@@ -25,7 +25,9 @@ test('the page lists every theme', function (): void {
         ->assertSee('Light')
         ->assertSee('Dark')
         ->assertSee('Auto')
-        ->assertSee('Match the theme your device is set to.');
+        ->assertSee('Match the theme your device is set to.')
+        ->assertSee('onchange="this.form.requestSubmit()"', false)
+        ->assertDontSee('>Save</button>', false);
 });
 
 test('a new user starts on the auto theme', function (): void {

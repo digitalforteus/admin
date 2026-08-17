@@ -5,7 +5,7 @@
 @endphp
 <div class="dropdown dropdown-end">
     <div tabindex="0" role="button"
-         @class(['btn btn-ghost btn-circle avatar', 'avatar-placeholder' => $UserMenu->picture() === null]) title="{{$UserMenu->name}}">
+         @class(['btn btn-ghost btn-circle avatar size-14', 'avatar-placeholder' => $UserMenu->picture() === null]) title="{{$UserMenu->name}}">
         @if($UserMenu->picture() !== null)
             <div class="w-9 rounded-full text-neutral-content">
                 <img src="{{$UserMenu->picture()}}" alt="{{$UserMenu->name}}" referrerpolicy="no-referrer">

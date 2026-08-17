@@ -36,7 +36,7 @@ test('the settings pages carry their own rail instead', function (): void {
 test('the rail is hidden from a guest', function (): void {
     $this->get(Web::home->value)
         ->assertOk()
-        ->assertDontSee('lg:pl-56');
+        ->assertDontSee('md:pl-56');
 });
 
 test('the home case is marked active on the root path', function (): void {

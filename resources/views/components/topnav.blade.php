@@ -13,16 +13,16 @@
     <div class="navbar-start">
         <div class="navbar-start">
             @if($Topnav->nav())
-                <div class="dropdown lg:hidden">
-                    <div tabindex="0" role="button" class="btn btn-ghost" title="Open navigation">
+                <div class="dropdown md:hidden">
+                    <div tabindex="0" role="button" class="btn btn-ghost size-14" title="Open navigation">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h8m-8 6h16"/>
                         </svg>
                     </div>
-                    <ul tabindex="0" class="mt-3 w-52 p-2 shadow menu menu-sm dropdown-content bg-base-100 rounded-box z-[1]">
+                    <ul tabindex="0" class="menu dropdown-content z-[1] mt-3 w-56 rounded-box border border-base-content/15 bg-base-300 text-base shadow-xl">
                         @foreach($Topnav->items() as $NavItem)
                             <li>
-                                <a href="{{$NavItem->url()}}" @class(['menu-active' => $NavItem->active()])>
+                                <a href="{{$NavItem->url()}}" @class(['items-center gap-3 my-1 font-medium', 'menu-active' => $NavItem->active()])>
                                     <x-svg :svg="$NavItem->svg()"/>
                                     {{$NavItem->label}}
                                 </a>
@@ -31,14 +31,14 @@
                     </ul>
                 </div>
             @endif
-            <div class="hidden lg:block">
+            <div class="flex items-center">
                 <a href="{{Web::home->value}}"
                    class="btn btn-ghost no-animation hover:border-transparent hover:bg-transparent hover:shadow-none"
                    title="Go Home"
                 >
                     <x-svg :svg="[Svg::name => SvgName::logo, Svg::classname => 'h-6 w-6']"/>
                 </a>
-                <span class="lg:inline-flex ml-2" title="Brand Name">
+                <span class="ml-2 hidden md:inline-flex" title="Brand Name">
                 {{config('app.name')}}
             </span>
             </div>

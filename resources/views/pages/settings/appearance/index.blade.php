@@ -29,6 +29,7 @@ Head::title('Appearance')
                            name="{{AppearanceRequest::theme}}"
                            value="{{$Theme->value}}"
                            class="radio radio-primary"
+                           onchange="this.form.requestSubmit()"
                             @checked($selected === $Theme->value)
                     />
                     <x-svg :svg="[Svg::name => $Theme->icon(), Svg::classname => 'h-4 w-4 opacity-70']"/>
@@ -40,6 +41,5 @@ Head::title('Appearance')
             @endforeach
             @error(AppearanceRequest::theme)<p class="label text-error">{{$message}}</p>@enderror
         </fieldset>
-        <button class="btn btn-primary">Save</button>
     </form>
 </x-settings-card>

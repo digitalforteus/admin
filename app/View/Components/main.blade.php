@@ -25,7 +25,7 @@
 @elseif($Main->settingsNav)
   <x-settings-nav/>
 @endif
-<div @class(['mt-16', 'lg:pl-56' => $Main->nav()])>
+<div @class(['mt-16', 'md:pl-56' => $Main->nav()])>
   <div class="min-h-[calc(100vh-4rem)]">{{$slot}}</div>
 </div>
 <x-footer/>

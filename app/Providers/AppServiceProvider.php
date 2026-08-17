@@ -2,17 +2,14 @@
 
 namespace App\Providers;
 
-use App\Helpers\Role;
 use App\Helpers\Theme;
 use App\Models\PersonalAccessToken;
-use App\Models\User;
 use App\Modules\Api\Support\SchemaController;
 use App\Modules\PasswordReset\PasswordResetLinkResponse;
 use App\Modules\PasswordReset\ResetUserPassword;
 use App\Modules\Verification\EmailVerificationNotificationSentResponse;
 use App\Modules\Verification\VerifyEmailResponse;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
@@ -28,7 +25,6 @@ use Laravel\Head\Enums\TwitterCard;
 use Laravel\Head\Facades\Head;
 use Laravel\Head\HeadBuilder;
 use Laravel\Sanctum\Sanctum;
-use Opcodes\LogViewer\Facades\LogViewer;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -49,12 +45,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->registerOpenApiSchemas();
-
-        LogViewer::auth(static function (Request $request): bool {
-            $User = $request->user();
-
-            return $User instanceof User && $User->hasRole(Role::admin->value);
-        });
 
         $name = Config::string('app.name');
 

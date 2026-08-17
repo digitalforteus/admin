@@ -23,10 +23,7 @@ render(function (View $view) {
     return $view;
 });
 ?>
-<x-auth-card :authCard="[
-    AuthCard::title => 'Verify Your Email',
-    AuthCard::classname => 'lg:-translate-x-28',
-]">
+<x-auth-card :authCard="[AuthCard::title => 'Verify Your Email']">
     <x-status-toast/>
     <p class="text-sm text-base-content/70">
         We've emailed you a verification link. Click it to activate your account.

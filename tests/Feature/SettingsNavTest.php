@@ -50,7 +50,7 @@ test('the rail is shown on a settings page', function (): void {
     $this->actingAs(User::factory()->createOne())
         ->get(Auth::settingsProfile->value)
         ->assertOk()
-        ->assertSee('lg:pl-56')
+        ->assertSee('md:pl-56')
         ->assertSee('aria-label="Settings"', false);
 });
 

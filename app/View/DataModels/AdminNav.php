@@ -20,9 +20,6 @@ enum AdminNav
     #[NavItem([NavItem::label => 'Links', NavItem::icon => SvgName::document, NavItem::route => Admin::links])]
     case links;
 
-    #[NavItem([NavItem::label => 'Logs', NavItem::icon => SvgName::command_line, NavItem::route => Admin::logs])]
-    case logs;
-
     /** @return list<NavItem> */
     public static function items(): array
     {
