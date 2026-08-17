@@ -205,6 +205,22 @@ backticks over comment lines. This file is the exception: it links code on purpo
 Tailwind 4 + daisyUI 5 utility classes (`btn`, `card`, `input-error`, `toast`) —
 no custom CSS layer.
 
+### Dynamic data titles
+
+Every HTML element that displays dynamic application data carries a `title`
+attribute containing that data. Use the raw nullable value for the title while
+keeping any presentation fallback in the element body:
+
+```blade
+<td title="{{$session->user_agent}}">{{$session->user_agent ?? '—'}}</td>
+```
+
+Apply this to visible data rendered in headings, paragraphs, spans, table cells,
+list items, code blocks, and links. It does not apply to dynamic values used only
+as URLs, form attributes, validation messages, component slots, scripts, or SVG
+configuration. Preserve an existing meaningful `title` rather than adding a
+second one.
+
 ### Pages — Folio
 
 `resources/views/pages/**/index.blade.php`, routed by file path via Laravel Folio

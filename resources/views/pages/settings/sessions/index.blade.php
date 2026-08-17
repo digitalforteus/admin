@@ -39,8 +39,8 @@ Head::title('Sessions')
                             {{Carbon::createFromTimestamp($session->last_activity)->toDayDateTimeString()}}
                             @if(request()->session()->getId() === $session->id)<span class="badge badge-primary badge-sm ml-1">Current</span>@endif
                         </td>
-                        <td class="font-mono text-xs">{{$session->ip_address ?? '—'}}</td>
-                        <td class="max-w-md break-words text-sm">{{$session->user_agent ?? '—'}}</td>
+                        <td class="font-mono text-xs" title="{{$session->ip_address}}">{{$session->ip_address ?? '—'}}</td>
+                        <td class="max-w-sm truncate text-sm" title="{{$session->user_agent}}">{{$session->user_agent ?? '—'}}</td>
                         <td class="text-right">
                             <form method="POST" action="{{Auth::settingsSession->url([Auth::sessionParameter => $session->id])}}">
                                 @csrf

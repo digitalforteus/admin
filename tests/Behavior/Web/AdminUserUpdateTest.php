@@ -68,7 +68,7 @@ test('the index links to the page for a listed user', function (): void {
     $this->actingAs(adminUser())
         ->get(Admin::users->value)
         ->assertOk()
-        ->assertSee('<a href="'.editUrl($User).'" class="link">'.$User->email.'</a>', false)
+        ->assertSee('<a href="'.editUrl($User).'" class="link" title="'.$User->email.'">'.$User->email.'</a>', false)
         ->assertDontSee('class="btn btn-ghost btn-xs">Edit</a>', false);
 });
 

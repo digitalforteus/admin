@@ -34,8 +34,8 @@ Head::title('Appearance')
                     />
                     <x-svg :svg="[Svg::name => $Theme->icon(), Svg::classname => 'h-4 w-4 opacity-70']"/>
                     <div class="min-w-0">
-                        <p class="font-medium">{{$Theme->label()}}</p>
-                        <p class="text-xs opacity-60">{{$Theme->description()}}</p>
+                        <p class="font-medium" title="{{$Theme->label()}}">{{$Theme->label()}}</p>
+                        <p class="text-xs opacity-60" title="{{$Theme->description()}}">{{$Theme->description()}}</p>
                     </div>
                 </label>
             @endforeach

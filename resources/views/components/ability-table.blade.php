@@ -8,7 +8,7 @@
     @foreach($AbilityTable->groups() as $api => $rows)
         @php($connection = $AbilityTable->mcpConnection($api))
         <section class="flex flex-col gap-2">
-            <h2 class="text-sm font-semibold uppercase tracking-wide text-base-content/70">{{ ucfirst($api) }} API</h2>
+            <h2 class="text-sm font-semibold uppercase tracking-wide text-base-content/70" title="{{ ucfirst($api) }} API">{{ ucfirst($api) }} API</h2>
             <details class="group rounded-box border border-base-300 bg-base-200/50">
                 <summary class="cursor-pointer list-none p-4 font-semibold marker:content-none">
                     <span class="flex items-center justify-between gap-3">
@@ -21,19 +21,19 @@
                 <dl class="mt-4 grid gap-3 text-sm md:grid-cols-2">
                     <div>
                         <dt class="font-medium text-base-content/70">API base URL</dt>
-                        <dd><code class="break-all font-mono">{{ $connection['base_url'] }}</code></dd>
+                        <dd><code class="break-all font-mono" title="{{ $connection['base_url'] }}">{{ $connection['base_url'] }}</code></dd>
                     </div>
                     <div>
                         <dt class="font-medium text-base-content/70">OpenAPI document</dt>
-                        <dd><code class="break-all font-mono">{{ $connection['openapi_url'] }}</code></dd>
+                        <dd><code class="break-all font-mono" title="{{ $connection['openapi_url'] }}">{{ $connection['openapi_url'] }}</code></dd>
                     </div>
                     <div>
                         <dt class="font-medium text-base-content/70">Request headers</dt>
-                        <dd><code class="break-all font-mono">{{ $connection['headers'] }}</code></dd>
+                        <dd><code class="break-all font-mono" title="{{ $connection['headers'] }}">{{ $connection['headers'] }}</code></dd>
                     </div>
                     <div>
                         <dt class="font-medium text-base-content/70">Agent documentation</dt>
-                        <dd><a href="{{ $connection['llms_url'] }}" class="link link-primary break-all font-mono">{{ $connection['llms_url'] }}</a></dd>
+                        <dd><a href="{{ $connection['llms_url'] }}" class="link link-primary break-all font-mono" title="{{ $connection['llms_url'] }}">{{ $connection['llms_url'] }}</a></dd>
                     </div>
                 </dl>
                 </div>
@@ -48,6 +48,7 @@
                         <button type="button"
                                 class="btn btn-ghost btn-xs text-primary"
                                 data-ability-column="{{ $HttpVerb->value }}"
+                                title="{{ $HttpVerb->value }}"
                                 aria-label="Toggle all {{ $HttpVerb->value }} abilities"
                                 aria-pressed="false"
                         >{{ $HttpVerb->value }}</button>
@@ -58,7 +59,7 @@
             <tbody>
             @forelse($rows as $AbilityRow)
                 <tr class="hover:bg-base-200">
-                    <td class="whitespace-nowrap font-mono text-sm">{{ $AbilityRow->path }}</td>
+                    <td class="whitespace-nowrap font-mono text-sm" title="{{ $AbilityRow->path }}">{{ $AbilityRow->path }}</td>
                     @foreach($AbilityTable->verbs() as $HttpVerb)
                         <td class="text-center">
                             @if($AbilityRow->bound($HttpVerb))

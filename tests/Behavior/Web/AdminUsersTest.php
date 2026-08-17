@@ -55,8 +55,8 @@ test('only unverified users have an unverified email chip', function (): void {
         ->getContent();
 
     expect($content)
-        ->toContain('<a href="'.Admin::user->url([Admin::userParameter => $Verified->id]).'" class="link">'.$Verified->email.'</a>')
-        ->toContain('<a href="'.Admin::user->url([Admin::userParameter => $Unverified->id]).'" class="link">'.$Unverified->email.'</a>')
+        ->toContain('<a href="'.Admin::user->url([Admin::userParameter => $Verified->id]).'" class="link" title="'.$Verified->email.'">'.$Verified->email.'</a>')
+        ->toContain('<a href="'.Admin::user->url([Admin::userParameter => $Unverified->id]).'" class="link" title="'.$Unverified->email.'">'.$Unverified->email.'</a>')
         ->and(substr_count($content, '>Unverified</span>'))->toBe(1);
 });
 
@@ -130,7 +130,7 @@ test('the page falls back to initials when the user picture cannot load', functi
         ->assertOk()
         ->assertSee('avatar-placeholder', false)
         ->assertSee("classList.add('bg-neutral')", false)
-        ->assertSee('<span class="hidden text-xs">AL</span>', false)
+        ->assertSee('<span class="hidden text-xs" title="AL">AL</span>', false)
         ->assertSee('AL');
 });
 

@@ -16,7 +16,7 @@ Head::title('Links')
             <ul class="mt-4 divide-y divide-base-300">
                 @foreach(AdminLink::routes() as $link)
                     <li class="flex items-center justify-between gap-4 py-2">
-                        <span class="text-sm font-medium">{{Str::headline($link[AdminLink::name])}}</span>
+                        <span class="text-sm font-medium" title="{{Str::headline($link[AdminLink::name])}}">{{Str::headline($link[AdminLink::name])}}</span>
                         <a href="{{$link[AdminLink::url]}}" target="_blank" class="link link-primary font-mono text-sm">
                             {{$link[AdminLink::url]}}
                         </a>

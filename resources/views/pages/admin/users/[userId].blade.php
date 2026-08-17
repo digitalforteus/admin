@@ -44,7 +44,7 @@ Head::title('User')
             <div class="flex items-center gap-3">
                 <div class="avatar avatar-placeholder">
                     <div class="relative w-12 rounded-full text-neutral-content">
-                        <span class="hidden text-sm">{{Initials::from($user->name)}}</span>
+                        <span class="hidden text-sm" title="{{Initials::from($user->name)}}">{{Initials::from($user->name)}}</span>
                         <img class="absolute inset-0" src="{{$picture}}" alt="{{$user->name}}"
                              referrerpolicy="no-referrer"
                              onerror="this.previousElementSibling.classList.remove('hidden'); this.parentElement.classList.add('bg-neutral'); this.remove()">
@@ -52,8 +52,8 @@ Head::title('User')
                 </div>
                 <div>
                     <p class="text-xs font-semibold uppercase tracking-wider text-base-content/55">User account</p>
-                    <h1 class="mt-1 text-2xl font-semibold">{{$user->name}}</h1>
-                    <p class="mt-1 font-mono text-xs text-base-content/55">{{$user->id}}</p>
+                    <h1 class="mt-1 text-2xl font-semibold" title="{{$user->name}}">{{$user->name}}</h1>
+                    <p class="mt-1 font-mono text-xs text-base-content/55" title="{{$user->id}}">{{$user->id}}</p>
                 </div>
             </div>
             <div class="flex gap-2">
@@ -94,7 +94,7 @@ Head::title('User')
                                         <input type="radio" name="{{UsersUpdateRequest::theme}}" value="{{$Theme->value}}"
                                                class="radio radio-primary radio-sm" @checked($theme === $Theme->value)/>
                                         <x-svg :svg="[Svg::name => $Theme->icon(), Svg::classname => 'h-4 w-4 opacity-70']"/>
-                                        <span class="text-sm font-medium">{{$Theme->label()}}</span>
+                                        <span class="text-sm font-medium" title="{{$Theme->label()}}">{{$Theme->label()}}</span>
                                     </label>
                                 @endforeach
                             </div>
@@ -132,13 +132,13 @@ Head::title('User')
                 <div class="card-body">
                     <h2 id="record-heading" class="card-title text-lg">Record details</h2>
                     <dl class="divide-y divide-base-300 text-sm">
-                        <div class="py-3"><dt class="text-base-content/55">User ID</dt><dd class="mt-1 break-all font-mono text-xs">{{$user->id}}</dd></div>
-                        <div class="py-3"><dt class="text-base-content/55">Email verified at</dt><dd class="mt-1">{{$user->email_verified_at?->toDayDateTimeString() ?? 'Not verified'}}</dd></div>
-                        <div class="py-3"><dt class="text-base-content/55">Theme</dt><dd class="mt-1">{{$user->theme->label()}}</dd></div>
-                        <div class="py-3"><dt class="text-base-content/55">Created</dt><dd class="mt-1">{{$user->created_at?->toDayDateTimeString() ?? '—'}}</dd></div>
-                        <div class="py-3"><dt class="text-base-content/55">Last session</dt><dd class="mt-1">{{$lastSessionAt?->toDayDateTimeString() ?? '—'}}</dd></div>
-                        <div class="py-3"><dt class="text-base-content/55">Last updated</dt><dd class="mt-1">{{$user->updated_at?->toDayDateTimeString() ?? '—'}}</dd></div>
-                        <div class="py-3"><dt class="text-base-content/55">Remembered login</dt><dd class="mt-1">{{$user->remember_token === null ? 'No' : 'Yes'}}</dd></div>
+                        <div class="py-3"><dt class="text-base-content/55">User ID</dt><dd class="mt-1 break-all font-mono text-xs" title="{{$user->id}}">{{$user->id}}</dd></div>
+                        <div class="py-3"><dt class="text-base-content/55">Email verified at</dt><dd class="mt-1" title="{{$user->email_verified_at?->toDayDateTimeString()}}">{{$user->email_verified_at?->toDayDateTimeString() ?? 'Not verified'}}</dd></div>
+                        <div class="py-3"><dt class="text-base-content/55">Theme</dt><dd class="mt-1" title="{{$user->theme->label()}}">{{$user->theme->label()}}</dd></div>
+                        <div class="py-3"><dt class="text-base-content/55">Created</dt><dd class="mt-1" title="{{$user->created_at?->toDayDateTimeString()}}">{{$user->created_at?->toDayDateTimeString() ?? '—'}}</dd></div>
+                        <div class="py-3"><dt class="text-base-content/55">Last session</dt><dd class="mt-1" title="{{$lastSessionAt?->toDayDateTimeString()}}">{{$lastSessionAt?->toDayDateTimeString() ?? '—'}}</dd></div>
+                        <div class="py-3"><dt class="text-base-content/55">Last updated</dt><dd class="mt-1" title="{{$user->updated_at?->toDayDateTimeString()}}">{{$user->updated_at?->toDayDateTimeString() ?? '—'}}</dd></div>
+                        <div class="py-3"><dt class="text-base-content/55">Remembered login</dt><dd class="mt-1" title="{{$user->remember_token === null ? 'No' : 'Yes'}}">{{$user->remember_token === null ? 'No' : 'Yes'}}</dd></div>
                     </dl>
                 </div>
             </aside>
@@ -159,10 +159,10 @@ Head::title('User')
                                     <div class="avatar"><div class="w-12 rounded-full"><img src="{{$OauthProvider->picture}}" alt="{{$OauthProvider->name}}" referrerpolicy="no-referrer"></div></div>
                                     <div class="min-w-0">
                                         <div class="flex flex-wrap items-center gap-2">
-                                            <h3 class="font-semibold">{{Str::headline($OauthProvider->provider_id->value)}}</h3>
+                                            <h3 class="font-semibold" title="{{Str::headline($OauthProvider->provider_id->value)}}">{{Str::headline($OauthProvider->provider_id->value)}}</h3>
                                             @if($OauthProvider->verified_email)<span class="badge badge-success badge-sm">Verified</span>@endif
                                         </div>
-                                        <p class="truncate text-sm text-base-content/70">{{$OauthProvider->email}}</p>
+                                        <p class="truncate text-sm text-base-content/70" title="{{$OauthProvider->email}}">{{$OauthProvider->email}}</p>
                                     </div>
                                 </div>
                                 <form method="POST" action="{{Admin::userProvider->url([Admin::userParameter => $user->id, Admin::providerParameter => $OauthProvider->getKey()])}}">
@@ -173,16 +173,16 @@ Head::title('User')
                             </div>
 
                             <dl class="grid gap-x-6 gap-y-3 border-t border-base-300 pt-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
-                                <div><dt class="text-base-content/55">Provider name</dt><dd>{{$OauthProvider->name}}</dd></div>
-                                <div><dt class="text-base-content/55">Given name</dt><dd>{{$OauthProvider->given_name}}</dd></div>
-                                <div><dt class="text-base-content/55">Family name</dt><dd>{{$OauthProvider->family_name}}</dd></div>
-                                <div><dt class="text-base-content/55">Provider subject</dt><dd class="break-all font-mono text-xs">{{$OauthProvider->sub}}</dd></div>
-                                <div><dt class="text-base-content/55">Provider ID</dt><dd class="break-all font-mono text-xs">{{$OauthProvider->id}}</dd></div>
-                                <div><dt class="text-base-content/55">Hosted domain</dt><dd>{{$OauthProvider->hd ?? '—'}}</dd></div>
-                                <div><dt class="text-base-content/55">Email verified</dt><dd>{{$OauthProvider->email_verified ? 'Yes' : 'No'}}</dd></div>
-                                <div><dt class="text-base-content/55">Compatibility verified</dt><dd>{{$OauthProvider->verified_email ? 'Yes' : 'No'}}</dd></div>
-                                <div><dt class="text-base-content/55">Profile link</dt><dd class="break-all">{{$OauthProvider->link ?? '—'}}</dd></div>
-                                <div class="sm:col-span-2 lg:col-span-3"><dt class="text-base-content/55">Picture URL</dt><dd class="break-all text-xs">{{$OauthProvider->picture}}</dd></div>
+                                <div><dt class="text-base-content/55">Provider name</dt><dd title="{{$OauthProvider->name}}">{{$OauthProvider->name}}</dd></div>
+                                <div><dt class="text-base-content/55">Given name</dt><dd title="{{$OauthProvider->given_name}}">{{$OauthProvider->given_name}}</dd></div>
+                                <div><dt class="text-base-content/55">Family name</dt><dd title="{{$OauthProvider->family_name}}">{{$OauthProvider->family_name}}</dd></div>
+                                <div><dt class="text-base-content/55">Provider subject</dt><dd class="break-all font-mono text-xs" title="{{$OauthProvider->sub}}">{{$OauthProvider->sub}}</dd></div>
+                                <div><dt class="text-base-content/55">Provider ID</dt><dd class="break-all font-mono text-xs" title="{{$OauthProvider->id}}">{{$OauthProvider->id}}</dd></div>
+                                <div><dt class="text-base-content/55">Hosted domain</dt><dd title="{{$OauthProvider->hd}}">{{$OauthProvider->hd ?? '—'}}</dd></div>
+                                <div><dt class="text-base-content/55">Email verified</dt><dd title="{{$OauthProvider->email_verified ? 'Yes' : 'No'}}">{{$OauthProvider->email_verified ? 'Yes' : 'No'}}</dd></div>
+                                <div><dt class="text-base-content/55">Compatibility verified</dt><dd title="{{$OauthProvider->verified_email ? 'Yes' : 'No'}}">{{$OauthProvider->verified_email ? 'Yes' : 'No'}}</dd></div>
+                                <div><dt class="text-base-content/55">Profile link</dt><dd class="break-all" title="{{$OauthProvider->link}}">{{$OauthProvider->link ?? '—'}}</dd></div>
+                                <div class="sm:col-span-2 lg:col-span-3"><dt class="text-base-content/55">Picture URL</dt><dd class="break-all text-xs" title="{{$OauthProvider->picture}}">{{$OauthProvider->picture}}</dd></div>
                             </dl>
                         </div>
                     </article>
@@ -206,7 +206,7 @@ Head::title('User')
 
     <dialog id="delete-user-dialog" class="modal" data-delete-dialog>
         <div class="modal-box">
-            <h2 class="text-lg font-semibold">Delete {{$user->name}}?</h2>
+            <h2 class="text-lg font-semibold" title="{{$user->name}}">Delete {{$user->name}}?</h2>
             <p class="mt-2 text-sm text-base-content/70">This cannot be undone. Type <strong>delete</strong> to confirm.</p>
             <form method="POST" action="{{$action}}" class="mt-5 space-y-4">
                 @csrf

@@ -23,7 +23,7 @@ Head::title('Sessions')
             <h1 class="mt-1 text-2xl font-semibold">Sessions</h1>
             @if($User)
                 <p class="mt-1 text-sm text-base-content/70">
-                    Sessions for <a class="link" href="{{Admin::user->url([Admin::userParameter => $User->id])}}">{{$User->email}}</a>.
+                    Sessions for <a class="link" href="{{Admin::user->url([Admin::userParameter => $User->id])}}" title="{{$User->email}}">{{$User->email}}</a>.
                     <a class="link ml-2" href="{{Admin::sessions->value}}">Show all</a>
                 </p>
             @else
@@ -56,15 +56,15 @@ Head::title('Sessions')
                 <tbody>
                     @forelse($sessions as $session)
                         <tr>
-                            <td class="whitespace-nowrap">{{Carbon::createFromTimestamp($session->last_activity)->toDayDateTimeString()}}</td>
+                            <td class="whitespace-nowrap" title="{{Carbon::createFromTimestamp($session->last_activity)->toDayDateTimeString()}}">{{Carbon::createFromTimestamp($session->last_activity)->toDayDateTimeString()}}</td>
                             <td>
                                 @if($session->user_id)
-                                    <a class="link text-sm" href="{{Admin::user->url([Admin::userParameter => $session->user_id])}}">{{$session->email}}</a>
+                                    <a class="link text-sm" href="{{Admin::user->url([Admin::userParameter => $session->user_id])}}" title="{{$session->email}}">{{$session->email}}</a>
                                 @else
                                     Guest
                                 @endif
                             </td>
-                            <td class="font-mono text-xs">{{$session->ip_address ?? '—'}}</td>
+                            <td class="font-mono text-xs" title="{{$session->ip_address}}">{{$session->ip_address ?? '—'}}</td>
                             <td><div class="max-w-md truncate text-sm" title="{{$session->user_agent}}">{{$session->user_agent ?? '—'}}</div></td>
                             <td class="text-right">
                                 <form method="POST" action="{{Admin::session->url([Admin::sessionParameter => $session->id])}}">

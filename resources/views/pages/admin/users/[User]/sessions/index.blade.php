@@ -12,12 +12,12 @@ Head::title('User sessions')
 <x-main>
     @php($sessions = SessionsQuery::get($user->id))
     <div class="mx-auto max-w-5xl p-4 sm:p-6">
-        <a href="{{Admin::user->url([Admin::userParameter => $user->id])}}" class="link link-hover text-sm">← {{$user->name}}</a>
+        <a href="{{Admin::user->url([Admin::userParameter => $user->id])}}" class="link link-hover text-sm" title="{{$user->name}}">← {{$user->name}}</a>
 
         <header class="mt-4 border-b border-base-300 pb-5">
             <p class="text-xs font-semibold uppercase tracking-wider text-base-content/55">User account</p>
             <h1 class="mt-1 text-2xl font-semibold">Sessions</h1>
-            <p class="mt-1 text-sm text-base-content/70">Recent authenticated sessions for {{$user->email}}.</p>
+            <p class="mt-1 text-sm text-base-content/70" title="{{$user->email}}">Recent authenticated sessions for {{$user->email}}.</p>
         </header>
 
         <div class="mt-6 overflow-x-auto rounded-box border border-base-300 bg-base-100">
@@ -26,10 +26,10 @@ Head::title('User sessions')
                 <tbody>
                     @forelse($sessions as $session)
                         <tr>
-                            <td class="whitespace-nowrap">{{Carbon::createFromTimestamp($session->last_activity)->toDayDateTimeString()}}</td>
-                            <td class="font-mono text-xs">{{$session->ip_address ?? '—'}}</td>
-                            <td class="max-w-md break-words text-sm">{{$session->user_agent ?? '—'}}</td>
-                            <td class="max-w-xs break-all font-mono text-xs">{{$session->id}}</td>
+                            <td class="whitespace-nowrap" title="{{Carbon::createFromTimestamp($session->last_activity)->toDayDateTimeString()}}">{{Carbon::createFromTimestamp($session->last_activity)->toDayDateTimeString()}}</td>
+                            <td class="font-mono text-xs" title="{{$session->ip_address}}">{{$session->ip_address ?? '—'}}</td>
+                            <td class="max-w-md break-words text-sm" title="{{$session->user_agent}}">{{$session->user_agent ?? '—'}}</td>
+                            <td class="max-w-xs break-all font-mono text-xs" title="{{$session->id}}">{{$session->id}}</td>
                         </tr>
                     @empty
                         <tr><td colspan="4" class="py-8 text-center text-base-content/65">No sessions found.</td></tr>

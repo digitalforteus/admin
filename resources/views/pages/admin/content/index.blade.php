@@ -25,7 +25,7 @@ Head::title('Site content')
 
             <section class="card border border-base-300 bg-base-100 shadow-sm">
                 <div class="card-body">
-                    <h2 class="card-title">{{CacheKey::robots->value}}</h2>
+                    <h2 class="card-title" title="{{CacheKey::robots->value}}">{{CacheKey::robots->value}}</h2>
                     <p class="text-sm text-base-content/70">Crawler directives. The sitemap URL is appended automatically.</p>
                     <textarea class="textarea h-40 w-full font-mono text-sm" name="{{ContentUpdateRequest::robots}}" required>{{old(ContentUpdateRequest::robots, Cache::get(CacheKey::robots->value, static fn (): string => (string) file_get_contents(resource_path(CacheKey::robots->value))))}}</textarea>
                     @error(ContentUpdateRequest::robots)<p class="text-sm text-error">{{$message}}</p>@enderror
@@ -34,7 +34,7 @@ Head::title('Site content')
 
             <section class="card border border-base-300 bg-base-100 shadow-sm">
                 <div class="card-body">
-                    <h2 class="card-title">{{CacheKey::llms->value}}</h2>
+                    <h2 class="card-title" title="{{CacheKey::llms->value}}">{{CacheKey::llms->value}}</h2>
                     <p class="text-sm text-base-content/70">Markdown overview for AI agents and language models.</p>
                     <textarea class="textarea h-96 w-full font-mono text-sm" name="{{ContentUpdateRequest::llms}}" required>{{old(ContentUpdateRequest::llms, Cache::get(CacheKey::llms->value, static fn (): string => (string) file_get_contents(resource_path(CacheKey::llms->value))))}}</textarea>
                     @error(ContentUpdateRequest::llms)<p class="text-sm text-error">{{$message}}</p>@enderror
@@ -43,7 +43,7 @@ Head::title('Site content')
 
             <section class="card border border-base-300 bg-base-100 shadow-sm">
                 <div class="card-body">
-                    <h2 class="card-title">{{CacheKey::api_readme->value}}</h2>
+                    <h2 class="card-title" title="{{CacheKey::api_readme->value}}">{{CacheKey::api_readme->value}}</h2>
                     <p class="text-sm text-base-content/70">Markdown returned by the public API readme endpoint.</p>
                     <textarea class="textarea h-96 w-full font-mono text-sm" name="{{ContentUpdateRequest::api_readme}}" required>{{old(ContentUpdateRequest::api_readme, Cache::get(CacheKey::api_readme->value, static fn (): string => (string) file_get_contents(resource_path(CacheKey::api_readme->value))))}}</textarea>
                     @error(ContentUpdateRequest::api_readme)<p class="text-sm text-error">{{$message}}</p>@enderror

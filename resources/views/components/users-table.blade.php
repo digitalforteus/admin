@@ -42,17 +42,17 @@
                                 <div class="flex items-center gap-3">
                                     <div class="avatar avatar-placeholder">
                                         <div class="relative w-8 rounded-full text-neutral-content">
-                                            <span class="hidden text-xs">{{ $UserRow->initials() }}</span>
+                                            <span class="hidden text-xs" title="{{ $UserRow->initials() }}">{{ $UserRow->initials() }}</span>
                                             <img class="absolute inset-0" src="{{ $UserRow->picture() }}" alt="{{ $UserRow->name }}"
                                                  referrerpolicy="no-referrer"
                                                  onerror="this.previousElementSibling.classList.remove('hidden'); this.parentElement.classList.add('bg-neutral'); this.remove()">
                                         </div>
                                     </div>
-                                    <a href="{{ $UserRow->editUrl() }}" class="link"><span>{{ $cell }}</span></a>
+                                    <a href="{{ $UserRow->editUrl() }}" class="link"><span title="{{ $cell }}">{{ $cell }}</span></a>
                                 </div>
                             @elseif($loop->index === 1)
                                 <div class="flex items-center gap-2">
-                                    <a href="{{ $UserRow->editUrl() }}" class="link">{{ $cell }}</a>
+                                    <a href="{{ $UserRow->editUrl() }}" class="link" title="{{ $cell }}">{{ $cell }}</a>
                                     @if(! $UserRow->emailVerified())
                                         <span class="badge badge-warning badge-sm">Unverified</span>
                                     @endif
@@ -73,7 +73,7 @@
     </div>
 
     <div class="flex flex-wrap items-center justify-between gap-4">
-        <p class="text-sm text-base-content/70">{{ $UsersTable->summary() }}</p>
+        <p class="text-sm text-base-content/70" title="{{ $UsersTable->summary() }}">{{ $UsersTable->summary() }}</p>
         <div class="join">
             <a class="join-item btn btn-sm @if(! $UsersTable->previousUrl()) btn-disabled @endif"
                href="{{ $UsersTable->previousUrl() ?? '#' }}">Previous</a>

@@ -7,7 +7,7 @@
     <aside>
         <a href="{{Web::home->value}}" class="flex items-center gap-2" title="Go Home">
             <x-svg :svg="[Svg::name => SvgName::logo, Svg::classname => 'h-8 w-8']"/>
-            <span class="text-lg font-semibold">{{config('app.name')}}</span>
+            <span class="text-lg font-semibold" title="{{config('app.name')}}">{{config('app.name')}}</span>
         </a>
     </aside>
     <nav>

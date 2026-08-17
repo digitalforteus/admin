@@ -12,7 +12,7 @@
             </div>
         @else
             <div class="w-9 rounded-full bg-neutral text-neutral-content">
-                <span class="text-sm">{{$UserMenu->initials()}}</span>
+                <span class="text-sm" title="{{$UserMenu->initials()}}">{{$UserMenu->initials()}}</span>
             </div>
         @endif
     </div>
@@ -26,13 +26,13 @@
                         </div>
                     @else
                         <div class="w-9 rounded-full bg-neutral text-neutral-content">
-                            <span class="text-sm">{{$UserMenu->initials()}}</span>
+                            <span class="text-sm" title="{{$UserMenu->initials()}}">{{$UserMenu->initials()}}</span>
                         </div>
                     @endif
                 </div>
                 <div class="min-w-0">
-                    <p class="truncate font-semibold text-base-content">{{$UserMenu->name}}</p>
-                    <p class="truncate text-xs font-normal opacity-60">{{$UserMenu->email}}</p>
+                    <p class="truncate font-semibold text-base-content" title="{{$UserMenu->name}}">{{$UserMenu->name}}</p>
+                    <p class="truncate text-xs font-normal opacity-60" title="{{$UserMenu->email}}">{{$UserMenu->email}}</p>
                 </div>
             </div>
         </li>

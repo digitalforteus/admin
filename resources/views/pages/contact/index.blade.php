@@ -64,7 +64,7 @@ Head::title('Contact')
                 @if(config('brand.address'))
                     <section class="space-y-2">
                         <h2 class="text-base font-semibold">Mailing address</h2>
-                        <p class="whitespace-pre-line">{{config('brand.address')}}</p>
+                        <p class="whitespace-pre-line" title="{{config('brand.address')}}">{{config('brand.address')}}</p>
                     </section>
                 @endif
             </div>

@@ -114,7 +114,7 @@ Head::title('Security')
                 </div>
                 <ul class="mt-4 grid gap-2 font-mono text-sm sm:grid-cols-2">
                     @foreach($User->recoveryCodes() as $recoveryCode)
-                        <li class="rounded bg-base-200 px-3 py-2">{{$recoveryCode}}</li>
+                        <li class="rounded bg-base-200 px-3 py-2" title="{{$recoveryCode}}">{{$recoveryCode}}</li>
                     @endforeach
                 </ul>
             </div>
@@ -135,8 +135,8 @@ Head::title('Security')
             @forelse($Passkeys as $Passkey)
                 <div class="flex flex-col gap-3 border-b border-base-300 p-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <p class="font-medium">{{$Passkey->name}}</p>
-                        <p class="text-sm text-base-content/60">
+                        <p class="font-medium" title="{{$Passkey->name}}">{{$Passkey->name}}</p>
+                        <p class="text-sm text-base-content/60" title="{{$Passkey->authenticator ?? 'Passkey'}} · Added {{$Passkey->created_at?->diffForHumans()}}">
                             {{$Passkey->authenticator ?? 'Passkey'}} · Added {{$Passkey->created_at?->diffForHumans()}}
                         </p>
                     </div>
@@ -186,24 +186,24 @@ Head::title('Security')
                         </div>
                         <div class="min-w-0">
                             <div class="flex items-center gap-2">
-                                <span class="font-medium">{{Str::headline($OauthProvider->provider_id->value)}}</span>
+                                <span class="font-medium" title="{{Str::headline($OauthProvider->provider_id->value)}}">{{Str::headline($OauthProvider->provider_id->value)}}</span>
                                 @if($OauthProvider->verified_email)
                                     <span class="badge badge-success badge-sm">Verified</span>
                                 @endif
                             </div>
-                            <p class="truncate text-sm text-base-content/70">{{$OauthProvider->name}}</p>
+                            <p class="truncate text-sm text-base-content/70" title="{{$OauthProvider->name}}">{{$OauthProvider->name}}</p>
                         </div>
                     </div>
 
                     <dl class="grid gap-1 text-sm sm:text-right">
                         <div>
                             <dt class="sr-only">Email</dt>
-                            <dd>{{$OauthProvider->email}}</dd>
+                            <dd title="{{$OauthProvider->email}}">{{$OauthProvider->email}}</dd>
                         </div>
                         @if($OauthProvider->hd !== null)
                             <div>
                                 <dt class="sr-only">Hosted domain</dt>
-                                <dd class="text-base-content/60">{{$OauthProvider->hd}}</dd>
+                                <dd class="text-base-content/60" title="{{$OauthProvider->hd}}">{{$OauthProvider->hd}}</dd>
                             </div>
                         @endif
                     </dl>
