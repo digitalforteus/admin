@@ -19,7 +19,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h8m-8 6h16"/>
                         </svg>
                     </div>
-                    <ul tabindex="0" class="menu dropdown-content z-[1] mt-3 w-56 rounded-box border border-base-content/15 bg-base-300 text-base shadow-xl">
+                    <x-dropdown-menu>
                         @foreach($Topnav->items() as $NavItem)
                             <li>
                                 <a href="{{$NavItem->url()}}" @class(['items-center gap-3 my-1 font-medium', 'menu-active' => $NavItem->active()])>
@@ -28,7 +28,7 @@
                                 </a>
                             </li>
                         @endforeach
-                    </ul>
+                    </x-dropdown-menu>
                 </div>
             @endif
             <div class="flex items-center">

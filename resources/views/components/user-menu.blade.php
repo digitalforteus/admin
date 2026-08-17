@@ -16,7 +16,7 @@
             </div>
         @endif
     </div>
-    <ul tabindex="0" class="mt-3 w-64 p-2 shadow menu menu-sm dropdown-content bg-base-300 rounded-box z-1">
+    <x-dropdown-menu>
         <li class="menu-title">
             <div class="flex items-center gap-3">
                 <div @class(['avatar', 'avatar-placeholder' => $UserMenu->picture() === null])>
@@ -38,11 +38,11 @@
         </li>
         @foreach(UserMenu::items() as $NavItem)
             <li>
-                <a href="{{$NavItem->url()}}">
+                <a href="{{$NavItem->url()}}" class="items-center gap-3 my-1 font-medium">
                     <x-svg :svg="$NavItem->svg()"/>
                     {{$NavItem->label}}
                 </a>
             </li>
         @endforeach
-    </ul>
+    </x-dropdown-menu>
 </div>
