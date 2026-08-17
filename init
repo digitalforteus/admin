@@ -65,10 +65,8 @@ if (confirm('Delete init', true)) {
 writeln('');
 writeln('  Next:');
 writeln('');
-writeln('    composer update');
-writeln('    npm install');
-writeln('    php artisan key:generate');
-writeln('    composer check');
+writeln('    cp .env.example .env');
+writeln('    composer update --ignore-platform-reqs && sail up -d && sail npm install && php artisan key:generate && composer fix && sail npm run build && composer check');
 writeln('');
 
 exit(0);
