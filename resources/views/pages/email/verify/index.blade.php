@@ -26,11 +26,14 @@ render(function (View $view) {
 <x-auth-card :authCard="[AuthCard::title => 'Verify Your Email']">
     <x-status-toast/>
     <p class="text-sm text-base-content/70">
-        We've emailed you a verification link. Click it to activate your account.
+        We've emailed you a verification link.
     </p>
-    <form method="POST" action="{{Auth::verificationSend->value}}" class="mt-4">
+    <p class="text-sm text-base-content/70">
+       Check your email.
+    </p>
+    <form method="POST" action="{{Auth::verificationSend->value}}" class="mt-12">
         @csrf
-        <button class="btn btn-primary btn-sm w-full">Resend Verification Email</button>
+        <button class="btn btn-outline btn-sm w-full">Resend Verification Email</button>
     </form>
     <x-slot:footer>
         <a href="{{Web::logout->value}}" class="link link-primary text-center p-3">Logout</a>

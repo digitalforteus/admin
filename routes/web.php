@@ -15,10 +15,15 @@ use App\Modules\Register\RegisterController;
 use App\Modules\Robots\RobotsController;
 use App\Modules\Sitemap\SitemapController;
 use App\Modules\Sitemap\SitemapPageController;
+use App\Modules\Verification\VerifyEmailController;
+use App\Routes\Auth;
 use App\Routes\MiddlewareTag;
 use App\Routes\Web;
 use Illuminate\Support\Facades\Route;
 
+Route::get(Auth::verificationVerify->value, VerifyEmailController::class)
+    ->middleware([MiddlewareTag::signed->value, MiddlewareTag::throttleSixPerMinute->value])
+    ->name('verification.verify');
 Route::post(Web::register->value, RegisterController::class)->middleware([MiddlewareTag::throttleFivePerMinute->value]);
 Route::post(Web::login->value, LoginController::class)->middleware([MiddlewareTag::throttleFivePerMinute->value]);
 Route::post(Web::twoFactorChallenge->value, TwoFactorLoginController::class)

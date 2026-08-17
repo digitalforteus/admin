@@ -131,6 +131,37 @@ test('a valid signed link marks the user as verified', function (): void {
     Event::assertDispatched(Verified::class);
 });
 
+test('a valid signed link verifies and authenticates a guest', function (): void {
+    $User = User::factory()->unverified()->createOne();
+
+    $url = URL::temporarySignedRoute('verification.verify', now()->addMinutes(60), [
+        'id' => $User->getKey(),
+        'hash' => sha1($User->getEmailForVerification()),
+    ]);
+
+    $this->get($url)->assertRedirect(Web::home->value);
+
+    $this->assertAuthenticatedAs($User);
+    expect($User->refresh()->hasVerifiedEmail())->toBeTrue();
+});
+
+test('a valid signed link switches from another user to the verified user', function (): void {
+    $OtherUser = User::factory()->createOne();
+    $User = User::factory()->unverified()->createOne();
+
+    $url = URL::temporarySignedRoute('verification.verify', now()->addMinutes(60), [
+        'id' => $User->getKey(),
+        'hash' => sha1($User->getEmailForVerification()),
+    ]);
+
+    $this->actingAs($OtherUser)
+        ->get($url)
+        ->assertRedirect(Web::home->value);
+
+    $this->assertAuthenticatedAs($User);
+    expect($User->refresh()->hasVerifiedEmail())->toBeTrue();
+});
+
 test('an invalid hash is rejected and leaves the user unverified', function (): void {
     $User = User::factory()->unverified()->createOne();
 

@@ -22,11 +22,7 @@ use App\Modules\Settings\Sessions\SessionsDestroyController;
 use App\Routes\Auth;
 use App\Routes\MiddlewareTag;
 use Illuminate\Support\Facades\Route;
-use Laravel\Fortify\Http\Controllers\VerifyEmailController;
 
-Route::get(Auth::verificationVerify->value, VerifyEmailController::class)
-    ->middleware([MiddlewareTag::signed->value, MiddlewareTag::throttleSixPerMinute->value])
-    ->name('verification.verify');
 Route::post(Auth::verificationSend->value, EmailVerificationNotificationController::class)
     ->middleware(MiddlewareTag::throttleSixPerMinute->value)
     ->name('verification.send');
