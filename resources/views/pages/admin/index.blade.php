@@ -9,7 +9,7 @@ Head::title('Admin')
     ->hiddenFromRobots();
 ?>
 <x-main>
-    <div class="card card-compact m-auto max-w-3xl sm:mt-24">
+    <div class="card card-compact m-auto max-w-3xl sm:mt-24" data-admin-dashboard>
         <div class="card-body">
             <h1 class="card-title">Admin</h1>
 
@@ -18,7 +18,7 @@ Head::title('Admin')
             </p>
 
             <dl class="mt-4 stats stats-vertical sm:stats-horizontal shadow">
-                <div class="stat">
+                <div class="stat" data-registered-users>
                     <dt class="stat-title">Registered users</dt>
                     <dd class="stat-value text-2xl" title="{{User::count()}}">{{User::count()}}</dd>
                 </div>

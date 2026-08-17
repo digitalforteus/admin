@@ -48,7 +48,7 @@ test('the user page shows the last session time in record details', function ():
     $this->actingAs(adminUser())
         ->get(Admin::user->url([Admin::userParameter => $User->id]))
         ->assertOk()
-        ->assertSee('Last session')
+        ->assertSee('data-record-details', false)
         ->assertSee($lastSessionAt->toDayDateTimeString());
 });
 
@@ -209,11 +209,11 @@ test('clearing sessions requires a user scope', function (): void {
     $this->actingAs($Admin)
         ->get(Admin::sessions->value)
         ->assertOk()
-        ->assertDontSee('Clear all sessions');
+        ->assertDontSee('data-clear-user-sessions', false);
     $this->actingAs($Admin)
         ->get(Admin::sessions->value.'?'.http_build_query([Admin::userParameter => $Admin->id]))
         ->assertOk()
-        ->assertSee('Clear all sessions');
+        ->assertSee('data-clear-user-sessions', false);
     $this->actingAs($Admin)->delete(Admin::sessions->value)->assertNotFound();
 });
 

@@ -30,15 +30,15 @@ test('the page lists every endpoint a token can be granted, and every verb', fun
 
     $response = $this->actingAs($User)->get(credentialUrl($User))->assertOk();
 
-    $response->assertSee('Public API')
-        ->assertDontSee('Admin API')
-        ->assertSee('MCP connection')
+    $response->assertSee('data-api-group="public"', false)
+        ->assertDontSee('data-api-group="admin"', false)
+        ->assertSee('data-mcp-connection', false)
         ->assertSee(url(Config::string('openapi.schemas.public.route.uri')))
         ->assertSee('Authorization:Bearer &lt;token&gt;', false)
         ->assertSee('<details', false)
         ->assertSee('href="'.url(Web::llms->value).'"', false)
         ->assertDontSee('npx -y @ivotoby/openapi-mcp-server')
-        ->assertSee('Endpoint')
+        ->assertSee('data-endpoint-column', false)
         ->assertSee(ApiRoute::user->value);
 
     foreach (HttpVerb::cases() as $HttpVerb) {
@@ -63,7 +63,7 @@ test('the page offers admin api abilities to an administrator', function (): voi
     $this->actingAs($User)
         ->get(credentialUrl($User))
         ->assertOk()
-        ->assertSee('Admin API')
+        ->assertSee('data-api-group="admin"', false)
         ->assertSee(Admin::api_users->value)
         ->assertSee(HttpVerb::get->ability(Admin::api_users->value));
 });
@@ -92,7 +92,7 @@ test('a token issued from the ui holds every ability, and says so', function ():
     $this->actingAs($User)
         ->get(credentialUrl($User))
         ->assertOk()
-        ->assertSee('This token holds every ability.');
+        ->assertSee('data-every-ability', false);
 });
 
 test('the verbs ticked are the abilities the token is left holding', function (): void {
@@ -119,7 +119,7 @@ test('a granted verb is ticked when the page is read back', function (): void {
     $this->actingAs($User)
         ->get($url)
         ->assertOk()
-        ->assertDontSee('This token holds every ability.')
+        ->assertDontSee('data-every-ability', false)
         ->assertSee(AbilityTable::field);
 });
 

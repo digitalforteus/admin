@@ -56,7 +56,7 @@ Head::title('User')
                     <p class="mt-1 font-mono text-xs text-base-content/55" title="{{$user->id}}">{{$user->id}}</p>
                 </div>
             </div>
-            <div class="flex gap-2">
+            <div class="flex gap-2" data-user-status>
                 <a href="{{Admin::sessions->value.'?'.http_build_query([Admin::userParameter => $user->id])}}" class="btn btn-ghost btn-sm">Sessions</a>
                 @if($user->email_verified_at !== null)
                     <span class="badge badge-success">Email verified</span>
@@ -128,7 +128,7 @@ Head::title('User')
                 </div>
             </section>
 
-            <aside class="card h-fit border border-base-300 bg-base-100" aria-labelledby="record-heading">
+            <aside class="card h-fit border border-base-300 bg-base-100" aria-labelledby="record-heading" data-record-details>
                 <div class="card-body">
                     <h2 id="record-heading" class="card-title text-lg">Record details</h2>
                     <dl class="divide-y divide-base-300 text-sm">
@@ -144,7 +144,7 @@ Head::title('User')
             </aside>
         </div>
 
-        <section class="mt-6" aria-labelledby="providers-heading">
+        <section class="mt-6" aria-labelledby="providers-heading" data-authentication-providers>
             <div>
                 <h2 id="providers-heading" class="text-xl font-semibold">Authentication providers</h2>
                 <p class="mt-1 text-sm text-base-content/70">External accounts connected to this user.</p>
@@ -192,7 +192,7 @@ Head::title('User')
             </div>
         </section>
 
-        <section class="mt-8 rounded-box border border-error/35 bg-error/5 p-5" aria-labelledby="danger-heading">
+        <section class="mt-8 rounded-box border border-error/35 bg-error/5 p-5" aria-labelledby="danger-heading" data-delete-user>
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h2 id="danger-heading" class="font-semibold text-error">Delete user</h2>

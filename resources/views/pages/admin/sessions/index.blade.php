@@ -45,7 +45,7 @@ Head::title('Sessions')
                     @csrf
                     @method('DELETE')
                     <input type="hidden" name="{{Admin::userParameter}}" value="{{$User->id}}"/>
-                    <button class="btn btn-error btn-outline whitespace-nowrap">Clear all sessions</button>
+                    <button class="btn btn-error btn-outline whitespace-nowrap" data-clear-user-sessions>Clear all sessions</button>
                 </form>
             @endif
         </div>
@@ -55,7 +55,7 @@ Head::title('Sessions')
                 <thead><tr><th>Last activity</th><th>User</th><th>IP address</th><th>User agent</th><th><span class="sr-only">Actions</span></th></tr></thead>
                 <tbody>
                     @forelse($sessions as $session)
-                        <tr>
+                        <tr data-session-row>
                             <td class="whitespace-nowrap" title="{{Carbon::createFromTimestamp($session->last_activity)->toDayDateTimeString()}}">{{Carbon::createFromTimestamp($session->last_activity)->toDayDateTimeString()}}</td>
                             <td>
                                 @if($session->user_id)

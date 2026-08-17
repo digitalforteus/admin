@@ -34,7 +34,7 @@ Head::title('Sessions')
                 <thead><tr><th>Last activity</th><th>IP address</th><th>User agent</th><th><span class="sr-only">Actions</span></th></tr></thead>
                 <tbody>
                 @forelse($sessions as $session)
-                    <tr>
+                    <tr data-session-row>
                         <td class="whitespace-nowrap">
                             {{Carbon::createFromTimestamp($session->last_activity)->toDayDateTimeString()}}
                             @if(request()->session()->getId() === $session->id)<span class="badge badge-primary badge-sm ml-1">Current</span>@endif

@@ -7,9 +7,9 @@
     @csrf
     @foreach($AbilityTable->groups() as $api => $rows)
         @php($connection = $AbilityTable->mcpConnection($api))
-        <section class="flex flex-col gap-2">
+        <section class="flex flex-col gap-2" data-api-group="{{ $api }}">
             <h2 class="text-sm font-semibold uppercase tracking-wide text-base-content/70" title="{{ ucfirst($api) }} API">{{ ucfirst($api) }} API</h2>
-            <details class="group rounded-box border border-base-300 bg-base-200/50">
+            <details class="group rounded-box border border-base-300 bg-base-200/50" data-mcp-connection>
                 <summary class="cursor-pointer list-none p-4 font-semibold marker:content-none">
                     <span class="flex items-center justify-between gap-3">
                         MCP connection
@@ -42,7 +42,7 @@
                 <table class="table">
             <thead>
             <tr>
-                <th>Endpoint</th>
+                    <th data-endpoint-column>Endpoint</th>
                 @foreach($AbilityTable->verbs() as $HttpVerb)
                     <th class="text-center">
                         <button type="button"
@@ -91,7 +91,7 @@
     <div class="flex items-center gap-3">
         <button type="submit" class="btn btn-primary">Save Abilities</button>
         @if($AbilityTable->every())
-            <span class="text-sm text-base-content/70">
+            <span class="text-sm text-base-content/70" data-every-ability>
                 This token holds every ability. Saving replaces that with the endpoints ticked above.
             </span>
         @endif

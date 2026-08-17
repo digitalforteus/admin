@@ -30,12 +30,12 @@
                         </a>
                     </th>
                 @endforeach
-                <th>Last session</th>
+                <th data-last-session-column>Last session</th>
             </tr>
             </thead>
             <tbody>
             @forelse($UsersTable->rows() as $UserRow)
-                <tr>
+                <tr data-user-row>
                     @foreach($UserRow->cells() as $cell)
                         <td class="whitespace-nowrap">
                             @if($loop->first)
@@ -64,7 +64,7 @@
                     @endforeach
                 </tr>
             @empty
-                <tr>
+                <tr data-users-empty>
                     <td colspan="{{ $UsersTable->span() }}" class="text-center text-base-content/70">No users found.</td>
                 </tr>
             @endforelse

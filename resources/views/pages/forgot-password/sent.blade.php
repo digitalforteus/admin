@@ -22,7 +22,7 @@ render(function (View $view) {
 });
 ?>
 <x-auth-card :authCard="[AuthCard::title => 'Check your email']">
-    <div class="space-y-5 text-center">
+    <div class="space-y-5 text-center" data-password-reset-sent>
         <div class="mx-auto grid size-16 place-items-center rounded-full bg-primary/10 text-primary" aria-hidden="true">
             <x-svg :svg="[Svg::name => SvgName::email, Svg::classname => 'size-8']"/>
         </div>

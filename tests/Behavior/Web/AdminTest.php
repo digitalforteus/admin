@@ -45,8 +45,8 @@ test('the page renders for a user holding the admin role', function (): void {
     $this->actingAs(admin())
         ->get(Admin::index->value)
         ->assertOk()
-        ->assertSee('Admin')
-        ->assertSee('Registered users');
+        ->assertSee('data-admin-dashboard', false)
+        ->assertSee('data-registered-users', false);
 });
 
 test('the admin rail replaces the default one, and leads with the links page', function (): void {

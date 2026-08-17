@@ -11,8 +11,8 @@ use Laravel\Head\Facades\Head;
 $User = auth()->user();
 $OauthProviders = $User instanceof User ? $User->oauthProviders : collect();
 $Passkeys = $User instanceof User ? $User->passkeys()->latest()->get() : collect();
-$passwordConfirmed = Date::now()->unix() - (int)session('auth.password_confirmed_at', 0)
-    < (int)config('auth.password_timeout', 10800);
+$passwordConfirmed = Date::now()->unix() - (int) session('auth.password_confirmed_at', 0)
+    < (int) config('auth.password_timeout', 10800);
 $status = session('status');
 $statusMessage = match ($status) {
     'two-factor-authentication-enabled' => 'Two-factor authentication setup started.',
@@ -31,7 +31,7 @@ Head::title('Security')
 <x-settings-card :settingsCard="[SettingsCard::title => 'Security']">
     <x-status-toast :statusToast="['message' => $statusMessage]"/>
 
-    <section aria-labelledby="password-heading">
+    <section aria-labelledby="password-heading" data-password-settings>
         <h2 id="password-heading" class="text-lg font-semibold">Password</h2>
         <p class="text-sm text-base-content/70">
             Confirm your current password to choose a new one.
@@ -48,13 +48,13 @@ Head::title('Security')
 
     <div class="divider"></div>
 
-    <section aria-labelledby="two-factor-heading">
+    <section aria-labelledby="two-factor-heading" data-two-factor-settings>
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
                 <div class="flex items-center gap-2">
                     <h2 id="two-factor-heading" class="text-lg font-semibold">Two-factor authentication</h2>
                     @if($User?->hasEnabledTwoFactorAuthentication())
-                        <span class="badge badge-success badge-sm">Enabled</span>
+                        <span class="badge badge-success badge-sm" data-two-factor-enabled>Enabled</span>
                     @else
                         <span class="badge badge-ghost badge-sm">Disabled</span>
                     @endif
@@ -79,7 +79,7 @@ Head::title('Security')
         </div>
 
         @if($User?->two_factor_secret !== null && ! $User->hasEnabledTwoFactorAuthentication())
-            <div class="mt-5 rounded-box border border-base-300 p-4">
+                <div class="mt-5 rounded-box border border-base-300 p-4" data-two-factor-setup>
                 <h3 class="font-semibold">Finish setup</h3>
                 <p class="mt-1 text-sm text-base-content/70">
                     Scan this QR code with your authenticator app, then enter its six-digit code.
@@ -99,7 +99,7 @@ Head::title('Security')
                 @enderror
             </div>
         @elseif($User?->hasEnabledTwoFactorAuthentication())
-            <div class="mt-5 rounded-box border border-base-300 p-4">
+            <div class="mt-5 rounded-box border border-base-300 p-4" data-recovery-codes>
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                         <h3 class="font-semibold">Recovery codes</h3>
@@ -123,7 +123,7 @@ Head::title('Security')
 
     <div class="divider"></div>
 
-    <section aria-labelledby="passkeys-heading">
+    <section aria-labelledby="passkeys-heading" data-passkey-settings>
         <div>
             <h2 id="passkeys-heading" class="text-lg font-semibold">Passkeys</h2>
             <p class="mt-1 text-sm text-base-content/70">
@@ -133,7 +133,7 @@ Head::title('Security')
 
         <div class="mt-4 overflow-hidden rounded-box border border-base-300">
             @forelse($Passkeys as $Passkey)
-                <div class="flex flex-col gap-3 border-b border-base-300 p-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex flex-col gap-3 border-b border-base-300 p-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between" data-passkey>
                     <div>
                         <p class="font-medium" title="{{$Passkey->name}}">{{$Passkey->name}}</p>
                         <p class="text-sm text-base-content/60" title="{{$Passkey->authenticator ?? 'Passkey'}} · Added {{$Passkey->created_at?->diffForHumans()}}">
@@ -161,7 +161,7 @@ Head::title('Security')
             </div>
             <p class="mt-2 hidden text-sm text-error" data-passkey-error></p>
         @else
-            <a class="btn btn-primary btn-sm mt-4" href="{{route('passkey.management.confirm')}}">
+            <a class="btn btn-primary btn-sm mt-4" href="{{route('passkey.management.confirm')}}" data-passkey-confirm-password>
                 Confirm password to manage passkeys
             </a>
         @endif
@@ -169,7 +169,7 @@ Head::title('Security')
 
     <div class="divider"></div>
 
-    <section aria-labelledby="sign-in-methods-heading">
+    <section aria-labelledby="sign-in-methods-heading" data-sign-in-methods>
         <div>
             <h2 id="sign-in-methods-heading" class="text-lg font-semibold">Sign in methods</h2>
             <p class="mt-1 text-sm text-base-content/70">Accounts you can use to sign in.</p>
@@ -177,7 +177,7 @@ Head::title('Security')
 
         <div class="mt-4 overflow-hidden rounded-box border border-base-300">
             @forelse($OauthProviders as $OauthProvider)
-                <div class="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between" data-oauth-provider>
                     <div class="flex min-w-0 items-center gap-3">
                         <div class="avatar">
                             <div class="w-11 rounded-full">
@@ -209,7 +209,7 @@ Head::title('Security')
                     </dl>
                 </div>
             @empty
-                <p class="p-4 text-sm text-base-content/70">No connected providers.</p>
+                <p class="p-4 text-sm text-base-content/70" data-oauth-providers-empty>No connected providers.</p>
             @endforelse
         </div>
     </section>

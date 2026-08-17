@@ -19,12 +19,12 @@ Head::title('Appearance')
     <p class="text-sm text-base-content/70">
         Choose how this app looks to you.
     </p>
-    <form class="mt-2 space-y-4" method="POST" action="{{Auth::settingsAppearance->value}}">
+    <form class="mt-2 space-y-4" method="POST" action="{{Auth::settingsAppearance->value}}" data-appearance-form>
         @csrf
         <fieldset class="fieldset gap-2">
             <legend class="fieldset-legend">Theme</legend>
             @foreach(Theme::cases() as $Theme)
-                <label class="flex cursor-pointer items-center gap-3 p-3 border border-base-300 rounded-box hover:bg-base-200">
+                <label class="flex cursor-pointer items-center gap-3 p-3 border border-base-300 rounded-box hover:bg-base-200" data-theme-option="{{$Theme->value}}">
                     <input type="radio"
                            name="{{AppearanceRequest::theme}}"
                            value="{{$Theme->value}}"

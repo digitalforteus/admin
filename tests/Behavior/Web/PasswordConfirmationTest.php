@@ -24,7 +24,7 @@ test('the password confirmation page renders', function (): void {
     $this->actingAs($User)
         ->get(Auth::confirmPassword->value)
         ->assertOk()
-        ->assertSee('Confirm your password')
+        ->assertSee('data-password-confirmation-form', false)
         ->assertSee('name="'.PasswordConfirmationForm::password.'"', false)
         ->assertSee('action="'.Auth::confirmPassword->value.'"', false);
 

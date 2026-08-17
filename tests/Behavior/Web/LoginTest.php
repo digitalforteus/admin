@@ -24,8 +24,8 @@ test('route is accessible', function (): void {
     $this->get(Web::login->value)
         ->assertOk()
         ->assertSee(Web::googleRedirect->value)
-        ->assertSee('Google')
-        ->assertSee('Remember me')
+        ->assertSee('data-google-login', false)
+        ->assertSee('data-remember-login', false)
         ->assertSeeHtml('name="'.LoginForm::remember_token.'"');
 });
 

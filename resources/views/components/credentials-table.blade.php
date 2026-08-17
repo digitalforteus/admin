@@ -5,7 +5,7 @@
 @endphp
 <div class="mt-6 flex flex-col gap-4">
     @if($CredentialsTable->issued)
-        <dialog class="modal" data-token-dialog>
+        <dialog class="modal" data-token-dialog data-token-issued>
             <div class="modal-box">
                 <h2 class="text-lg font-semibold">Copy your new token now.</h2>
                 <p class="mt-2 text-sm text-base-content/70">It is shown once and cannot be recovered.</p>
@@ -42,7 +42,7 @@
             </thead>
             <tbody>
             @forelse($CredentialsTable->rows() as $CredentialRow)
-                <tr>
+                <tr data-credential-row>
                     @foreach($CredentialRow->cells() as $cell)
                         <td class="whitespace-nowrap" title="{{ $cell }}">{{ $cell }}</td>
                     @endforeach
@@ -61,7 +61,7 @@
                     </td>
                 </tr>
             @empty
-                <tr>
+                <tr data-credentials-empty>
                     <td colspan="{{ $CredentialsTable->span() }}" class="text-center text-base-content/70">No tokens yet.</td>
                 </tr>
             @endforelse

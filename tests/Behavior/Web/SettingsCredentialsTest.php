@@ -28,9 +28,9 @@ test('the page renders the nav and the empty state', function (): void {
     $this->actingAs(User::factory()->createOne())
         ->get(Auth::settingsCredentials->value)
         ->assertOk()
-        ->assertSee('Credentials')
+        ->assertSee('data-page-header', false)
         ->assertSee(Auth::settingsCredentials->value)
-        ->assertSee('No tokens yet.');
+        ->assertSee('data-credentials-empty', false);
 });
 
 test('the page lists the tokens of the authenticated user only', function (): void {
@@ -105,7 +105,7 @@ test('the secret is rendered on the redirect it was flashed to, and never again'
 
     $this->get(Auth::settingsCredentials->value)
         ->assertOk()
-        ->assertSee('Copy your new token now.')
+        ->assertSee('data-token-issued', false)
         ->assertSee('data-token-dialog', false)
         ->assertSee('data-copy-token', false)
         ->assertSee($secret);

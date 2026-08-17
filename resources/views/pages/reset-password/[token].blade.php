@@ -25,7 +25,7 @@ render(function (View $view) {
 });
 ?>
 <x-auth-card :authCard="[AuthCard::title => 'Choose a new password']">
-    <form class="space-y-4" method="POST" action="{{route('password.update')}}">
+    <form class="space-y-4" method="POST" action="{{route('password.update')}}" data-password-reset-form>
         @csrf
         <input type="hidden" name="{{ResetPasswordForm::token}}" value="{{$token}}">
         <x-text-input :textInput="[

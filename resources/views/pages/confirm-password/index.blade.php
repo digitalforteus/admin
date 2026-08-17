@@ -18,7 +18,7 @@ Head::title('Confirm Password')
     <p class="mb-4 text-sm leading-6 text-base-content/70">
         This area contains sensitive account information. Enter your password to continue securely.
     </p>
-    <form class="space-y-4" method="POST" action="{{Auth::confirmPassword->value}}">
+    <form class="space-y-4" method="POST" action="{{Auth::confirmPassword->value}}" data-password-confirmation-form>
         @csrf
         <x-text-input :textInput="PasswordConfirmationForm::textInput(PasswordConfirmationForm::password)"/>
         <button class="btn btn-primary mt-4 w-full">Confirm password</button>

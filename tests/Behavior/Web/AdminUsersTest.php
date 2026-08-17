@@ -39,7 +39,7 @@ test('the page lists a user', function (): void {
     $this->actingAs($User)
         ->get(Admin::users->value)
         ->assertOk()
-        ->assertSee('Users')
+        ->assertSee('data-admin-users', false)
         ->assertSee($User->name)
         ->assertSee($User->email);
 });
@@ -73,7 +73,7 @@ test('the page lists each users last session time', function (): void {
     $this->actingAs(adminUser())
         ->get(Admin::users->value)
         ->assertOk()
-        ->assertSee('Last session')
+        ->assertSee('data-last-session-column', false)
         ->assertSee($lastSessionAt->diffForHumans());
 });
 
@@ -182,7 +182,7 @@ test('a search matching nothing says so', function (): void {
     $this->actingAs(adminUser())
         ->get(usersUrl([UsersRequest::search => 'nobody-by-that-name']))
         ->assertOk()
-        ->assertSee('No users found.');
+        ->assertSee('data-users-empty', false);
 });
 
 test('an unrecognised ordering falls back rather than reaching the database', function (): void {

@@ -4,7 +4,7 @@
 @endphp
 <div class="min-w-0">
     @if($PageHeader->title)
-        <h1 class="{{ $PageHeader->classname }}" title="{{ $PageHeader->title }}">{{ $PageHeader->title }}</h1>
+        <h1 class="{{ $PageHeader->classname }}" title="{{ $PageHeader->title }}" data-page-header>{{ $PageHeader->title }}</h1>
     @endif
 </div>
 @isset($controls)

@@ -19,8 +19,8 @@ test('the forgot password page is linked from login and renders', function (): v
 
     $this->get(Web::forgotPassword->value)
         ->assertOk()
-        ->assertSee('Reset your password')
-        ->assertSee('Email reset link');
+        ->assertSee('data-page-header', false)
+        ->assertSee('data-password-reset-request', false);
 });
 
 test('authenticated users are redirected away from password reset pages', function (): void {
@@ -42,8 +42,8 @@ test('authenticated users are redirected away from password reset pages', functi
 test('the password reset confirmation page renders next steps', function (): void {
     $this->get(Web::forgotPasswordSent->value)
         ->assertOk()
-        ->assertSee('Check your email')
-        ->assertSee('If an account exists for that email')
+        ->assertSee('data-page-header', false)
+        ->assertSee('data-password-reset-sent', false)
         ->assertSee(Web::login->value)
         ->assertSee(Web::forgotPassword->value);
 });
@@ -84,7 +84,7 @@ test('the reset password page renders the token action and email', function (): 
 
     $this->get($url.'?email=user%40example.com')
         ->assertOk()
-        ->assertSee('Choose a new password')
+        ->assertSee('data-password-reset-form', false)
         ->assertSee('user@example.com')
         ->assertSee('action="'.route('password.update').'"', false)
         ->assertSee('name="'.ResetPasswordForm::token.'" value="reset-token"', false);

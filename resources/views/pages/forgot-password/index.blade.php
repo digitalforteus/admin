@@ -24,7 +24,7 @@ render(function (View $view) {
     <p class="mb-4 text-sm text-base-content/70">
         Enter your email and we will send you a secure link to choose a new password.
     </p>
-    <form class="space-y-4" method="POST" action="{{Web::forgotPassword->value}}">
+    <form class="space-y-4" method="POST" action="{{Web::forgotPassword->value}}" data-password-reset-request>
         @csrf
         <x-text-input :textInput="ForgotPasswordForm::textInput(ForgotPasswordForm::email)"/>
         <button class="btn btn-primary mt-4 w-full">Email reset link</button>

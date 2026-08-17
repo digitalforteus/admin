@@ -55,11 +55,11 @@ test('the page renders the account it edits', function (): void {
         ->assertSee('src="'.e(Gravatar::url($User->email)).'"', false)
         ->assertSee('alt="'.e($User->name).'"', false)
         ->assertSee('value="'.$User->email.'"', false)
-        ->assertSee('Administrator')
+        ->assertSee('data-user-status', false)
         ->assertSee($User->id)
-        ->assertSee('Record details')
-        ->assertSee('Authentication providers')
-        ->assertSee('Delete user');
+        ->assertSee('data-record-details', false)
+        ->assertSee('data-authentication-providers', false)
+        ->assertSee('data-delete-user', false);
 });
 
 test('the index links to the page for a listed user', function (): void {

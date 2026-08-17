@@ -16,7 +16,7 @@ Head::title('Profile')
 ?>
 <x-settings-card :settingsCard="[SettingsCard::title => 'Profile']">
     <x-status-toast/>
-    <form class="mt-2 space-y-4" method="POST" action="{{Auth::settingsProfile->value}}">
+    <form class="mt-2 space-y-4" method="POST" action="{{Auth::settingsProfile->value}}" data-profile-form>
         @csrf
         <x-text-input :textInput="[
             ...ProfileForm::textInput(ProfileForm::name),
@@ -33,7 +33,7 @@ Head::title('Profile')
             TextInput::title => 'Email cannot be changed',
         ]">
             @if($User instanceof User && $User->hasVerifiedEmail())
-                <x-slot:note><span class="badge badge-success badge-sm">Verified</span></x-slot:note>
+                <x-slot:note><span class="badge badge-success badge-sm" data-email-verified>Verified</span></x-slot:note>
             @endif
         </x-text-input>
         <button class="btn btn-primary">Save</button>

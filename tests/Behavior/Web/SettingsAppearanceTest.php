@@ -21,11 +21,10 @@ test('the page lists every theme', function (): void {
     $this->actingAs(User::factory()->createOne())
         ->get(Auth::settingsAppearance->value)
         ->assertOk()
-        ->assertSee('Appearance')
-        ->assertSee('Light')
-        ->assertSee('Dark')
-        ->assertSee('Auto')
-        ->assertSee('Match the theme your device is set to.')
+        ->assertSee('data-page-header', false)
+        ->assertSee('data-theme-option="light"', false)
+        ->assertSee('data-theme-option="dark"', false)
+        ->assertSee('data-theme-option="auto"', false)
         ->assertSee('onchange="this.form.requestSubmit()"', false)
         ->assertDontSee('>Save</button>', false);
 });

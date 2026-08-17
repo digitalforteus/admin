@@ -23,12 +23,12 @@ render(function (View $view) {
 });
 ?>
 <x-auth-card :authCard="[AuthCard::title => 'Login']">
-    <form class="space-y-4" method="POST" action="{{Web::login->value}}">
+    <form class="space-y-4" method="POST" action="{{Web::login->value}}" data-login-form>
         @csrf
         <x-text-input :textInput="LoginForm::textInput(LoginForm::email)"/>
         <x-text-input :textInput="LoginForm::textInput(LoginForm::password)"/>
         <div class="flex items-center justify-between gap-4">
-            <label class="flex cursor-pointer items-center gap-2 text-sm">
+            <label class="flex cursor-pointer items-center gap-2 text-sm" data-remember-login>
                 <input type="checkbox"
                        name="{{LoginForm::remember_token}}"
                        value="1"
@@ -46,7 +46,7 @@ render(function (View $view) {
     </button>
     <p class="mt-2 hidden text-center text-sm text-error" data-passkey-error></p>
     <div class="divider text-xs uppercase">or continue with</div>
-    <a href="{{Web::googleRedirect->value}}" class="btn btn-outline w-full">
+    <a href="{{Web::googleRedirect->value}}" class="btn btn-outline w-full" data-google-login>
         <x-svg :svg="[Svg::name => SvgName::google, Svg::classname => 'size-5']"/>
         Google
     </a>

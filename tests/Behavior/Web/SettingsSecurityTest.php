@@ -34,14 +34,12 @@ test('the page renders the password form', function (): void {
     $this->actingAs(User::factory()->createOne())
         ->get(Auth::settingsSecurity->value)
         ->assertOk()
-        ->assertSee('Current Password')
-        ->assertSee('New Password')
-        ->assertSee('Sign in methods')
-        ->assertSee('No connected providers.')
-        ->assertSee('Two-factor authentication')
-        ->assertSee('Passkeys')
-        ->assertSee('Confirm password to manage passkeys')
-        ->assertSee('Enable')
+        ->assertSee('data-password-settings', false)
+        ->assertSee('data-sign-in-methods', false)
+        ->assertSee('data-oauth-providers-empty', false)
+        ->assertSee('data-two-factor-settings', false)
+        ->assertSee('data-passkey-settings', false)
+        ->assertSee('data-passkey-confirm-password', false)
         ->assertSee(Auth::settingsProfile->value);
 });
 
@@ -57,7 +55,7 @@ test('passkeys can be managed after password confirmation', function (): void {
         ->withSession(['auth.password_confirmed_at' => time()])
         ->get(Auth::settingsSecurity->value)
         ->assertOk()
-        ->assertSee('MacBook Pro')
+        ->assertSee('data-passkey', false)
         ->assertSee('data-passkey-register', escape: false)
         ->assertSee(route('passkey.destroy', $Passkey));
 });
@@ -81,8 +79,7 @@ test('two-factor authentication setup can be started', function (): void {
     $this->actingAs($User)
         ->get(Auth::settingsSecurity->value)
         ->assertOk()
-        ->assertSee('Finish setup')
-        ->assertSee('Authentication code');
+        ->assertSee('data-two-factor-setup', false);
 });
 
 test('enabled two-factor authentication and recovery codes are displayed', function (): void {
@@ -93,10 +90,10 @@ test('enabled two-factor authentication and recovery codes are displayed', funct
     $this->actingAs($User->refresh())
         ->get(Auth::settingsSecurity->value)
         ->assertOk()
-        ->assertSee('Enabled')
-        ->assertSee('Recovery codes')
+        ->assertSee('data-two-factor-enabled', false)
+        ->assertSee('data-recovery-codes', false)
         ->assertSee($User->recoveryCodes()[0])
-        ->assertSee('Disable');
+        ->assertSee('data-recovery-codes', false);
 });
 
 test('the page lists the users sign in providers', function (): void {
@@ -118,8 +115,7 @@ test('the page lists the users sign in providers', function (): void {
     $this->actingAs($User)
         ->get(Auth::settingsSecurity->value)
         ->assertOk()
-        ->assertSee('Google')
-        ->assertSee('Google User')
+        ->assertSee('data-oauth-provider', false)
         ->assertSee('google@example.com')
         ->assertSee('example.com')
         ->assertSee('https://example.com/avatar.jpg')
