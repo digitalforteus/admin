@@ -29,6 +29,7 @@ test('the layout renders a theme color for each declared theme', function (): vo
 });
 
 test('the google tag sends a sign up event', function (string $method): void {
+    Config::set('google.tag_id', 'G-TEST');
     session()->flash(SessionKey::sign_up_method->value, $method);
 
     $this->get(Web::home->value)
