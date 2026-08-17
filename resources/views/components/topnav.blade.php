@@ -54,9 +54,18 @@
                 UserMenu::picture => is_string($picture) && $picture !== '' ? $picture : null,
             ]"/>
         @else
-            <a href="{{Web::login->value}}" class="text-lg btn btn-ghost no-animation">
-                Login
-            </a>
+            <div class="relative flex items-center">
+                <a href="{{Web::login->value}}" class="text-lg btn btn-ghost no-animation">
+                    Login
+                </a>
+            </div>
+            @if(is_string(config('services.google.client_id')) && config('services.google.client_id') !== '')
+                <div
+                    data-google-one-tap
+                    data-client-id="{{config('services.google.client_id')}}"
+                    data-login-url="{{Web::googleOneTap->value}}"
+                ></div>
+            @endif
         @endauth
     </div>
 </div>

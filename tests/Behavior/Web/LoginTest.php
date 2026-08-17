@@ -5,6 +5,8 @@ use App\Helpers\SessionKey;
 use App\Helpers\SocialiteDriver;
 use App\Models\OauthProvider;
 use App\Models\User;
+use App\Modules\Login\GoogleCredential;
+use App\Modules\Login\GoogleUser as OneTapGoogleUser;
 use App\Modules\Login\LoginForm;
 use App\Modules\Login\LoginFormFactory;
 use App\Routes\Web;
@@ -44,6 +46,51 @@ test('google login redirects to google', function (): void {
 
     $this->get(Web::googleRedirect->value)
         ->assertRedirect('https://socialite.fake/google/authorize');
+});
+
+test('google one tap logs in with a verified credential', function (): void {
+    $this->mock(GoogleCredential::class, function (MockInterface $Mock): void {
+        $Mock->shouldReceive('user')
+            ->once()
+            ->with('verified-google-credential')
+            ->andReturn(OneTapGoogleUser::from([
+                OneTapGoogleUser::sub => '123456789',
+                OneTapGoogleUser::name => 'Google User',
+                OneTapGoogleUser::given_name => 'Google',
+                OneTapGoogleUser::family_name => 'User',
+                OneTapGoogleUser::picture => 'https://example.com/avatar.jpg',
+                OneTapGoogleUser::email => 'google@example.com',
+                OneTapGoogleUser::email_verified => true,
+                OneTapGoogleUser::id => '123456789',
+                OneTapGoogleUser::verified_email => true,
+            ]));
+    });
+
+    $this->postJson(Web::googleOneTap->value, [
+        'credential' => 'verified-google-credential',
+    ])->assertOk()->assertExactJson([
+        'redirect' => url(Web::home->value),
+    ]);
+
+    $this->assertAuthenticated();
+    $User = User::query()->where(Users::email->value, 'google@example.com')->sole();
+
+    expect($User->oauthProviders()->sole()->picture)->toBe('https://example.com/avatar.jpg')
+        ->and(session(SessionKey::user_picture->value))->toBe('https://example.com/avatar.jpg');
+});
+
+test('google one tap rejects an invalid credential', function (): void {
+    $this->mock(GoogleCredential::class, function (MockInterface $Mock): void {
+        $Mock->shouldReceive('user')->once()->andThrow(new InvalidArgumentException);
+    });
+
+    $this->postJson(Web::googleOneTap->value, [
+        'credential' => 'invalid-google-credential',
+    ])->assertUnprocessable()->assertExactJson([
+        'message' => 'Google sign-in could not be verified.',
+    ]);
+
+    $this->assertGuest();
 });
 
 test('google login creates a verified user', function (): void {

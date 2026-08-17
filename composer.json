@@ -3,6 +3,7 @@
     "$schema": "https://getcomposer.org/schema.json",
     "require": {
         "php": "^8.5",
+        "firebase/php-jwt": "^7.1",
         "laravel/folio": "^1.1",
         "laravel/fortify": "^1.38",
         "laravel/framework": "^13.17",
@@ -42,7 +43,8 @@
         "rector/rector": "^2.5",
         "roave/security-advisories": "dev-latest",
         "symfony/psr-http-message-bridge": "^8.1",
-        "zero-to-prod/laravel-rector": "^1.0"
+        "zero-to-prod/laravel-rector": "^1.0",
+        "ext-openssl": "*"
     },
     "autoload": {
         "psr-4": {

@@ -5,6 +5,7 @@ use App\Modules\Fortify\PasswordResetLinkController;
 use App\Modules\Fortify\TwoFactorLoginController;
 use App\Modules\Llms\LlmsController;
 use App\Modules\Login\GoogleCallbackController;
+use App\Modules\Login\GoogleOneTapController;
 use App\Modules\Login\GoogleRedirectController;
 use App\Modules\Login\LoginController;
 use App\Modules\Logout\LogoutController;
@@ -37,6 +38,7 @@ Route::post(Web::resetPasswordUpdate->value, NewPasswordController::class)
     ->name('password.update');
 Route::get(Web::googleRedirect->value, GoogleRedirectController::class)->middleware([MiddlewareTag::throttleFivePerMinute->value]);
 Route::get(Web::googleCallback->value, GoogleCallbackController::class)->middleware([MiddlewareTag::throttleFivePerMinute->value]);
+Route::post(Web::googleOneTap->value, GoogleOneTapController::class)->middleware([MiddlewareTag::guest->value, MiddlewareTag::throttleFivePerMinute->value]);
 Route::get(Web::logout->value, LogoutController::class)->middleware([MiddlewareTag::throttleFivePerMinute->value]);
 Route::get(Web::llms->value, LlmsController::class);
 Route::get(Web::robots->value, RobotsController::class);

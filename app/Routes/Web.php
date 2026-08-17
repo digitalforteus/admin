@@ -58,6 +58,8 @@ enum Web: string
     #[ExcludeFromSitemap]
     case googleCallback = '/auth/google/callback';
     #[ExcludeFromSitemap]
+    case googleOneTap = '/auth/google/one-tap';
+    #[ExcludeFromSitemap]
     case logout = '/logout';
     #[ExcludeFromSitemap]
     case register = '/register';

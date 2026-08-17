@@ -8,6 +8,7 @@ use App\Routes\Auth;
 use App\Routes\Web;
 use App\Sources\Db\App\Users;
 use App\View\DataModels\UserMenu;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 
 test('initials are taken from the first and last word of the name', function (string $name, string $initials): void {
@@ -92,9 +93,23 @@ test('the topnav uses the cached oauth provider picture as the avatar', function
         ->assertDontSee('JD');
 });
 
-test('the topnav shows a login link to a guest', function (): void {
+test('the topnav enables google one tap for a guest', function (): void {
+    Config::set('services.google.client_id', 'client-id.apps.googleusercontent.com');
+
     $this->get(Web::home->value)
         ->assertOk()
         ->assertSee(Web::login->value)
+        ->assertSee(Web::googleOneTap->value)
+        ->assertSee('data-google-one-tap', false)
+        ->assertSee('client-id.apps.googleusercontent.com')
         ->assertDontSee(Web::logout->value);
+});
+
+test('the topnav does not show the google login prompt to an authenticated user', function (): void {
+    Config::set('services.google.client_id', 'client-id.apps.googleusercontent.com');
+
+    $this->actingAs(User::factory()->createOne())
+        ->get(Web::home->value)
+        ->assertOk()
+        ->assertDontSee('data-google-one-tap', false);
 });

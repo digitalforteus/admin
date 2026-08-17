@@ -45,6 +45,36 @@ document.querySelectorAll('[data-toast][data-autodismiss]').forEach((toast) => {
 
 document.querySelector('[data-token-dialog]')?.showModal();
 
+const googleOneTap = document.querySelector('[data-google-one-tap]');
+
+if (googleOneTap) {
+    const script = document.createElement('script');
+
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.onload = () => {
+        google.accounts.id.initialize({
+            client_id: googleOneTap.dataset.clientId,
+            callback: ({ credential }) => {
+                fetch(googleOneTap.dataset.loginUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    },
+                    body: JSON.stringify({ credential }),
+                })
+                    .then((response) => response.ok ? response.json() : Promise.reject(new Error('Google sign-in failed.')))
+                    .then(({ redirect }) => window.location.assign(redirect));
+            },
+        });
+
+        google.accounts.id.prompt();
+    };
+
+    document.head.append(script);
+}
+
 document.addEventListener('click', (event) => {
     const button = event.target.closest('[data-dismiss-toast]');
 
