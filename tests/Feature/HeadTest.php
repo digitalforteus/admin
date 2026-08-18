@@ -13,7 +13,6 @@ test('the layout renders the site defaults', function (): void {
     $this->get(Web::home->value)
         ->assertOk()
         ->assertSee("<title>$name</title>", false)
-        ->assertSee('<meta name="description" content="An opinionated Laravel template.">', false)
         ->assertSee('<meta name="viewport" content="width=device-width, initial-scale=1.0">', false)
         ->assertSee('<meta name="robots" content="all">', false)
         ->assertSee("<meta property=\"og:site_name\" content=\"$name\">", false)
