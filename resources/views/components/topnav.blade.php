@@ -38,8 +38,8 @@
                 >
                     <x-svg :svg="[Svg::name => SvgName::logo, Svg::classname => 'h-6 w-6']"/>
                 </a>
-                <span class="ml-2 hidden items-baseline gap-1 lg:inline-flex" title="Brand Name">
-                    <span>{{config('app.name')}}</span>
+                <span class="hidden items-baseline gap-1 lg:inline-flex" title="Brand Name">
+                    <span><a href="{{Web::home->value}}">{{config('app.name')}}</a></span>
                     <span class="text-sm text-base-content/60">by</span>
                     <a href="{{config('brand.digitalforte_url')}}?utm_source={{str(config('app.name'))->slug()}}&amp;utm_medium=referral&amp;utm_campaign=product_branding&amp;utm_content=header_lockup"
                        class="text-sm font-semibold hover:underline"
