@@ -28,6 +28,8 @@ const TEMPLATE = [
     'admin_email' => 'admin@example.com',
     'support_email' => 'hello@example.com',
     'mcp_server' => 'TemplateServer',
+    'logo_title' => 'DigitalForte monogram',
+    'logo_description' => 'A geometric D and F monogram forming an upright hexagonal shield.',
 ];
 
 const SKIP_DIRECTORIES = ['.git', '.idea', 'vendor', 'build', 'node_modules', 'storage'];
@@ -147,6 +149,8 @@ function replacements(array $answers): array
         '# '.TEMPLATE['title'] => '# '.$answers['title'],
         TEMPLATE['description'] => $answers['description'],
         TEMPLATE['mcp_server'] => $answers['mcp_server'],
+        TEMPLATE['logo_title'] => htmlspecialchars($answers['title'].' logo', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+        TEMPLATE['logo_description'] => htmlspecialchars($answers['title'].' application logo.', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
         "Mcp::local('".TEMPLATE['slug']."'" => "Mcp::local('".$answers['slug']."'",
     ];
 }
