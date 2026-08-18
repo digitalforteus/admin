@@ -10,6 +10,7 @@ enum SvgName: string
     case city = 'city';
     case command_line = 'command-line';
     case desktop = 'desktop';
+    case digitalforte_logo = 'digitalforte-logo';
     case document = 'document';
     case email = 'email';
     case gear = 'gear';

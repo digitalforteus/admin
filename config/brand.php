@@ -22,6 +22,8 @@ return [
 
     'address' => env('BRAND_ADDRESS'),
 
+    'digitalforte_url' => env('DIGITALFORTE_URL', 'https://digitalforte.us'),
+
     /*
     |--------------------------------------------------------------------------
     | Legal
