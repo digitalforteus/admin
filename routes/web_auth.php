@@ -24,7 +24,7 @@ use App\Routes\MiddlewareTag;
 use Illuminate\Support\Facades\Route;
 
 Route::post(Auth::verificationSend->value, EmailVerificationNotificationController::class)
-    ->middleware(MiddlewareTag::throttleSixPerMinute->value)
+    ->middleware(MiddlewareTag::throttleTenPerMinute->value)
     ->name('verification.send');
 
 Route::middleware(MiddlewareTag::verified->value)->group(function () {
@@ -32,13 +32,13 @@ Route::middleware(MiddlewareTag::verified->value)->group(function () {
         ->middleware(MiddlewareTag::passwordConfirm->value)
         ->name('passkey.management.confirm');
     Route::get(Auth::passkeyConfirmOptions->value, PasskeyConfirmationOptionsController::class)
-        ->middleware(MiddlewareTag::throttleSixPerMinute->value)
+        ->middleware(MiddlewareTag::throttleTenPerMinute->value)
         ->name('passkey.confirm-options');
     Route::post(Auth::passkeyConfirm->value, PasskeyConfirmationController::class)
-        ->middleware(MiddlewareTag::throttleSixPerMinute->value)
+        ->middleware(MiddlewareTag::throttleTenPerMinute->value)
         ->name('passkey.confirm');
     Route::post(Auth::confirmPassword->value, PasswordConfirmationController::class)
-        ->middleware(MiddlewareTag::throttleSixPerMinute->value);
+        ->middleware(MiddlewareTag::throttleTenPerMinute->value);
     Route::post(Auth::settingsProfile->value, ProfileController::class);
     Route::delete(Auth::settingsSessions->value, SessionsDestroyController::class);
     Route::delete(Auth::settingsSession->value, SessionDestroyController::class);
@@ -53,10 +53,10 @@ Route::middleware(MiddlewareTag::verified->value)->group(function () {
         Route::post(Auth::twoFactorRecoveryCodes->value, RecoveryCodesRegenerateController::class)
             ->name('two-factor.regenerate-recovery-codes');
         Route::get(Auth::passkeyRegistrationOptions->value, PasskeyRegistrationOptionsController::class)
-            ->middleware(MiddlewareTag::throttleSixPerMinute->value)
+            ->middleware(MiddlewareTag::throttleTenPerMinute->value)
             ->name('passkey.registration-options');
         Route::post(Auth::passkeys->value, PasskeyRegistrationController::class)
-            ->middleware(MiddlewareTag::throttleSixPerMinute->value)
+            ->middleware(MiddlewareTag::throttleTenPerMinute->value)
             ->name('passkey.store');
         Route::delete(Auth::passkey->value, PasskeyDestroyController::class)
             ->name('passkey.destroy');

@@ -19,8 +19,7 @@ enum MiddlewareTag: string
     case verified = 'verified';
     case signed = 'signed';
     case passwordConfirm = 'password.confirm';
-    case throttleFivePerMinute = 'throttle:5,1';
-    case throttleSixPerMinute = 'throttle:6,1';
+    case throttleTenPerMinute = 'throttle:10,1';
     case sanctum = 'auth:sanctum';
     case role = 'role';
 }

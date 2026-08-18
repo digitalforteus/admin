@@ -22,29 +22,29 @@ use App\Routes\Web;
 use Illuminate\Support\Facades\Route;
 
 Route::get(Auth::verificationVerify->value, VerifyEmailController::class)
-    ->middleware([MiddlewareTag::signed->value, MiddlewareTag::throttleSixPerMinute->value])
+    ->middleware([MiddlewareTag::signed->value, MiddlewareTag::throttleTenPerMinute->value])
     ->name('verification.verify');
-Route::post(Web::register->value, RegisterController::class)->middleware([MiddlewareTag::throttleFivePerMinute->value]);
-Route::post(Web::login->value, LoginController::class)->middleware([MiddlewareTag::throttleFivePerMinute->value]);
+Route::post(Web::register->value, RegisterController::class)->middleware([MiddlewareTag::throttleTenPerMinute->value]);
+Route::post(Web::login->value, LoginController::class)->middleware([MiddlewareTag::throttleTenPerMinute->value]);
 Route::post(Web::twoFactorChallenge->value, TwoFactorLoginController::class)
-    ->middleware([MiddlewareTag::guest->value, MiddlewareTag::throttleFivePerMinute->value])
+    ->middleware([MiddlewareTag::guest->value, MiddlewareTag::throttleTenPerMinute->value])
     ->name('two-factor.login.store');
 Route::get(Web::passkeyLoginOptions->value, PasskeyLoginOptionsController::class)
-    ->middleware([MiddlewareTag::guest->value, MiddlewareTag::throttleSixPerMinute->value])
+    ->middleware([MiddlewareTag::guest->value, MiddlewareTag::throttleTenPerMinute->value])
     ->name('passkey.login-options');
 Route::post(Web::passkeyLogin->value, PasskeyLoginController::class)
-    ->middleware([MiddlewareTag::guest->value, MiddlewareTag::throttleSixPerMinute->value])
+    ->middleware([MiddlewareTag::guest->value, MiddlewareTag::throttleTenPerMinute->value])
     ->name('passkey.login');
 Route::post(Web::forgotPassword->value, PasswordResetLinkController::class)
-    ->middleware([MiddlewareTag::guest->value, MiddlewareTag::throttleFivePerMinute->value])
+    ->middleware([MiddlewareTag::guest->value, MiddlewareTag::throttleTenPerMinute->value])
     ->name('password.email');
 Route::post(Web::resetPasswordUpdate->value, NewPasswordController::class)
-    ->middleware([MiddlewareTag::guest->value, MiddlewareTag::throttleFivePerMinute->value])
+    ->middleware([MiddlewareTag::guest->value, MiddlewareTag::throttleTenPerMinute->value])
     ->name('password.update');
-Route::get(Web::googleRedirect->value, GoogleRedirectController::class)->middleware([MiddlewareTag::throttleFivePerMinute->value]);
-Route::get(Web::googleCallback->value, GoogleCallbackController::class)->middleware([MiddlewareTag::throttleFivePerMinute->value]);
-Route::post(Web::googleOneTap->value, GoogleOneTapController::class)->middleware([MiddlewareTag::guest->value, MiddlewareTag::throttleFivePerMinute->value]);
-Route::get(Web::logout->value, LogoutController::class)->middleware([MiddlewareTag::throttleFivePerMinute->value]);
+Route::get(Web::googleRedirect->value, GoogleRedirectController::class)->middleware([MiddlewareTag::throttleTenPerMinute->value]);
+Route::get(Web::googleCallback->value, GoogleCallbackController::class)->middleware([MiddlewareTag::throttleTenPerMinute->value]);
+Route::post(Web::googleOneTap->value, GoogleOneTapController::class)->middleware([MiddlewareTag::guest->value, MiddlewareTag::throttleTenPerMinute->value]);
+Route::get(Web::logout->value, LogoutController::class)->middleware([MiddlewareTag::throttleTenPerMinute->value]);
 Route::get(Web::llms->value, LlmsController::class);
 Route::get(Web::robots->value, RobotsController::class);
 Route::get(Web::sitemap->value, SitemapController::class);
