@@ -11,7 +11,8 @@ use Laravel\Head\Facades\Head;
 use function Laravel\Folio\render;
 
 Head::title('Login')
-    ->description('Sign in to your '.config('app.name').' client account.');
+    ->description('Sign in to your '.config('app.name').' client account.')
+    ->hiddenFromRobots();
 
 render(function (View $view) {
     if (auth()->check()) {
