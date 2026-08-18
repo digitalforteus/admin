@@ -152,6 +152,7 @@ function replacements(array $answers): array
         TEMPLATE['logo_title'] => htmlspecialchars($answers['title'].' logo', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
         TEMPLATE['logo_description'] => htmlspecialchars($answers['title'].' application logo.', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
         "Mcp::local('".TEMPLATE['slug']."'" => "Mcp::local('".$answers['slug']."'",
+        'mcp:start '.TEMPLATE['slug'] => 'mcp:start '.$answers['slug'],
     ];
 }
 

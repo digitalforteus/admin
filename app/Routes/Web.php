@@ -34,6 +34,7 @@ enum Web: string
     #[ExcludeFromSitemap]
     #[AdminLink]
     case openapi = '/openapi.json';
+    case mcp = '/mcp';
     case contact = '/contact';
     case privacyPolicy = '/privacy-policy';
     case termsOfService = '/terms-of-service';
