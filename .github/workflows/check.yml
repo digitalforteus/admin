@@ -38,3 +38,11 @@ jobs:
       - run: npm ci && npm run build
 
       - run: composer check
+
+      # Deploy only when everything above passed. See "Deploying on a green check"
+      # in the README for the secret this reads.
+      # - name: deploy
+      #   if: github.ref == 'refs/heads/main'
+      #   run: curl --fail --silent --show-error --request POST "$DEPLOY_HOOK"
+      #   env:
+      #     DEPLOY_HOOK: ${{ secrets.LARAVEL_CLOUD_DEPLOY_HOOK }}
