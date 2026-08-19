@@ -3,6 +3,7 @@
 use App\Helpers\HttpHeader;
 use App\Helpers\Role;
 use App\Http\Middleware\CacheUserPicture;
+use App\Http\Middleware\CanonicalizeUrl;
 use App\Http\Middleware\EnsureEmailIsVerifiedMiddleware;
 use App\Http\Middleware\EnsureTokenAbilityMiddleware;
 use App\Routes\MiddlewareTag;
@@ -39,6 +40,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->prependToGroup(MiddlewareTag::web->value, CanonicalizeUrl::class);
         $middleware->appendToGroup(MiddlewareTag::web->value, CacheUserPicture::class);
         $middleware->redirectGuestsTo(static fn () => Web::login->value);
         $middleware->alias([

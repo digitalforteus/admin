@@ -1,2 +1,14 @@
 User-agent: *
-Disallow:
+Disallow: /cdn-cgi/
+Disallow: /admin
+Disallow: /admin/
+Disallow: /settings
+Disallow: /settings/
+Disallow: /auth/
+Disallow: /dashboard
+Disallow: /confirm-password
+Disallow: /confirm-password/
+Disallow: /email/verify
+Disallow: /email/verify/
+Disallow: /user/
+Disallow: /passkeys/

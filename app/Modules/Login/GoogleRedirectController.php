@@ -10,6 +10,9 @@ readonly class GoogleRedirectController
 {
     public function __invoke(): RedirectResponse
     {
-        return Socialite::driver(SocialiteDriver::google->value)->redirect();
+        $response = Socialite::driver(SocialiteDriver::google->value)->redirect();
+        $response->headers->set('X-Robots-Tag', 'noindex, nofollow');
+
+        return $response;
     }
 }
