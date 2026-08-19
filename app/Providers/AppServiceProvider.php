@@ -48,19 +48,24 @@ class AppServiceProvider extends ServiceProvider
 
         $name = Config::string('app.name');
 
-        Head::defaults(static fn (HeadBuilder $head): HeadBuilder => $head
-            ->title($name, suffix: " - $name")
-            ->description('An opinionated Laravel template.')
-            ->applicationName($name)
-            ->canonical()
-            ->viewport('width=device-width, initial-scale=1.0')
-            ->colorScheme('light dark')
-            ->referrer('strict-origin-when-cross-origin')
-            ->themeColor(Theme::light->color(), media: Media::Light)
-            ->themeColor(Theme::dark->color(), media: Media::Dark)
-            ->og(type: OgType::Website, siteName: $name)
-            ->twitter(card: TwitterCard::Summary)
-            ->searchableByRobots());
+        Head::defaults(function (HeadBuilder $head) use ($name): HeadBuilder {
+            $request = request();
+
+            return $head
+                ->title($name, suffix: " - $name")
+                ->description('')
+                ->applicationName($name)
+                ->canonical()
+                ->viewport('width=device-width, initial-scale=1.0')
+                ->colorScheme('light dark')
+                ->referrer('strict-origin-when-cross-origin')
+                ->themeColor(Theme::light->color(), media: Media::Light)
+                ->themeColor(Theme::dark->color(), media: Media::Dark)
+                ->og(type: OgType::Website, siteName: $name, url: $request->url())
+                ->ogImage('/android-chrome-512x512.png', width: 512, height: 512)
+                ->twitter(card: TwitterCard::Summary)
+                ->searchableByRobots();
+        });
     }
 
     private function registerOpenApiSchemas(): void

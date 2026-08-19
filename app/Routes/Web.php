@@ -32,12 +32,15 @@ enum Web: string
     #[ExcludeFromSitemap]
     case sitemapPage = '/sitemap-{page}.xml';
     #[ExcludeFromSitemap]
+    case bingSiteAuth = '/BingSiteAuth.xml';
+    #[ExcludeFromSitemap]
     #[AdminLink]
     case openapi = '/openapi.json';
     case mcp = '/mcp';
     case contact = '/contact';
     case privacyPolicy = '/privacy-policy';
     case termsOfService = '/terms-of-service';
+    #[ExcludeFromSitemap]
     case login = '/login';
     #[ExcludeFromSitemap]
     case twoFactorChallenge = '/two-factor-challenge';
