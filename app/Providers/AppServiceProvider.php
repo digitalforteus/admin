@@ -49,19 +49,17 @@ class AppServiceProvider extends ServiceProvider
         $name = Config::string('app.name');
 
         Head::defaults(static function (HeadBuilder $head) use ($name): HeadBuilder {
-            $url = request()->url();
-
             return $head
                 ->title($name, suffix: " - $name")
                 ->description('')
                 ->applicationName($name)
-                ->canonical($url)
+                ->canonical()
                 ->viewport('width=device-width, initial-scale=1.0')
                 ->colorScheme('light dark')
                 ->referrer('strict-origin-when-cross-origin')
                 ->themeColor(Theme::light->color(), media: Media::Light)
                 ->themeColor(Theme::dark->color(), media: Media::Dark)
-                ->og(type: OgType::Website, url: $url, siteName: $name)
+                ->og(type: OgType::Website, siteName: $name)
                 ->ogImage('/android-chrome-512x512.png', width: 512, height: 512)
                 ->twitter(card: TwitterCard::Summary)
                 ->searchableByRobots();

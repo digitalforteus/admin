@@ -4,6 +4,8 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Laravel\Head\Facades\Head;
+use Laravel\Head\Tags\Canonical;
 use Symfony\Component\HttpFoundation\Response;
 
 readonly class CanonicalizeUrl
@@ -30,6 +32,8 @@ readonly class CanonicalizeUrl
 
             return redirect($url, 301);
         }
+
+        Head::og(url: Canonical::make()->render($Request));
 
         return $Closure($Request);
     }

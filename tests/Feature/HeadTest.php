@@ -74,3 +74,19 @@ test('the settings pages are hidden from robots', function (): void {
         ->assertSee("<title>Appearance - $name</title>", false)
         ->assertSee('<meta name="robots" content="none">', false);
 });
+
+test('pages in sitemap carry their own page as canonical and open graph url', function (string $route): void {
+    $content = (string) $this->get($route)->assertOk()->getContent();
+
+    preg_match('/<link rel="canonical" href="([^"]+)"/', $content, $canonical);
+    preg_match('/<meta property="og:url" content="([^"]+)"/', $content, $og);
+
+    $expected = str_replace('http://', 'https://', rtrim(Config::string('app.url'), '/')).$route;
+
+    expect($canonical[1] ?? null)->toBe($expected)
+        ->and($og[1] ?? null)->toBe($canonical[1] ?? null);
+})->with([
+    Web::termsOfService->value,
+    Web::privacyPolicy->value,
+    Web::contact->value,
+]);
