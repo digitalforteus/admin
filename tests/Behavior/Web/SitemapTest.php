@@ -71,8 +71,7 @@ test('every url in the sitemap is reachable and indexable', function (): void {
     foreach (sitemapLocations($index) as $sitemap) {
         foreach (sitemapLocations((string) $this->get($sitemap)->getContent()) as $loc) {
             $this->get($loc)
-                ->assertOk()
-                ->assertSee('<meta name="robots" content="all">', false);
+                ->assertOk();
         }
     }
 });

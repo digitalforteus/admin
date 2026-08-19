@@ -20,6 +20,10 @@
         </p>
     </aside>
     <nav>
+        <h2 class="footer-title">Info</h2>
+        <a href="https://digitalforte.us/showcase" class="link link-hover">Showcase</a>
+    </nav>
+    <nav>
         <h2 class="footer-title">Support</h2>
         <a href="{{Web::contact->value}}" class="link link-hover">Contact</a>
         @guest

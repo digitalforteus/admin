@@ -2,12 +2,14 @@
 
 namespace App\Modules\Login;
 
+use App\Events\UserRegistered;
 use App\Helpers\OauthProviderId;
 use App\Helpers\SessionKey;
 use App\Models\OauthProvider;
 use App\Models\User;
 use App\Sources\Db\App\OauthProviders;
 use App\Sources\Db\App\Users;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
@@ -50,6 +52,8 @@ readonly class GoogleLogin
 
         if ($User->wasRecentlyCreated) {
             request()->session()->flash(SessionKey::sign_up_method->value, 'Google');
+            event(new Registered($User));
+            UserRegistered::dispatch($User);
         }
 
         return $User;

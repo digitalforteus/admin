@@ -2,6 +2,7 @@
 
 namespace App\Modules\Register;
 
+use App\Events\UserRegistered;
 use App\Helpers\SessionKey;
 use App\Models\User;
 use App\Routes\Auth as AuthRoute;
@@ -46,6 +47,7 @@ readonly class RegisterController
             Auth::login($User);
 
             event(new Registered($User));
+            UserRegistered::dispatch($User);
         });
 
         request()->session()->flash(SessionKey::sign_up_method->value, 'Email');

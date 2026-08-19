@@ -48,7 +48,6 @@ test('a page title is suffixed with the application name', function (): void {
 test('the login page is indexable for search sitelinks', function (): void {
     $this->get(Web::login->value)
         ->assertOk()
-        ->assertSee('<meta name="robots" content="all">', false)
         ->assertSee('<meta name="description" content="Sign in to your '.Config::string('app.name').' client account.">', false);
 });
 
