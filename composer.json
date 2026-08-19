@@ -43,7 +43,7 @@
         "rector/rector": "^2.5",
         "roave/security-advisories": "dev-latest",
         "symfony/psr-http-message-bridge": "^8.1",
-        "zero-to-prod/laravel-rector": "^1.0",
+        "zero-to-prod/laravel-rector": "^1.2",
         "ext-openssl": "*"
     },
     "autoload": {

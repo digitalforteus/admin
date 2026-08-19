@@ -16,6 +16,7 @@ use ZeroToProd\LaravelRector\Rector\EnforceInvokableControllerRector;
 use ZeroToProd\LaravelRector\Rector\EnforceInvokableControllerRouteRector;
 use ZeroToProd\LaravelRector\Rector\ForbidClassUsageRector;
 use ZeroToProd\LaravelRector\Rector\ForbidCommentPhraseRector;
+use ZeroToProd\LaravelRector\Rector\ForbidDuplicateBladeElementRector;
 use ZeroToProd\LaravelRector\Rector\RenameParamToMatchTypeExactCaseRector;
 
 return RectorConfig::configure()
@@ -42,6 +43,12 @@ return RectorConfig::configure()
     ->withConfiguredRule(ForbidClassUsageRector::class, [
         ForbidClassUsageRector::CLASSES => [
             DB::class,
+        ],
+    ])
+    ->withConfiguredRule(ForbidDuplicateBladeElementRector::class, [
+        'elements' => [
+            0 => 'title',
+            1 => 'h1',
         ],
     ])
     ->withConfiguredRule(ForbidCommentPhraseRector::class, [
