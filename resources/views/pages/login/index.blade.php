@@ -51,10 +51,12 @@ render(function (View $view) {
             <x-svg :svg="[Svg::name => SvgName::google, Svg::classname => 'size-5']"/>
             Google
         </a>
-        <a href="{{Web::githubRedirect->value}}" class="btn btn-outline w-full" data-github-login>
-            <x-svg :svg="[Svg::name => SvgName::github, Svg::classname => 'size-5']"/>
-            GitHub
-        </a>
+        @if(is_string(config('services.github.client_id')) && config('services.github.client_id') !== '')
+            <a href="{{Web::githubRedirect->value}}" class="btn btn-outline w-full" data-github-login>
+                <x-svg :svg="[Svg::name => SvgName::github, Svg::classname => 'size-5']"/>
+                GitHub
+            </a>
+        @endif
     </div>
     <x-slot:footer>
         <a href="{{Web::register->value}}" class="link link-primary text-center p-3">Register</a>

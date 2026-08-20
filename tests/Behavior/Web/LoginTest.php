@@ -41,6 +41,21 @@ test('remember me selection is preserved after validation fails', function (): v
     expect($Response->getContent())->toMatch('/<input(?=[^>]*name="remember_token")(?=[^>]*checked)[^>]*>/');
 });
 
+test('the github button appears only while a github client is configured', function (): void {
+    config()->set('services.github.client_id', 'github-client-id');
+
+    $this->get(Web::login->value)
+        ->assertOk()
+        ->assertSee('data-github-login', false);
+
+    config()->set('services.github.client_id', '');
+
+    $this->get(Web::login->value)
+        ->assertOk()
+        ->assertDontSee('data-github-login', false)
+        ->assertSee('data-google-login', false);
+});
+
 test('google login redirects to google', function (): void {
     Socialite::fake(SocialiteDriver::google->value);
 
