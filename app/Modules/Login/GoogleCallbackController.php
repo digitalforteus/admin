@@ -35,7 +35,7 @@ readonly class GoogleCallbackController
             ]);
         }
 
-        $GoogleLogin->login($GoogleUser);
+        $GoogleLogin->login($GoogleUser, $google_user->getRaw());
 
         return redirect()->intended(Web::home->value);
     }

@@ -8751,16 +8751,16 @@
         },
         {
             "name": "zero-to-prod/db-model",
-            "version": "v0.1.0",
+            "version": "v0.1.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/zero-to-prod/db-model.git",
-                "reference": "ec5c6459ef444018444c36a9783ca7e9b769f794"
+                "reference": "521384a9ad4edae7b431c36061380d5c16dc72a7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/zero-to-prod/db-model/zipball/ec5c6459ef444018444c36a9783ca7e9b769f794",
-                "reference": "ec5c6459ef444018444c36a9783ca7e9b769f794",
+                "url": "https://api.github.com/repos/zero-to-prod/db-model/zipball/521384a9ad4edae7b431c36061380d5c16dc72a7",
+                "reference": "521384a9ad4edae7b431c36061380d5c16dc72a7",
                 "shasum": ""
             },
             "require": {
@@ -8807,9 +8807,9 @@
             "description": "Generates PHP Artifacts to Represent Database Schemas",
             "support": {
                 "issues": "https://github.com/zero-to-prod/db-model/issues",
-                "source": "https://github.com/zero-to-prod/db-model/tree/v0.1.0"
+                "source": "https://github.com/zero-to-prod/db-model/tree/v0.1.1"
             },
-            "time": "2026-08-10T14:54:51+00:00"
+            "time": "2026-08-19T23:34:40+00:00"
         },
         {
             "name": "zero-to-prod/factory",

@@ -6,4 +6,5 @@ namespace App\Helpers;
 enum OauthProviderId: string
 {
     case google = 'google';
+    case github = 'github';
 }

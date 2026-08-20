@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $id
  * @property bool $verified_email
  * @property string|null $link
+ * @property array<string, mixed>|null $payload
  * @property-read User $user
  *
  * @mixin IdeHelperOauthProvider
@@ -54,6 +55,7 @@ class OauthProvider extends Model
         OauthProviders::id->value,
         OauthProviders::verified_email->value,
         OauthProviders::link->value,
+        OauthProviders::payload->value,
     ];
 
     /** @return array<string, string> */
@@ -63,6 +65,7 @@ class OauthProvider extends Model
             OauthProviders::provider_id->value => OauthProviderId::class,
             OauthProviders::email_verified->value => 'boolean',
             OauthProviders::verified_email->value => 'boolean',
+            OauthProviders::payload->value => 'array',
         ];
     }
 

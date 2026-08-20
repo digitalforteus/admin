@@ -14,6 +14,7 @@ enum SvgName: string
     case document = 'document';
     case email = 'email';
     case gear = 'gear';
+    case github = 'github';
     case google = 'google';
     case home = 'home';
     case key = 'key';

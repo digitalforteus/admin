@@ -4,6 +4,8 @@ use App\Modules\Fortify\NewPasswordController;
 use App\Modules\Fortify\PasswordResetLinkController;
 use App\Modules\Fortify\TwoFactorLoginController;
 use App\Modules\Llms\LlmsController;
+use App\Modules\Login\GitHubCallbackController;
+use App\Modules\Login\GitHubRedirectController;
 use App\Modules\Login\GoogleCallbackController;
 use App\Modules\Login\GoogleOneTapController;
 use App\Modules\Login\GoogleRedirectController;
@@ -44,6 +46,8 @@ Route::post(Web::resetPasswordUpdate->value, NewPasswordController::class)
 Route::get(Web::googleRedirect->value, GoogleRedirectController::class)->middleware([MiddlewareTag::throttleTenPerMinute->value]);
 Route::get(Web::googleCallback->value, GoogleCallbackController::class)->middleware([MiddlewareTag::throttleTenPerMinute->value]);
 Route::post(Web::googleOneTap->value, GoogleOneTapController::class)->middleware([MiddlewareTag::guest->value, MiddlewareTag::throttleTenPerMinute->value]);
+Route::get(Web::githubRedirect->value, GitHubRedirectController::class)->middleware([MiddlewareTag::throttleTenPerMinute->value]);
+Route::get(Web::githubCallback->value, GitHubCallbackController::class)->middleware([MiddlewareTag::throttleTenPerMinute->value]);
 Route::get(Web::logout->value, LogoutController::class)->middleware([MiddlewareTag::throttleTenPerMinute->value]);
 Route::get(Web::llms->value, LlmsController::class);
 Route::get(Web::robots->value, RobotsController::class);

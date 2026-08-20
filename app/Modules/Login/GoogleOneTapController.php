@@ -17,13 +17,15 @@ readonly class GoogleOneTapController
             'credential' => ['required', 'string'],
         ])['credential'];
 
+        $rawPayload = null;
+
         try {
-            $GoogleUser = $this->GoogleCredential->user($credential);
+            $GoogleUser = $this->GoogleCredential->user($credential, $rawPayload);
         } catch (Throwable) {
             return response()->json(['message' => 'Google sign-in could not be verified.'], 422);
         }
 
-        $GoogleLogin->login($GoogleUser);
+        $GoogleLogin->login($GoogleUser, $rawPayload);
 
         return response()->json([
             'redirect' => redirect()->intended(Web::home->value)->getTargetUrl(),

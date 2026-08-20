@@ -15,9 +15,9 @@ use Illuminate\Support\Str;
 
 readonly class GoogleLogin
 {
-    public function login(GoogleUser $GoogleUser): User
+    public function login(GoogleUser $GoogleUser, mixed $rawPayload = null): User
     {
-        $User = User::query()->getConnection()->transaction(function () use ($GoogleUser): User {
+        $User = User::query()->getConnection()->transaction(function () use ($GoogleUser, $rawPayload): User {
             $OauthProvider = OauthProvider::query()->firstOrNew([
                 OauthProviders::provider_id->value => OauthProviderId::google->value,
                 OauthProviders::sub->value => $GoogleUser->sub,
@@ -35,12 +35,16 @@ readonly class GoogleLogin
                 $User->markEmailAsVerified();
             }
 
-            $User->oauthProviders()->updateOrCreate(
-                [
-                    OauthProviders::provider_id->value => OauthProviderId::google->value,
-                    OauthProviders::sub->value => $GoogleUser->sub,
-                ],
-                $GoogleUser->toArray(),
+            $oauth_data = array_merge($GoogleUser->toArray(), [
+                OauthProviders::user_id->value => $User->id,
+                OauthProviders::provider_id->value => OauthProviderId::google->value,
+                OauthProviders::payload->value => $rawPayload !== null ? json_encode($rawPayload) : null,
+            ]);
+
+            OauthProvider::query()->upsert(
+                [$oauth_data],
+                [OauthProviders::sub->value],
+                array_diff(array_keys($oauth_data), [OauthProviders::sub->value]),
             );
 
             return $User;

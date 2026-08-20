@@ -23,6 +23,7 @@ return new class extends Migration
             $Blueprint->string(GoogleUser::id)->comment('The compatibility identifier supplied by Socialite');
             $Blueprint->boolean(GoogleUser::verified_email)->comment('The compatibility email verification flag supplied by Socialite');
             $Blueprint->text(GoogleUser::link)->nullable()->comment('The profile URL supplied by Socialite');
+            $Blueprint->json('payload')->nullable()->comment('The complete raw JSON payload from the OAuth provider for debugging and data recovery');
 
             $Blueprint->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
         });

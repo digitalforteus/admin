@@ -52,7 +52,7 @@ test('google one tap logs in with a verified credential', function (): void {
     $this->mock(GoogleCredential::class, function (MockInterface $Mock): void {
         $Mock->shouldReceive('user')
             ->once()
-            ->with('verified-google-credential')
+            ->with('verified-google-credential', Mockery::any())
             ->andReturn(OneTapGoogleUser::from([
                 OneTapGoogleUser::sub => '123456789',
                 OneTapGoogleUser::name => 'Google User',
@@ -77,6 +77,65 @@ test('google one tap logs in with a verified credential', function (): void {
 
     expect($User->oauthProviders()->sole()->picture)->toBe('https://example.com/avatar.jpg')
         ->and(session(SessionKey::user_picture->value))->toBe('https://example.com/avatar.jpg');
+});
+
+test('google one tap upserts the oauth provider, updating the picture and persisting the payload', function (): void {
+    $User = User::factory()->createOne([
+        Users::email->value => 'google@example.com',
+    ]);
+    $User->oauthProviders()->create([
+        OauthProviders::provider_id->value => OauthProviderId::google->value,
+        OauthProviders::sub->value => '123456789',
+        OauthProviders::name->value => 'Old Name',
+        OauthProviders::given_name->value => 'Old',
+        OauthProviders::family_name->value => 'Name',
+        OauthProviders::picture->value => 'https://example.com/old.jpg',
+        OauthProviders::email->value => 'google@example.com',
+        OauthProviders::email_verified->value => true,
+        OauthProviders::id->value => '123456789',
+        OauthProviders::verified_email->value => true,
+    ]);
+
+    $this->mock(GoogleCredential::class, function (MockInterface $Mock): void {
+        $Mock->shouldReceive('user')
+            ->once()
+            ->with('verified-google-credential', Mockery::any())
+            ->andReturnUsing(function (string $credential, ?array &$rawPayload = null): OneTapGoogleUser {
+                $rawPayload = [
+                    'sub' => '123456789',
+                    'email' => 'google@example.com',
+                    'picture' => 'https://example.com/new.jpg',
+                ];
+
+                return OneTapGoogleUser::from([
+                    OneTapGoogleUser::sub => '123456789',
+                    OneTapGoogleUser::name => 'Google User',
+                    OneTapGoogleUser::given_name => 'Google',
+                    OneTapGoogleUser::family_name => 'User',
+                    OneTapGoogleUser::picture => 'https://example.com/new.jpg',
+                    OneTapGoogleUser::email => 'google@example.com',
+                    OneTapGoogleUser::email_verified => true,
+                    OneTapGoogleUser::id => '123456789',
+                    OneTapGoogleUser::verified_email => true,
+                ]);
+            });
+    });
+
+    $this->postJson(Web::googleOneTap->value, [
+        'credential' => 'verified-google-credential',
+    ])->assertOk();
+
+    $this->assertAuthenticatedAs($User);
+
+    $OauthProvider = OauthProvider::query()->where(OauthProviders::sub->value, '123456789')->sole();
+    $OauthProvider->refresh();
+
+    expect($OauthProvider->picture)->toBe('https://example.com/new.jpg')
+        ->and(OauthProvider::query()->where(OauthProviders::sub->value, '123456789')->count())->toBe(1)
+        ->and($OauthProvider->payload)->not->toBeNull();
+    assert($OauthProvider->payload !== null);
+
+    expect($OauthProvider->payload['picture'])->toBe('https://example.com/new.jpg');
 });
 
 test('google one tap rejects an invalid credential', function (): void {
@@ -115,6 +174,30 @@ test('google login creates a verified user', function (): void {
         ->and($User->oauthProviders()->sole()->sub)->toBe('123456789')
         ->and(session(SessionKey::user_picture->value))->toBe('https://example.com/avatar.jpg')
         ->and(session(SessionKey::sign_up_method->value))->toBe('Google');
+});
+
+test('google login persists the raw oauth payload', function (): void {
+    Socialite::fake(SocialiteDriver::google->value, GoogleUser::fake([
+        'sub' => '123456789',
+        'name' => 'Google User',
+        'given_name' => 'Google',
+        'family_name' => 'User',
+        'picture' => 'https://example.com/avatar.jpg',
+        'email' => 'google@example.com',
+        'email_verified' => true,
+        'verified_email' => true,
+    ]));
+
+    $this->get(Web::googleCallback->value)->assertRedirect(Web::home->value);
+
+    $OauthProvider = OauthProvider::query()->where(OauthProviders::sub->value, '123456789')->sole();
+    $OauthProvider->refresh();
+
+    expect($OauthProvider->payload)->not->toBeNull();
+    assert($OauthProvider->payload !== null);
+
+    expect($OauthProvider->payload['sub'])->toBe('123456789')
+        ->and($OauthProvider->payload['email'])->toBe('google@example.com');
 });
 
 test('google login updates the oauth provider', function (): void {

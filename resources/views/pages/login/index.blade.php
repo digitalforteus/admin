@@ -46,10 +46,16 @@ render(function (View $view) {
     </button>
     <p class="mt-2 hidden text-center text-sm text-error" data-passkey-error></p>
     <div class="divider text-xs uppercase">or continue with</div>
-    <a href="{{Web::googleRedirect->value}}" class="btn btn-outline w-full" data-google-login>
-        <x-svg :svg="[Svg::name => SvgName::google, Svg::classname => 'size-5']"/>
-        Google
-    </a>
+    <div class="space-y-2">
+        <a href="{{Web::googleRedirect->value}}" class="btn btn-outline w-full" data-google-login>
+            <x-svg :svg="[Svg::name => SvgName::google, Svg::classname => 'size-5']"/>
+            Google
+        </a>
+        <a href="{{Web::githubRedirect->value}}" class="btn btn-outline w-full" data-github-login>
+            <x-svg :svg="[Svg::name => SvgName::github, Svg::classname => 'size-5']"/>
+            GitHub
+        </a>
+    </div>
     <x-slot:footer>
         <a href="{{Web::register->value}}" class="link link-primary text-center p-3">Register</a>
     </x-slot:footer>

@@ -146,4 +146,12 @@ enum OauthProviders: string
         Column::nullable => true,
     ])]
     case link = 'link';
+
+    #[Column([
+        Column::name => self::payload,
+        Column::comment => 'The complete raw JSON payload from the OAuth provider for debugging and data recovery',
+        Column::type => ColumnType::json->value,
+        Column::nullable => true,
+    ])]
+    case payload = 'payload';
 }

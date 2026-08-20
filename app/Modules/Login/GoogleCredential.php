@@ -12,7 +12,8 @@ use RuntimeException;
 
 class GoogleCredential
 {
-    public function user(string $credential): GoogleUser
+    /** @param array<string, mixed>|null $rawPayload */
+    public function user(string $credential, ?array &$rawPayload = null): GoogleUser
     {
         $client_id = config('services.google.client_id');
 
@@ -47,6 +48,10 @@ class GoogleCredential
             || ($claims->email_verified ?? false) !== true) {
             throw new InvalidArgumentException('The Google credential is invalid.');
         }
+
+        /** @var array<string, mixed> $claimsPayload */
+        $claimsPayload = (array) $claims;
+        $rawPayload = $claimsPayload;
 
         return GoogleUser::from([
             GoogleUser::sub => $claims->sub ?? '',

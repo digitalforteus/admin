@@ -63,6 +63,10 @@ enum Web: string
     #[ExcludeFromSitemap]
     case googleOneTap = '/auth/google/one-tap';
     #[ExcludeFromSitemap]
+    case githubRedirect = '/auth/github/redirect';
+    #[ExcludeFromSitemap]
+    case githubCallback = '/auth/github/callback';
+    #[ExcludeFromSitemap]
     case logout = '/logout';
     #[ExcludeFromSitemap]
     case register = '/register';
