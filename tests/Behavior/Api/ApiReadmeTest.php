@@ -4,6 +4,7 @@ use App\Helpers\CacheKey;
 use App\Modules\Api\Public\Readme\ReadmeResponse;
 use App\Modules\Api\Support\ApiResponse;
 use App\Routes\ApiRoute;
+use App\Routes\Web;
 
 test('readme is served without a token', function (): void {
     $this->assertMatchesSchema($this->getJson(ApiRoute::readme->value))
@@ -22,5 +23,5 @@ test('readme is served without a token', function (): void {
 test('the readme points to the current API contract', function (): void {
     $readme = (string) file_get_contents(resource_path(CacheKey::api_readme->value));
 
-    expect($readme)->toContain('/openapi.json');
+    expect($readme)->toContain(Web::openapi->value);
 });

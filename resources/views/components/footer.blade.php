@@ -28,6 +28,12 @@
         </nav>
     @endif
     <nav>
+        <h2 class="footer-title">Reference</h2>
+        <a href="{{Web::docs->value}}" class="link link-hover">Documentation</a>
+        <a href="{{Web::docsApi->value}}" class="link link-hover">API</a>
+        <a href="{{Web::docsMcp->value}}" class="link link-hover">MCP</a>
+    </nav>
+    <nav>
         <h2 class="footer-title">Support</h2>
         <a href="{{Web::contact->value}}" class="link link-hover">Contact</a>
         @guest

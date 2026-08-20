@@ -27,6 +27,11 @@ class Main
     #[Describe([Describe::default => [SettingsNav::class, 'visible']])]
     public bool $settingsNav;
 
+    public const string docsNav = 'docsNav';
+
+    #[Describe([Describe::default => [DocsNav::class, 'visible']])]
+    public bool $docsNav;
+
     public const string leftNav = 'leftNav';
 
     #[Describe([Describe::default => [LeftNav::class, 'visible']])]
@@ -39,7 +44,7 @@ class Main
 
     public function nav(): bool
     {
-        return $this->adminNav || $this->settingsNav;
+        return $this->adminNav || $this->settingsNav || $this->docsNav;
     }
 
     /** @return array<string, mixed> */
@@ -49,6 +54,7 @@ class Main
             Topnav::leftNav => $this->leftNav,
             Topnav::adminNav => $this->adminNav,
             Topnav::settingsNav => $this->settingsNav,
+            Topnav::docsNav => $this->docsNav,
         ];
     }
 

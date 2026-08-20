@@ -10,19 +10,11 @@ sail composer dev                  # dev server
 sail composer fix                  # refactor + format
 sail composer check                # validate
 sail pest --filter=ApiUser         # the test you are writing
-sail composer openapi-validate     # document only, seconds
 ```
 
-- Iterate with `pest --filter=<Test>` + `openapi-validate`. `fix` + `check` is minutes in Docker — run once, at end of turn.
-- Slow commands: `cmd > /tmp/out.txt 2>&1; echo $?`, then grep the file. Piping to `tail`/`grep` drops the exit code.
-- `git status --short` after `fix` separates linter edits from yours.
-- **End of turn:** `sail composer fix`, then `sail composer check`.
+- Iterate with `pest --filter=<Test>` at end of turn.
 
 ## MCP Servers
-
-Servers document the `zero-to-prod/*` packages ([.mcp.json](./.mcp.json)) and are
-the source of truth for them. Do NOT read or grep `vendor/zero-to-prod/**` — ask
-the server.
 
 | Working on                            | Server             |
 |---------------------------------------|--------------------|
@@ -58,9 +50,6 @@ field. Everything reads off it — `Users::name->schema()` (OpenAPI),
 type, length or nullability. Owned by the `db-model` server.
 
 ### 3. Controller
-
-`readonly class`, one `__invoke(Request $Request)`, no base class, no constructor
-injection:
 
 1. `#[ApiSchema(static fn () => <Concept><Verb>Schema::schema())]` on `__invoke`.
 2. `$Validator = XRequest::validator($Request->all())` → `api_response()->unprocessableEntity($Validator)` on failure.
@@ -298,76 +287,3 @@ spreads it, and overrides `TextInput::value` with `old(...)`. Errors render via
 `TextInput::error` (defaults to the field name) + `TextInput::bag`, consumed by
 `x-field`'s `@error`.
 
-### Icons
-
-`resources/views/svg/<name>.blade.php`, a bare `<svg>` with
-`class="{{$classname}}"`. Never `@include` one directly — go through
-`<x-svg :svg="[Svg::name => '...']"/>`, which includes
-`ViewDirectory::svg->qualify($name)`. A view asked for by name is a case on
-[ViewName](app/View/ViewName.php) (`render()`, `exists()`); a directory of
-interchangeable views is a case on
-[ViewDirectory](app/View/ViewDirectory.php) (`qualify()`, `has()`), whose case
-is the prefix because the view is only known at render time. Never a string
-literal.
-
-### Testing
-
-Test the **DataModel**, not rendered HTML: defaults from a partial props array,
-overrides, `PropertyRequiredException` on a missing required prop, and projection
-methods ([TextInputTest](tests/Feature/TextInputTest.php),
-[SvgTest](tests/Feature/SvgTest.php)). Rendered pages are covered in
-`tests/Behavior/Web`.
-
-## PhpStorm MCP
-
-Measured in this project. Always pass `projectPath`.
-
-**Loop:** `search_file` → `read_file` (targeted range) → edit → `get_inspections`
-(+ `apply_quick_fix`) → `execute_run_configuration` (one test) → `fix` + `check`
-at end of turn.
-
-### Tier 1 — reach for these
-
-1. `get_inspections` — real IDE inspections; the only linter tool returning
-   `quickFixes`. Feed its `line`/`column`/`name` to `apply_quick_fix` (one call
-   per problem).
-2. `execute_run_configuration(filePath, line)` — runs a single Pest test in the
-   Sail container, returns exit code + output (~20s wall). Get the line from
-   `get_run_configurations(filePath)`.
-3. `read_file` / `list_directory_tree` — the workhorses; read only the range you need.
-4. `search_file` (glob) — cheapest exact "list every X".
-5. `laravel_idea_get_eloquent_model` — fields, relations, factory, migration in
-   one call. `laravel_idea_get_routes` works *only* via `routeTargetPattern`
-   (controller FQN).
-6. `get_php_project_config` / `get_composer_dependencies` — authoritative env and
-   versions (PHP 8.5, remote docker-compose interpreter).
-7. `get_all_open_file_paths` — the only view of what the user is looking at.
-
-### Tier 2 — works, budget a follow-up
-
-8. `search_text` / `search_regex` / `search_symbol` / `skill_search` — return
-   **coordinates only**, no matched text or symbol name; each hit costs a
-   `read_file`. Prefer `Grep` to *see* matches.
-9. `search_structural` (SSR) — exact, but emits the **whole matched element body**
-   per hit (21 matches = 21 full classes). Constrain `directoryToSearch` +
-   `maxResults`; start from `get_structural_patterns`.
-10. `lint_files` — batch, no quick fixes, ignores the `min_severity` floor.
-    `get_file_problems` is thinner still.
-11. DB tools — `list_database_connections` → `list_database_schemas` →
-    `get_database_object_description` is a cheap table dump,
-    `execute_sql_query` needs interactive approval.
-12. `git_status` — fine, though `git status --short` via Bash is cheaper.
-
-### Tier 3 — don't bother
-
-13. `analyze_calls` — resolves no PHP symbol (tried `A\B.m`, `A\B::m`, `\A\B::m()`,
-    bare function). Non-functional here.
-14. `reformat_file` / `invoke_ide_action ReformatCode` — report success, change
-    nothing (formatting defers to Pint). Use `sail composer fix`.
-15. `build_project` — "limited build diagnostics". No-op for PHP.
-16. `laravel_idea_get_routes` by `urlPattern` — misses routes that exist.
-    `laravel_idea_get_blade_component` — "Component not found" for real components.
-17. `execute_terminal_command` — a second shell beside `Bash`, no added capability.
-18. `execute_tool` — passthrough indirection.
-19. `rename_refactoring` — works, but only verified on a 0-usage symbol.
-20. `xdebug_*` needs a live session.

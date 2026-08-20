@@ -37,6 +37,9 @@ enum Web: string
     #[AdminLink]
     case openapi = '/openapi.json';
     case mcp = '/mcp';
+    case docs = '/docs';
+    case docsApi = '/docs/api';
+    case docsMcp = '/docs/mcp';
     case contact = '/contact';
     case privacyPolicy = '/privacy-policy';
     case termsOfService = '/terms-of-service';

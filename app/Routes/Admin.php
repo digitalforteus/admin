@@ -32,7 +32,7 @@ enum Admin: string
     case index = self::prefix;
     case links = self::prefix.'/links';
     #[AdminLink]
-    case openapi = self::prefix.'/openapi.json';
+    case openapi = self::prefix.Web::openapi->value;
     case sessions = self::prefix.'/sessions';
     case session = self::prefix.'/sessions/{'.self::sessionParameter.'}';
     case users = self::prefix.'/users';

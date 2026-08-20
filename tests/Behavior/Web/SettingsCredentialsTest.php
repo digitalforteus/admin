@@ -107,7 +107,7 @@ test('the secret is rendered on the redirect it was flashed to, and never again'
         ->assertOk()
         ->assertSee('data-token-issued', false)
         ->assertSee('data-token-dialog', false)
-        ->assertSee('data-copy-token', false)
+        ->assertSee('data-copy-link-trigger', false)
         ->assertSee($secret);
 
     $this->get(Auth::settingsCredentials->value)

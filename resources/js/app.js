@@ -15,6 +15,15 @@ document.querySelectorAll('[data-passkey-login], [data-passkey-register], [data-
     button.disabled = ! Passkeys.isSupported();
 });
 
+const setHidden = (element, hidden) => {
+    if (! element) {
+        return;
+    }
+
+    element.classList.toggle('hidden', hidden);
+    element.classList.toggle('inline-flex', ! hidden);
+};
+
 const dismissToast = (toast) => {
     if (! toast || toast.dataset.dismissing !== undefined) {
         return;
@@ -137,17 +146,36 @@ document.addEventListener('click', (event) => {
         event.target.closest('[data-token-dialog]')?.close();
     }
 
-    const copyToken = event.target.closest('[data-copy-token]');
+    const copyLinkTrigger = event.target.closest('[data-copy-link-trigger]');
 
-    if (copyToken) {
-        const token = copyToken.closest('[data-token-dialog]')?.querySelector('[data-token-value]')?.textContent.trim();
+    if (copyLinkTrigger) {
+        const value = copyLinkTrigger.dataset.copyLinkValue;
+        const icon = copyLinkTrigger.querySelector('[data-copy-link-icon]');
+        const success = copyLinkTrigger.querySelector('[data-copy-link-success]');
+        const tooltip = copyLinkTrigger.parentElement?.querySelector('[data-copy-link-tooltip]');
+        const label = copyLinkTrigger.getAttribute('aria-label') ?? 'Copy link';
 
-        if (token) {
-            navigator.clipboard.writeText(token).then(() => {
-                copyToken.textContent = 'Copied';
-                copyToken.disabled = true;
-            });
-        }
+        navigator.clipboard.writeText(value).then(() => {
+            copyLinkTrigger.disabled = true;
+            setHidden(icon, true);
+            setHidden(success, false);
+            copyLinkTrigger.setAttribute('aria-label', 'Copied');
+
+            if (tooltip) {
+                tooltip.textContent = 'Copied';
+            }
+
+            setTimeout(() => {
+                copyLinkTrigger.disabled = false;
+                setHidden(icon, false);
+                setHidden(success, true);
+                copyLinkTrigger.setAttribute('aria-label', label);
+
+                if (tooltip) {
+                    tooltip.textContent = label;
+                }
+            }, 2000);
+        });
     }
 
     const abilityColumn = event.target.closest('[data-ability-column]');

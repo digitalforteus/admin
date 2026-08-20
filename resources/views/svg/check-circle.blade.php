@@ -1,0 +1,1 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" class="{{$classname}}"><circle cx="8" cy="8" r="8" fill="currentColor"/><path d="M4.5 8.2 L7 10.7 L11.5 5.3" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>

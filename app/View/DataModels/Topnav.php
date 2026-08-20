@@ -21,9 +21,13 @@ class Topnav
 
     public bool $settingsNav = false;
 
+    public const string docsNav = 'docsNav';
+
+    public bool $docsNav = false;
+
     public function nav(): bool
     {
-        return $this->leftNav || $this->adminNav || $this->settingsNav;
+        return $this->leftNav || $this->adminNav || $this->settingsNav || $this->docsNav;
     }
 
     /** @return list<NavItem> */
@@ -32,6 +36,7 @@ class Topnav
         return match (true) {
             $this->adminNav => AdminNav::items(),
             $this->settingsNav => SettingsNav::items(),
+            $this->docsNav => DocsNav::items(),
             default => LeftNav::items(),
         };
     }

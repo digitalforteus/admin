@@ -5,9 +5,11 @@ namespace App\Helpers;
 /** All of the SVG names that match to the SVG files in the resources/svg directory. */
 enum SvgName: string
 {
+    case check_circle = 'check-circle';
     case chevron_down = 'chevron-down';
     case chevron_up = 'chevron-up';
     case city = 'city';
+    case code = 'code';
     case command_line = 'command-line';
     case desktop = 'desktop';
     case digitalforte_logo = 'digitalforte-logo';
@@ -18,6 +20,7 @@ enum SvgName: string
     case google = 'google';
     case home = 'home';
     case key = 'key';
+    case link = 'link';
     case location = 'location';
     case logo = 'logo';
     case logout = 'logout';

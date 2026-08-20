@@ -1,5 +1,6 @@
 @props(['credentialsTable'])
 @php
+    use App\View\DataModels\CopyLink;
     use App\View\DataModels\CredentialsTable;
     $CredentialsTable = CredentialsTable::from($credentialsTable);
 @endphp
@@ -9,10 +10,11 @@
             <div class="modal-box">
                 <h2 class="text-lg font-semibold">Copy your new token now.</h2>
                 <p class="mt-2 text-sm text-base-content/70">It is shown once and cannot be recovered.</p>
-                <code class="mt-5 block w-full break-all rounded-box bg-base-200 p-4 font-mono text-sm text-base-content" title="{{ $CredentialsTable->issued }}" data-token-value>{{ $CredentialsTable->issued }}</code>
+                <code class="mt-5 block w-full break-all rounded-box bg-base-200 p-4 font-mono text-sm text-base-content" title="{{ $CredentialsTable->issued }}">
+                    <x-copy-link :copyLink="[CopyLink::value => $CredentialsTable->issued]">{{ $CredentialsTable->issued }}</x-copy-link>
+                </code>
                 <div class="modal-action">
                     <button type="button" class="btn btn-ghost" data-token-dialog-close>Close</button>
-                    <button type="button" class="btn btn-primary" data-copy-token>Copy token</button>
                 </div>
             </div>
             <form method="dialog" class="modal-backdrop"><button>Close</button></form>

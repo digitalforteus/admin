@@ -13,7 +13,7 @@ $homeUrl = url(Web::home->value);
 $llmsUrl = url(Web::llms->value);
 $siteLinks = [
     ['name' => 'OpenAPI Spec', 'url' => url(Web::openapi->value)],
-    ['name' => 'MCP Access', 'url' => url(Web::login->value)],
+    ['name' => 'Login', 'url' => url(Web::login->value)],
     ['name' => 'MCP Server', 'url' => url(Web::mcp->value)],
     ['name' => 'Agent Instructions', 'url' => $llmsUrl],
     ['name' => 'Contact '.$appName, 'url' => url(Web::contact->value)],
@@ -79,7 +79,7 @@ $structuredData = [
             '@id' => $homeUrl.'#site-links',
             'name' => $appName.' site links',
             'itemListElement' => array_map(
-                static fn (array $link, int $index): array => [
+                static fn(array $link, int $index): array => [
                     '@type' => 'SiteNavigationElement',
                     'position' => $index + 1,
                     ...$link,
@@ -122,12 +122,14 @@ $structuredData = [
                     Download the machine-readable contract for {{$appName}}'s public API.
                 </span>
             </a>
-            <a href="{{Web::login->value}}" class="group border border-base-300 bg-base-100 p-6 hover:border-primary">
-                <span class="text-lg font-semibold text-primary group-hover:underline">MCP Access</span>
-                <span class="mt-2 block text-sm leading-relaxed text-base-content/70">
+            @guest
+                <a href="{{Web::login->value}}" class="group border border-base-300 bg-base-100 p-6 hover:border-primary">
+                    <span class="text-lg font-semibold text-primary group-hover:underline">Login</span>
+                    <span class="mt-2 block text-sm leading-relaxed text-base-content/70">
                     Log in to create credentials and connect an agent through MCP.
                 </span>
-            </a>
+                </a>
+            @endguest
             <a href="{{Web::mcp->value}}" class="group border border-base-300 bg-base-100 p-6 hover:border-primary">
                 <span class="text-lg font-semibold text-primary group-hover:underline">MCP Server</span>
                 <span class="mt-2 block text-sm leading-relaxed text-base-content/70">

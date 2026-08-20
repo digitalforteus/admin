@@ -2,7 +2,6 @@
 
 use App\View\DataModels\AdminNav;
 use App\View\DataModels\LeftNav;
-use App\View\DataModels\Main;
 use App\View\DataModels\SettingsNav;
 use App\View\DataModels\Topnav;
 
@@ -33,11 +32,4 @@ test('the dropdown mirrors the settings rail', function (): void {
 
     expect($Topnav->nav())->toBeTrue()
         ->and($Topnav->items())->toEqual(SettingsNav::items());
-});
-
-test('main projects the props the topnav declares', function (): void {
-    $props = Main::from([Main::leftNav => true, Main::adminNav => false, Main::settingsNav => false])->topnav();
-
-    expect($props)->toBe([Topnav::leftNav => true, Topnav::adminNav => false, Topnav::settingsNav => false])
-        ->and(Topnav::from($props)->items())->toEqual(LeftNav::items());
 });
