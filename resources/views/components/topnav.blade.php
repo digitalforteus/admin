@@ -1,5 +1,6 @@
 @props(['topnav'])
 @php
+    use App\Helpers\BrandLink;
     use App\Helpers\SessionKey;
     use App\Helpers\SvgName;
     use App\Routes\Web;
@@ -42,7 +43,7 @@
                     <span><a href="{{Web::home->value}}">{{config('app.name')}}</a></span>
                     @if(config('brand.attribution'))
                         <span class="text-sm text-base-content/60">by</span>
-                        <a href="{{config('brand.digitalforte_url')}}?utm_source={{str(config('app.name'))->slug()}}&amp;utm_medium=referral&amp;utm_campaign=product_branding&amp;utm_content=header_lockup"
+                        <a href="{{BrandLink::header_lockup->url()}}"
                            class="text-sm font-semibold hover:underline"
                            data-digitalforte-link="header_lockup"><span class="text-digitalforte-primary">Digital</span><span class="text-digitalforte-secondary">Forte</span></a>
                     @endif

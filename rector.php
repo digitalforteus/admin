@@ -14,6 +14,7 @@ use ZeroToProd\LaravelRector\Rector\CollapseSingleLineDocblockRector;
 use ZeroToProd\LaravelRector\Rector\EnforceControllerSuffixRector;
 use ZeroToProd\LaravelRector\Rector\EnforceInvokableControllerRector;
 use ZeroToProd\LaravelRector\Rector\EnforceInvokableControllerRouteRector;
+use ZeroToProd\LaravelRector\Rector\ForbidBladeAttributeValueRector;
 use ZeroToProd\LaravelRector\Rector\ForbidClassUsageRector;
 use ZeroToProd\LaravelRector\Rector\ForbidCommentPhraseRector;
 use ZeroToProd\LaravelRector\Rector\ForbidDuplicateBladeElementRector;
@@ -22,6 +23,7 @@ use ZeroToProd\LaravelRector\Rector\RenameParamToMatchTypeExactCaseRector;
 return RectorConfig::configure()
     ->withPaths([
         __DIR__.'/app',
+        __DIR__.'/resources',
         __DIR__.'/routes',
         __DIR__.'/tests',
     ])
@@ -46,9 +48,14 @@ return RectorConfig::configure()
         ],
     ])
     ->withConfiguredRule(ForbidDuplicateBladeElementRector::class, [
-        'elements' => [
-            0 => 'title',
-            1 => 'h1',
+        ForbidDuplicateBladeElementRector::ELEMENTS => [
+            'title',
+            'h1',
+        ],
+    ])
+    ->withConfiguredRule(ForbidBladeAttributeValueRector::class, [
+        ForbidBladeAttributeValueRector::ATTRIBUTES => [
+            'href' => '#^/|(?<![>:$\w])[A-Za-z_]\w*\s*\(#',
         ],
     ])
     ->withConfiguredRule(ForbidCommentPhraseRector::class, [

@@ -1,4 +1,5 @@
 @php
+    use App\Helpers\PublicAsset;
     use App\View\DataModels\Main;
     $Main = Main::from($main);
 @endphp
@@ -9,10 +10,10 @@
   <x-google-tag-manager/>
   <meta charset="utf-8">
   <meta name="csrf-token" content="{{csrf_token()}}">
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-  <link rel="manifest" href="/site.webmanifest">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{PublicAsset::apple_touch_icon->url()}}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{PublicAsset::favicon_32->url()}}">
+  <link rel="icon" type="image/png" sizes="16x16" href="{{PublicAsset::favicon_16->url()}}">
+  <link rel="manifest" href="{{PublicAsset::site_webmanifest->url()}}">
   @head
   @vite('resources/css/app.css')
 </head>

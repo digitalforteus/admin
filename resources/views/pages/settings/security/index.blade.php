@@ -161,7 +161,7 @@ Head::title('Security')
             </div>
             <p class="mt-2 hidden text-sm text-error" data-passkey-error></p>
         @else
-            <a class="btn btn-primary btn-sm mt-4" href="{{route('passkey.management.confirm')}}" data-passkey-confirm-password>
+            <a class="btn btn-primary btn-sm mt-4" href="{{Auth::passkeyManagementConfirm->value}}" data-passkey-confirm-password>
                 Confirm password to manage passkeys
             </a>
         @endif

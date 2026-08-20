@@ -15202,16 +15202,16 @@
         },
         {
             "name": "zero-to-prod/laravel-rector",
-            "version": "v1.2.0",
+            "version": "v1.2.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/zero-to-prod/laravel-rector.git",
-                "reference": "20d4cdfa566e979e0261bdd99b746da7385cc170"
+                "reference": "c4e4817511f07e96e18e82a960d9af5f0931ccd8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/zero-to-prod/laravel-rector/zipball/20d4cdfa566e979e0261bdd99b746da7385cc170",
-                "reference": "20d4cdfa566e979e0261bdd99b746da7385cc170",
+                "url": "https://api.github.com/repos/zero-to-prod/laravel-rector/zipball/c4e4817511f07e96e18e82a960d9af5f0931ccd8",
+                "reference": "c4e4817511f07e96e18e82a960d9af5f0931ccd8",
                 "shasum": ""
             },
             "require": {
@@ -15259,9 +15259,9 @@
             "description": "Opinionated Rector Rules for Laravel",
             "support": {
                 "issues": "https://github.com/zero-to-prod/laravel-rector/issues",
-                "source": "https://github.com/zero-to-prod/laravel-rector/tree/v1.2.0"
+                "source": "https://github.com/zero-to-prod/laravel-rector/tree/v1.2.2"
             },
-            "time": "2026-08-19T00:59:19+00:00"
+            "time": "2026-08-20T16:50:52+00:00"
         }
     ],
     "aliases": [],

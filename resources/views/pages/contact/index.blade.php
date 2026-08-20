@@ -1,4 +1,5 @@
 <?php
+use App\Helpers\BrandLink;
 use App\Routes\Web;
 use Laravel\Head\Facades\Head;
 
@@ -19,7 +20,7 @@ Head::title('Contact')
                 <section class="space-y-2">
                     <h2 class="text-base font-semibold">Email</h2>
                     <p>
-                        <a href="mailto:{{config('brand.support_email')}}" class="link link-primary">
+                        <a href="{{BrandLink::support_email->url()}}" class="link link-primary">
                             {{config('brand.support_email')}}
                         </a>
                     </p>

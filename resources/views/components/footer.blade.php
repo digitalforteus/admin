@@ -1,4 +1,5 @@
 @php
+    use App\Helpers\BrandLink;
     use App\Helpers\SvgName;
     use App\Routes\Web;
     use App\View\DataModels\Svg;
@@ -12,7 +13,7 @@
         @if(config('brand.attribution'))
             <p class="flex items-center gap-2 text-sm text-base-content/70">
                 Crafted by
-                <a href="{{config('brand.digitalforte_url')}}?utm_source={{str(config('app.name'))->slug()}}&amp;utm_medium=referral&amp;utm_campaign=product_branding&amp;utm_content=footer_attribution"
+                <a href="{{BrandLink::footer_attribution->url()}}"
                    class="inline-flex items-center gap-1.5 font-semibold hover:underline"
                    data-digitalforte-link="footer_attribution">
                     <x-svg :svg="[Svg::name => SvgName::digitalforte_logo, Svg::classname => 'size-6 shrink-0']"/>
@@ -24,7 +25,7 @@
     @if(config('brand.attribution'))
         <nav>
             <h2 class="footer-title">Info</h2>
-            <a href="{{config('brand.digitalforte_url')}}/showcase" class="link link-hover">Showcase</a>
+            <a href="{{BrandLink::showcase->url()}}" class="link link-hover">Showcase</a>
         </nav>
     @endif
     <nav>

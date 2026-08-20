@@ -57,7 +57,7 @@ Head::title('User')
                 </div>
             </div>
             <div class="flex gap-2" data-user-status>
-                <a href="{{Admin::sessions->value.'?'.http_build_query([Admin::userParameter => $user->id])}}" class="btn btn-ghost btn-sm">Sessions</a>
+                <a href="{{Admin::sessions->url(query: [Admin::userParameter => $user->id])}}" class="btn btn-ghost btn-sm">Sessions</a>
                 @if($user->email_verified_at !== null)
                     <span class="badge badge-success">Email verified</span>
                 @else
