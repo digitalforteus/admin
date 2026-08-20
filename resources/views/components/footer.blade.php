@@ -16,7 +16,6 @@
                 <a href="{{BrandLink::footer_attribution->url()}}"
                    class="inline-flex items-center gap-1.5 font-semibold hover:underline"
                    data-digitalforte-link="footer_attribution">
-                    <x-svg :svg="[Svg::name => SvgName::digitalforte_logo, Svg::classname => 'size-6 shrink-0']"/>
                     <span><span class="text-digitalforte-primary">Digital</span><span class="text-digitalforte-secondary">Forte</span></span>
                 </a>.
             </p>
