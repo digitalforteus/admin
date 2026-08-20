@@ -10,6 +10,7 @@
   <x-google-tag-manager/>
   <meta charset="utf-8">
   <meta name="csrf-token" content="{{csrf_token()}}">
+  <x-microsoft-site-verification/>
   <link rel="apple-touch-icon" sizes="180x180" href="{{PublicAsset::apple_touch_icon->url()}}">
   <link rel="icon" type="image/png" sizes="32x32" href="{{PublicAsset::favicon_32->url()}}">
   <link rel="icon" type="image/png" sizes="16x16" href="{{PublicAsset::favicon_16->url()}}">

@@ -36,6 +36,22 @@ test('the google tag sends a sign up event', function (string $method): void {
         ->assertSee("method: '$method'", false);
 })->with(['Email', 'Google']);
 
+test('the layout verifies the site with Microsoft when a content id is configured', function (): void {
+    Config::set('microsoft.content_id', 'CONTENT-ID');
+
+    $this->get(Web::home->value)
+        ->assertOk()
+        ->assertSee('<meta name="msvalidate.01" content="CONTENT-ID">', false);
+});
+
+test('the layout carries no Microsoft verification when none is configured', function (): void {
+    Config::set('microsoft.content_id', null);
+
+    $this->get(Web::home->value)
+        ->assertOk()
+        ->assertDontSee('msvalidate.01');
+});
+
 test('a page title is suffixed with the application name', function (): void {
     $name = Config::string('app.name');
 

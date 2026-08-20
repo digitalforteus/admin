@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Bing\BingSiteAuthController;
 use App\Modules\Fortify\NewPasswordController;
 use App\Modules\Fortify\PasswordResetLinkController;
 use App\Modules\Fortify\TwoFactorLoginController;
@@ -53,3 +54,4 @@ Route::get(Web::llms->value, LlmsController::class);
 Route::get(Web::robots->value, RobotsController::class);
 Route::get(Web::sitemap->value, SitemapController::class);
 Route::get(Web::sitemapPage->value, SitemapPageController::class)->whereNumber('page');
+Route::get(Web::bingSiteAuth->value, BingSiteAuthController::class);
