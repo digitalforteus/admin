@@ -43,7 +43,6 @@ enum Web: string
     case contact = '/contact';
     case privacyPolicy = '/privacy-policy';
     case termsOfService = '/terms-of-service';
-    #[ExcludeFromSitemap]
     case login = '/login';
     #[ExcludeFromSitemap]
     case twoFactorChallenge = '/two-factor-challenge';
@@ -71,7 +70,6 @@ enum Web: string
     case githubCallback = '/auth/github/callback';
     #[ExcludeFromSitemap]
     case logout = '/logout';
-    #[ExcludeFromSitemap]
     case register = '/register';
 
     /** @return list<self> */
