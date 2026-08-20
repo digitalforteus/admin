@@ -1,6 +1,6 @@
 <?php
 
-use App\Mcp\Servers\TemplateServer;
+use App\Mcp\Servers\AppServer;
 use App\Mcp\Tools\ScaffoldEndpoint;
 
 /** @return array<string, mixed> */
@@ -23,7 +23,7 @@ function scaffoldArguments(): array
 }
 
 test('it renders the six artifacts without writing them', function (): void {
-    $Response = TemplateServer::tool(ScaffoldEndpoint::class, scaffoldArguments());
+    $Response = AppServer::tool(ScaffoldEndpoint::class, scaffoldArguments());
 
     $Response->assertOk()
         ->assertHasNoErrors()
@@ -39,21 +39,21 @@ test('it renders the six artifacts without writing them', function (): void {
 });
 
 test('a nullable response field carries the class level Describe', function (): void {
-    TemplateServer::tool(ScaffoldEndpoint::class, scaffoldArguments())
+    AppServer::tool(ScaffoldEndpoint::class, scaffoldArguments())
         ->assertOk()
         ->assertSee('#[Describe([Describe::nullable => true])]')
         ->assertSee('public ?string $label;');
 });
 
 test('an authenticated endpoint declares the middleware 401', function (): void {
-    TemplateServer::tool(ScaffoldEndpoint::class, scaffoldArguments())
+    AppServer::tool(ScaffoldEndpoint::class, scaffoldArguments())
         ->assertOk()
         ->assertSee('SharedSchema::middleware_error_description')
         ->assertSee("case widgets = self::prefix.'/widgets';");
 });
 
 test('a body adds the request DTO and the 422', function (): void {
-    TemplateServer::tool(ScaffoldEndpoint::class, [
+    AppServer::tool(ScaffoldEndpoint::class, [
         ...scaffoldArguments(),
         'module' => 'Widget/Store',
         'method' => 'post',
@@ -69,7 +69,7 @@ test('a body adds the request DTO and the 422', function (): void {
 });
 
 test('an endpoint with no body and no auth is public and declares no 401', function (): void {
-    TemplateServer::tool(ScaffoldEndpoint::class, [
+    AppServer::tool(ScaffoldEndpoint::class, [
         ...scaffoldArguments(),
         'authenticated' => false,
         'security' => false,
@@ -79,7 +79,7 @@ test('an endpoint with no body and no auth is public and declares no 401', funct
 });
 
 test('a templated path writes the shared parameter class beside the modules', function (): void {
-    TemplateServer::tool(ScaffoldEndpoint::class, [
+    AppServer::tool(ScaffoldEndpoint::class, [
         ...scaffoldArguments(),
         'module' => 'Widget/Show',
         'path' => '/api/widgets/{widget}',
@@ -95,7 +95,7 @@ test('a templated path writes the shared parameter class beside the modules', fu
 });
 
 test('a templated path handed a parameter class of its own writes none', function (): void {
-    TemplateServer::tool(ScaffoldEndpoint::class, [
+    AppServer::tool(ScaffoldEndpoint::class, [
         ...scaffoldArguments(),
         'module' => 'Widget/Show',
         'path' => '/api/widgets/{widget}',
@@ -109,7 +109,7 @@ test('a templated path handed a parameter class of its own writes none', functio
 });
 
 test('a paginated index declares the query parameters and a pagination object', function (): void {
-    TemplateServer::tool(ScaffoldEndpoint::class, [
+    AppServer::tool(ScaffoldEndpoint::class, [
         ...scaffoldArguments(),
         'paginated' => true,
         'response_fields' => [
@@ -124,7 +124,7 @@ test('a paginated index declares the query parameters and a pagination object', 
 });
 
 test('a templated segment with no parameter is refused', function (): void {
-    TemplateServer::tool(ScaffoldEndpoint::class, [
+    AppServer::tool(ScaffoldEndpoint::class, [
         ...scaffoldArguments(),
         'path' => '/api/widgets/{widget}',
     ])->assertHasErrors()
@@ -132,7 +132,7 @@ test('a templated segment with no parameter is refused', function (): void {
 });
 
 test('a module that is already there is not overwritten', function (): void {
-    TemplateServer::tool(ScaffoldEndpoint::class, [
+    AppServer::tool(ScaffoldEndpoint::class, [
         ...scaffoldArguments(),
         'module' => 'Public/User/Show',
         'class_prefix' => 'UserShow',
@@ -142,7 +142,7 @@ test('a module that is already there is not overwritten', function (): void {
 });
 
 test('an admin endpoint uses the admin route index schema and session authentication', function (): void {
-    TemplateServer::tool(ScaffoldEndpoint::class, [
+    AppServer::tool(ScaffoldEndpoint::class, [
         ...scaffoldArguments(),
         'api' => 'admin',
         'module' => 'Admin/User/Index',
@@ -161,7 +161,7 @@ test('an admin endpoint uses the admin route index schema and session authentica
 });
 
 test('an endpoint path must belong to the selected api', function (): void {
-    TemplateServer::tool(ScaffoldEndpoint::class, [
+    AppServer::tool(ScaffoldEndpoint::class, [
         ...scaffoldArguments(),
         'api' => 'admin',
     ])->assertHasErrors()->assertSee('The admin API path must start with /admin/api/.');

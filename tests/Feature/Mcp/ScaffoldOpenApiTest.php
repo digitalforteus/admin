@@ -1,6 +1,6 @@
 <?php
 
-use App\Mcp\Servers\TemplateServer;
+use App\Mcp\Servers\AppServer;
 use App\Mcp\Tools\ScaffoldOpenApi;
 
 test('it scaffolds the operations in an openapi 3 schema', function (): void {
@@ -41,7 +41,7 @@ test('it scaffolds the operations in an openapi 3 schema', function (): void {
         ],
     ];
 
-    TemplateServer::tool(ScaffoldOpenApi::class, [
+    AppServer::tool(ScaffoldOpenApi::class, [
         'openapi' => json_encode($schema, JSON_THROW_ON_ERROR),
         'dry_run' => true,
     ])->assertOk()
@@ -70,7 +70,7 @@ test('it prefixes external paths and uses operation ids to avoid conventional mo
                   description: Matching pets.
         YAML;
 
-    TemplateServer::tool(ScaffoldOpenApi::class, ['openapi' => $schema, 'dry_run' => true])
+    AppServer::tool(ScaffoldOpenApi::class, ['openapi' => $schema, 'dry_run' => true])
         ->assertOk()
         ->assertHasNoErrors()
         ->assertSee('app/Modules/Api/Pet/FindByStatus/PetFindByStatusController.php')
@@ -78,7 +78,7 @@ test('it prefixes external paths and uses operation ids to avoid conventional mo
 });
 
 test('it rejects a non-openapi 3 schema', function (): void {
-    TemplateServer::tool(ScaffoldOpenApi::class, [
+    AppServer::tool(ScaffoldOpenApi::class, [
         'openapi' => '{"swagger":"2.0"}',
         'dry_run' => true,
     ])->assertHasErrors()->assertSee('Only OpenAPI 3.x schemas are supported.');
@@ -97,7 +97,7 @@ test('it targets every operation at the selected admin api', function (): void {
                 '200': {description: The users.}
         YAML;
 
-    TemplateServer::tool(ScaffoldOpenApi::class, [
+    AppServer::tool(ScaffoldOpenApi::class, [
         'api' => 'admin',
         'openapi' => $schema,
         'dry_run' => true,

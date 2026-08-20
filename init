@@ -22,14 +22,10 @@ const TEMPLATE = [
     'slug' => 'project',
     'title' => 'Laravel Template',
     'fallback_title' => 'Project',
-    'description' => 'An opinionated Laravel application.',
     'url' => 'http://project.test',
     'database' => 'app',
     'admin_email' => 'admin@example.com',
     'support_email' => 'hello@example.com',
-    'mcp_server' => 'TemplateServer',
-    'logo_title' => 'DigitalForte monogram',
-    'logo_description' => 'A geometric D and F monogram forming an upright hexagonal shield.',
 ];
 
 const SKIP_DIRECTORIES = ['.git', '.idea', 'vendor', 'build', 'node_modules', 'storage'];
@@ -55,10 +51,9 @@ do {
 } while (! confirm('Write these values', true));
 
 $changed = rewrite($root, replacements($answers), $answers);
-$renamed = rename_files($root, $answers);
 
 writeln('');
-writeln(sprintf('  Rewrote %d file%s, renamed %d.', $changed, $changed === 1 ? '' : 's', $renamed));
+writeln(sprintf('  Rewrote %d file%s.', $changed, $changed === 1 ? '' : 's'));
 
 if (confirm('Delete init', true)) {
     remove_self($root);
@@ -97,7 +92,6 @@ function ask_all(string $root, array $previous = []): array
         'organisation' => $organisation,
         'author' => ask('Author name', $was('author', git('config user.name'))),
         'author_email' => ask('Author email', $was('author_email', git('config user.email'))),
-        'mcp_server' => studly($title).'Server',
     ];
 }
 
@@ -116,7 +110,6 @@ function summarise(array $answers): void
         'Database' => $answers['database'],
         'Admin email' => $answers['admin_email'],
         'Support email' => $answers['support_email'],
-        'MCP server' => $answers['mcp_server'].' ('.$answers['slug'].')',
         'Repository' => repository($answers),
         'Author' => author($answers),
     ];
@@ -136,23 +129,17 @@ function replacements(array $answers): array
 {
     return [
         '"name": "project"' => '"name": "'.$answers['slug'].'"',
-        '"'.TEMPLATE['slug'].'": {' => '"'.$answers['slug'].'": {',
         'APP_NAME='.TEMPLATE['slug'] => 'APP_NAME="'.$answers['title'].'"',
         'APP_URL='.TEMPLATE['url'] => 'APP_URL='.$answers['url'],
         'DB_DATABASE='.TEMPLATE['database'] => 'DB_DATABASE='.$answers['database'],
         'ADMIN_EMAIL='.TEMPLATE['admin_email'] => 'ADMIN_EMAIL='.$answers['admin_email'],
+        'BRAND_DESCRIPTION=' => 'BRAND_DESCRIPTION="'.$answers['description'].'"',
         'MAIL_FROM_ADDRESS="'.TEMPLATE['support_email'].'"' => 'MAIL_FROM_ADDRESS="'.$answers['support_email'].'"',
         "'".TEMPLATE['support_email']."'" => "'".$answers['support_email']."'",
         "'".TEMPLATE['admin_email']."'" => "'".$answers['admin_email']."'",
         "'".TEMPLATE['title']."'" => "'".$answers['title']."'",
         "'".TEMPLATE['fallback_title']."'" => "'".$answers['title']."'",
         '# '.TEMPLATE['title'] => '# '.$answers['title'],
-        TEMPLATE['description'] => $answers['description'],
-        TEMPLATE['mcp_server'] => $answers['mcp_server'],
-        TEMPLATE['logo_title'] => htmlspecialchars($answers['title'].' logo', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-        TEMPLATE['logo_description'] => htmlspecialchars($answers['title'].' application logo.', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-        "Mcp::local('".TEMPLATE['slug']."'" => "Mcp::local('".$answers['slug']."'",
-        'mcp:start '.TEMPLATE['slug'] => 'mcp:start '.$answers['slug'],
     ];
 }
 
@@ -189,20 +176,6 @@ function rewrite(string $root, array $replacements, array $answers): int
     return $changed + 1;
 }
 
-/** @param array<string, string> $answers */
-function rename_files(string $root, array $answers): int
-{
-    $from = $root.'/app/Mcp/Servers/'.TEMPLATE['mcp_server'].'.php';
-    $to = $root.'/app/Mcp/Servers/'.$answers['mcp_server'].'.php';
-
-    if ($from === $to || ! is_file($from)) {
-        return 0;
-    }
-
-    rename($from, $to);
-
-    return 1;
-}
 
 function remove_self(string $root): void
 {
@@ -276,11 +249,6 @@ function slugify(string $value): string
 function database_name(string $value): string
 {
     return trim((string) preg_replace('/_+/', '_', (string) preg_replace('/[^a-z0-9]+/', '_', strtolower($value))), '_');
-}
-
-function studly(string $value): string
-{
-    return str_replace(' ', '', titleise($value));
 }
 
 function titleise(string $value): string

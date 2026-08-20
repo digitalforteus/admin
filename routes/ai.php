@@ -1,6 +1,6 @@
 <?php
 
-use App\Mcp\Servers\TemplateServer;
+use App\Mcp\Servers\AppServer;
 use Laravel\Mcp\Facades\Mcp;
 
-Mcp::local('project', TemplateServer::class);
+Mcp::local('project', AppServer::class);

@@ -40,10 +40,12 @@
                 </a>
                 <span class="hidden items-baseline gap-1 lg:inline-flex" title="Brand Name">
                     <span><a href="{{Web::home->value}}">{{config('app.name')}}</a></span>
-                    <span class="text-sm text-base-content/60">by</span>
-                    <a href="{{config('brand.digitalforte_url')}}?utm_source={{str(config('app.name'))->slug()}}&amp;utm_medium=referral&amp;utm_campaign=product_branding&amp;utm_content=header_lockup"
-                       class="text-sm font-semibold hover:underline"
-                       data-digitalforte-link="header_lockup"><span class="text-digitalforte-primary">Digital</span><span class="text-digitalforte-secondary">Forte</span></a>
+                    @if(config('brand.attribution'))
+                        <span class="text-sm text-base-content/60">by</span>
+                        <a href="{{config('brand.digitalforte_url')}}?utm_source={{str(config('app.name'))->slug()}}&amp;utm_medium=referral&amp;utm_campaign=product_branding&amp;utm_content=header_lockup"
+                           class="text-sm font-semibold hover:underline"
+                           data-digitalforte-link="header_lockup"><span class="text-digitalforte-primary">Digital</span><span class="text-digitalforte-secondary">Forte</span></a>
+                    @endif
                 </span>
             </div>
         </div>
@@ -76,13 +78,15 @@
         @endauth
     </div>
 </div>
-<script>
-    document.querySelector('[data-digitalforte-link="header_lockup"]')?.addEventListener('click', (event) => {
-        if (typeof gtag !== 'undefined') {
-            gtag('event', 'digitalforte_referral_click', {
-                'link_placement': 'header_lockup',
-                'link_url': event.currentTarget.href
-            });
-        }
-    });
-</script>
+@if(config('brand.attribution'))
+    <script>
+        document.querySelector('[data-digitalforte-link="header_lockup"]')?.addEventListener('click', (event) => {
+            if (typeof gtag !== 'undefined') {
+                gtag('event', 'digitalforte_referral_click', {
+                    'link_placement': 'header_lockup',
+                    'link_url': event.currentTarget.href
+                });
+            }
+        });
+    </script>
+@endif

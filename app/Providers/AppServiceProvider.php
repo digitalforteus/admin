@@ -51,7 +51,7 @@ class AppServiceProvider extends ServiceProvider
         Head::defaults(static function (HeadBuilder $head) use ($name): HeadBuilder {
             return $head
                 ->title($name, suffix: " - $name")
-                ->description('')
+                ->description(Config::string('brand.description'))
                 ->applicationName($name)
                 ->canonical()
                 ->viewport('width=device-width, initial-scale=1.0')
