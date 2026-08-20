@@ -133,7 +133,7 @@ $structuredData = [
             <a href="{{Web::mcp->value}}" class="group border border-base-300 bg-base-100 p-6 hover:border-primary">
                 <span class="text-lg font-semibold text-primary group-hover:underline">MCP Server</span>
                 <span class="mt-2 block text-sm leading-relaxed text-base-content/70">
-                    Connect coding agents to the development tools included with {{$appName}}.
+                    Connect coding agents to the API.
                 </span>
             </a>
             <a href="{{Web::llms->value}}" class="group border border-base-300 bg-base-100 p-6 hover:border-primary">
