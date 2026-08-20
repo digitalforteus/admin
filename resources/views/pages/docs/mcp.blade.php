@@ -4,8 +4,7 @@ use App\Routes\Web;
 use Laravel\Head\Facades\Head;
 
 Head::title('MCP Documentation')
-    ->description('Connect AI tools and IDEs using the OpenAPI MCP Server.')
-    ->hiddenFromRobots();
+    ->description('Connect AI tools and IDEs using the OpenAPI MCP Server.');
 ?>
 <x-main>
     <div class="mx-auto max-w-3xl space-y-8 p-4 lg:p-6">

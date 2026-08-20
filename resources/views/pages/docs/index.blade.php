@@ -4,8 +4,7 @@ use App\Routes\Web;
 use Laravel\Head\Facades\Head;
 
 Head::title('Documentation')
-    ->description('Essential guides for developers.')
-    ->hiddenFromRobots();
+    ->description('Essential guides for developers.');
 ?>
 <x-main>
     <div class="mx-auto max-w-5xl p-4 lg:p-6">
