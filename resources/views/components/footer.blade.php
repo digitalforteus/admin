@@ -11,13 +11,13 @@
             <span class="text-lg font-semibold" title="{{config('app.name')}}">{{config('app.name')}}</span>
         </a>
         @if(config('brand.attribution'))
-            <p class="flex items-center gap-2 text-sm text-base-content/70">
+            <p class="flex items-center gap-1 text-sm text-base-content/70">
                 Crafted by
                 <a href="{{BrandLink::footer_attribution->url()}}"
-                   class="inline-flex items-center gap-1.5 font-semibold hover:underline"
+                   class="font-semibold hover:underline"
                    data-digitalforte-link="footer_attribution">
                     <span><span class="text-digitalforte-primary">Digital</span><span class="text-digitalforte-secondary">Forte</span></span>
-                </a>.
+                </a>
             </p>
         @endif
     </aside>

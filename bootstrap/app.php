@@ -6,6 +6,7 @@ use App\Http\Middleware\CacheUserPicture;
 use App\Http\Middleware\CanonicalizeUrl;
 use App\Http\Middleware\EnsureEmailIsVerifiedMiddleware;
 use App\Http\Middleware\EnsureTokenAbilityMiddleware;
+use App\Http\Middleware\RateLimitHeaders;
 use App\Routes\MiddlewareTag;
 use App\Routes\Web;
 use Illuminate\Auth\AuthenticationException;
@@ -46,6 +47,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             MiddlewareTag::verified->value => EnsureEmailIsVerifiedMiddleware::class,
             MiddlewareTag::role->value => RoleMiddleware::class,
+            MiddlewareTag::throttle->value => RateLimitHeaders::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
