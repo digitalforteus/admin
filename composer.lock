@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "459911176afe1fc1ab15702c121992ea",
+    "content-hash": "236438d4c32e8fa38b601a0a849feb28",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -9272,16 +9272,16 @@
     "packages-dev": [
         {
             "name": "barryvdh/laravel-debugbar",
-            "version": "v4.4.2",
+            "version": "v4.4.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/fruitcake/laravel-debugbar.git",
-                "reference": "18d1c1c64cc5d7794a2c52a2165fe6121e28ed44"
+                "reference": "389157fb616e5c5d19d16a88fd9bfcf3e3248e9b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/fruitcake/laravel-debugbar/zipball/18d1c1c64cc5d7794a2c52a2165fe6121e28ed44",
-                "reference": "18d1c1c64cc5d7794a2c52a2165fe6121e28ed44",
+                "url": "https://api.github.com/repos/fruitcake/laravel-debugbar/zipball/389157fb616e5c5d19d16a88fd9bfcf3e3248e9b",
+                "reference": "389157fb616e5c5d19d16a88fd9bfcf3e3248e9b",
                 "shasum": ""
             },
             "require": {
@@ -9356,7 +9356,7 @@
             ],
             "support": {
                 "issues": "https://github.com/fruitcake/laravel-debugbar/issues",
-                "source": "https://github.com/fruitcake/laravel-debugbar/tree/v4.4.2"
+                "source": "https://github.com/fruitcake/laravel-debugbar/tree/v4.4.1"
             },
             "funding": [
                 {
@@ -9368,7 +9368,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-08-20T12:02:04+00:00"
+            "time": "2026-08-03T06:23:16+00:00"
         },
         {
             "name": "barryvdh/laravel-ide-helper",
@@ -10142,20 +10142,19 @@
         },
         {
             "name": "justinrainbow/json-schema",
-            "version": "6.11.0",
+            "version": "6.10.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/jsonrainbow/json-schema.git",
-                "reference": "7e420a943a6fbc95e60e3cf67acfbee85b3b4da7"
+                "reference": "8b1308a9d7bdbdb20ce87ef920f82b4564bb2d33"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jsonrainbow/json-schema/zipball/7e420a943a6fbc95e60e3cf67acfbee85b3b4da7",
-                "reference": "7e420a943a6fbc95e60e3cf67acfbee85b3b4da7",
+                "url": "https://api.github.com/repos/jsonrainbow/json-schema/zipball/8b1308a9d7bdbdb20ce87ef920f82b4564bb2d33",
+                "reference": "8b1308a9d7bdbdb20ce87ef920f82b4564bb2d33",
                 "shasum": ""
             },
             "require": {
-                "ext-filter": "*",
                 "ext-json": "*",
                 "marc-mabe/php-enum": "^4.4",
                 "php": "^7.2 || ^8.0"
@@ -10188,9 +10187,20 @@
             ],
             "authors": [
                 {
-                    "name": "Danny van der Sluijs",
-                    "email": "danny.vandersluijs@icloud.com",
-                    "role": "Maintainer"
+                    "name": "Bruno Prieto Reis",
+                    "email": "bruno.p.reis@gmail.com"
+                },
+                {
+                    "name": "Justin Rainbow",
+                    "email": "justin.rainbow@gmail.com"
+                },
+                {
+                    "name": "Igor Wiedler",
+                    "email": "igor@wiedler.ch"
+                },
+                {
+                    "name": "Robert Schönthal",
+                    "email": "seroscho@googlemail.com"
                 }
             ],
             "description": "A library to validate a json schema.",
@@ -10201,9 +10211,9 @@
             ],
             "support": {
                 "issues": "https://github.com/jsonrainbow/json-schema/issues",
-                "source": "https://github.com/jsonrainbow/json-schema/tree/6.11.0"
+                "source": "https://github.com/jsonrainbow/json-schema/tree/6.10.0"
             },
-            "time": "2026-08-21T10:30:42+00:00"
+            "time": "2026-06-16T20:50:26+00:00"
         },
         {
             "name": "laravel/mcp",
@@ -10629,16 +10639,16 @@
         },
         {
             "name": "mockery/mockery",
-            "version": "1.6.15",
+            "version": "1.6.14",
             "source": {
                 "type": "git",
                 "url": "https://github.com/mockery/mockery.git",
-                "reference": "967a801bd188989a5669bd280f252d51c0fdc9ee"
+                "reference": "d5362ead1f26e220e64ade458efa4e997f5a8fc0"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/mockery/mockery/zipball/967a801bd188989a5669bd280f252d51c0fdc9ee",
-                "reference": "967a801bd188989a5669bd280f252d51c0fdc9ee",
+                "url": "https://api.github.com/repos/mockery/mockery/zipball/d5362ead1f26e220e64ade458efa4e997f5a8fc0",
+                "reference": "d5362ead1f26e220e64ade458efa4e997f5a8fc0",
                 "shasum": ""
             },
             "require": {
@@ -10707,7 +10717,7 @@
                 "security": "https://github.com/mockery/mockery/security/advisories",
                 "source": "https://github.com/mockery/mockery"
             },
-            "time": "2026-08-19T19:37:52+00:00"
+            "time": "2026-08-18T20:07:53+00:00"
         },
         {
             "name": "myclabs/deep-copy",
@@ -11346,16 +11356,16 @@
         },
         {
             "name": "pestphp/pest-plugin-rector",
-            "version": "v5.0.4",
+            "version": "v5.0.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/pestphp/pest-plugin-rector.git",
-                "reference": "d881f0ab8d4392f4a127c2f0aa8230529f856fc5"
+                "reference": "beea622358d18ce159625e45c0421008a01b1784"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/pestphp/pest-plugin-rector/zipball/d881f0ab8d4392f4a127c2f0aa8230529f856fc5",
-                "reference": "d881f0ab8d4392f4a127c2f0aa8230529f856fc5",
+                "url": "https://api.github.com/repos/pestphp/pest-plugin-rector/zipball/beea622358d18ce159625e45c0421008a01b1784",
+                "reference": "beea622358d18ce159625e45c0421008a01b1784",
                 "shasum": ""
             },
             "require": {
@@ -11406,7 +11416,7 @@
                 "unit"
             ],
             "support": {
-                "source": "https://github.com/pestphp/pest-plugin-rector/tree/v5.0.4"
+                "source": "https://github.com/pestphp/pest-plugin-rector/tree/v5.0.3"
             },
             "funding": [
                 {
@@ -11426,7 +11436,7 @@
                     "type": "patreon"
                 }
             ],
-            "time": "2026-08-21T10:26:03+00:00"
+            "time": "2026-08-07T09:20:11+00:00"
         },
         {
             "name": "phar-io/manifest",
@@ -12665,12 +12675,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/Roave/SecurityAdvisories.git",
-                "reference": "e2d6c51234af0e54a4726e260447a297bae26303"
+                "reference": "fbc6c8ad3beaf46aa02ea4236a16fb00a33fbec3"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Roave/SecurityAdvisories/zipball/e2d6c51234af0e54a4726e260447a297bae26303",
-                "reference": "e2d6c51234af0e54a4726e260447a297bae26303",
+                "url": "https://api.github.com/repos/Roave/SecurityAdvisories/zipball/fbc6c8ad3beaf46aa02ea4236a16fb00a33fbec3",
+                "reference": "fbc6c8ad3beaf46aa02ea4236a16fb00a33fbec3",
                 "shasum": ""
             },
             "conflict": {
@@ -12737,7 +12747,7 @@
                 "azuracast/azuracast": "<=0.23.5",
                 "b13/seo_basics": "<0.8.2",
                 "backdrop/backdrop": "<=1.32",
-                "backpack/crud": "<6.8.15|>=7,<7.0.47",
+                "backpack/crud": "<4.0.63|>=4.1,<4.1.69|>=5,<5.0.13",
                 "backpack/filemanager": "<2.0.2|>=3,<3.0.9",
                 "bacula-web/bacula-web": "<9.7.1",
                 "badaso/core": "<=2.9.11",
@@ -13002,7 +13012,7 @@
                 "georgringer/news": "<10.0.4|>=11,<11.4.4|>=12,<12.3.2|>=13,<13.0.2|>=14,<14.0.3",
                 "geshi/geshi": "<=1.0.9.1",
                 "getformwork/formwork": "<=2.3.3",
-                "getgrav/grav": "<=2.0.19",
+                "getgrav/grav": "<=2.0.0.0-RC8",
                 "getgrav/grav-plugin-api": "<1.0.0.0-beta15",
                 "getgrav/grav-plugin-form": "<9.1",
                 "getkirby/cms": "<=4.9.3|>=5,<=5.4.3",
@@ -13462,7 +13472,7 @@
                 "slim/slim": "<2.6|>=4.4,<=4.15.1",
                 "slub/slub-events": "<3.0.3",
                 "smarty/smarty": "<4.5.7|>=5,<5.8.4",
-                "snipe/snipe-it": "<8.6.3",
+                "snipe/snipe-it": "<=8.6.1",
                 "socalnick/scn-social-auth": "<1.15.2",
                 "socialiteproviders/steam": "<1.1",
                 "solidinvoice/solidinvoice": "<=2.3.15",
@@ -13670,10 +13680,10 @@
                 "wikibase/wikibase": "<=1.39.3",
                 "wikimedia/parsoid": "<0.12.2",
                 "willdurand/js-translation-bundle": "<2.1.1",
-                "winter/wn-backend-module": "<1.2.14",
+                "winter/wn-backend-module": "<1.2.13",
                 "winter/wn-cms-module": "<=1.2.12",
                 "winter/wn-dusk-plugin": "<2.1",
-                "winter/wn-system-module": "<1.2.13",
+                "winter/wn-system-module": "<1.2.4",
                 "wintercms/winter": "<=1.2.3",
                 "wireui/wireui": "<1.19.3|>=2,<2.1.3",
                 "wnx/laravel-backup-restore": "<=1.9.3",
@@ -13786,7 +13796,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-08-21T19:25:46+00:00"
+            "time": "2026-08-18T21:23:23+00:00"
         },
         {
             "name": "sebastian/cli-parser",

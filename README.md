@@ -1,4 +1,4 @@
-# Admin
+# Laravel Template
 
 An opinionated Laravel application, and the upstream of every application built from it.
 

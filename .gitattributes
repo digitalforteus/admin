@@ -7,5 +7,11 @@
 *.php diff=php
 
 /.github export-ignore
+/init export-ignore
 CHANGELOG.md export-ignore
 .styleci.yml export-ignore
+
+README.md                                                        merge=keepours
+resources/css/app.css                                            merge=keepours
+resources/views/pages/index.blade.php                            merge=keepours
+tests/Feature/HomeTest.php                                       merge=keepours                                     merge=keepours

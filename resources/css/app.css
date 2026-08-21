@@ -21,13 +21,15 @@
     --color-base-200: oklch(98% 0 0);
     --color-base-300: oklch(95% 0 0);
     --color-base-content: oklch(21% 0.006 285.885);
-    --color-primary: oklch(51.1% 0.102 249);
     --color-primary-content: oklch(98% 0.008 248);
-    --color-secondary: oklch(65.4% 0.12 248);
-    --color-secondary-content: oklch(18% 0.035 248);
-    --color-accent: oklch(72% 0.12 225);
-    --color-accent-content: oklch(20% 0.04 235);
-    --color-neutral: oklch(31% 0.04 248);
+    /** Color theme change Start */
+    --color-primary: oklch(51.1% 0.102 25);
+    --color-secondary: oklch(65.4% 0.12 24);
+    --color-secondary-content: oklch(18% 0.035 24);
+    --color-accent: oklch(72% 0.12 1);
+    --color-accent-content: oklch(20% 0.04 11);
+    --color-neutral: oklch(31% 0.04 24);
+    /** Color theme change End */
     --color-neutral-content: oklch(96% 0.008 248);
     --color-digitalforte-primary: oklch(51.1% 0.102 249);
     --color-digitalforte-secondary: oklch(65.4% 0.12 248);
@@ -58,13 +60,15 @@
     --color-base-200: oklch(21% 0.010 248);
     --color-base-300: oklch(17% 0.008 248);
     --color-base-content: oklch(96% 0.005 248);
-    --color-primary: oklch(70% 0.105 249);
-    --color-primary-content: oklch(20% 0.035 249);
-    --color-secondary: oklch(74% 0.10 248);
-    --color-secondary-content: oklch(18% 0.035 248);
-    --color-accent: oklch(78% 0.10 225);
-    --color-accent-content: oklch(20% 0.04 235);
-    --color-neutral: oklch(40% 0.035 248);
+    /** Color theme change Start */
+    --color-primary: oklch(70% 0.105 25);
+    --color-primary-content: oklch(20% 0.035 25);
+    --color-secondary: oklch(74% 0.10 24);
+    --color-secondary-content: oklch(18% 0.035 24);
+    --color-accent: oklch(78% 0.10 1);
+    --color-accent-content: oklch(20% 0.04 11);
+    --color-neutral: oklch(40% 0.035 24);
+    /** Color theme change End */
     --color-neutral-content: oklch(96% 0.008 248);
     --color-digitalforte-primary: oklch(70% 0.105 249);
     --color-digitalforte-secondary: oklch(74% 0.10 248);
