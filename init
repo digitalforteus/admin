@@ -23,15 +23,31 @@ declare(strict_types=1);
 |
 */
 
+/*
+ * What to find. Every value here is a literal that occurs in the tracked files,
+ * and the rewrite is a plain string substitution over them, so an entry that
+ * drifts from the file it describes stops matching and leaves the template's
+ * own identity in place without failing. These are not the proposed values.
+ */
 const TEMPLATE = [
     'slug' => 'project',
     'title' => 'Laravel Template',
-    'description' => '',
     'fallback_title' => 'Project',
     'url' => 'http://project.test',
     'database' => 'app',
     'admin_email' => 'admin@example.com',
     'support_email' => 'hello@example.com',
+];
+
+/*
+ * What to propose. These are only ever offered as the answer in brackets, so
+ * they are free to be anything; the ones the questions derive from the clone
+ * itself are computed where they are asked.
+ */
+const DEFAULTS = [
+    'description' => '',
+    'url' => 'http://localhost',
+    'email' => 'admin@digitalforte.us',
 ];
 
 const SKIP_DIRECTORIES = ['.git', '.idea', 'vendor', 'build', 'node_modules', 'storage'];
@@ -139,14 +155,14 @@ function ask_all(string $root, array $previous = []): array
     return [
         'slug' => $slug,
         'title' => $title,
-        'description' => ask('Description', $was('description', TEMPLATE['description'])),
-        'url' => ask('Application URL', $was('url', 'http://'.$slug.'.test')),
+        'description' => ask('Description', $was('description', DEFAULTS['description'])),
+        'url' => ask('Application URL', $was('url', DEFAULTS['url'])),
         'database' => database_name(ask('Database name', $was('database', str_replace('-', '_', $slug)))) ?: TEMPLATE['database'],
-        'admin_email' => ask('Admin email', $was('admin_email', TEMPLATE['admin_email'])),
-        'support_email' => ask('Support email', $was('support_email', git('config user.email') ?: TEMPLATE['support_email'])),
+        'admin_email' => ask('Admin email', $was('admin_email', DEFAULTS['email'])),
+        'support_email' => ask('Support email', $was('support_email', git('config user.email') ?: DEFAULTS['email'])),
         'organisation' => $organisation,
         'author' => ask('Author name', $was('author', git('config user.name'))),
-        'author_email' => ask('Author email', $was('author_email', git('config user.email'))),
+        'author_email' => ask('Author email', $was('author_email', git('config user.email') ?: DEFAULTS['email'])),
     ];
 }
 
