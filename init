@@ -21,6 +21,7 @@ declare(strict_types=1);
 const TEMPLATE = [
     'slug' => 'project',
     'title' => 'Laravel Template',
+    'description' => '',
     'fallback_title' => 'Project',
     'url' => 'http://project.test',
     'database' => 'app',
