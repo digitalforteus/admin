@@ -21,7 +21,7 @@ return [
 
     'name' => env('ADMIN_NAME', 'Admin'),
 
-    'email' => env('ADMIN_EMAIL', 'admin@example.com'),
+    'email' => env('ADMIN_EMAIL', 'admin@digitalforte.us'),
 
     'password' => env('ADMIN_PASSWORD', 'password'),
 

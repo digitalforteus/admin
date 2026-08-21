@@ -39,7 +39,7 @@ return [
     |
     */
 
-    'support_email' => env('BRAND_SUPPORT_EMAIL', (string) env('MAIL_FROM_ADDRESS', 'hello@example.com')),
+    'support_email' => env('BRAND_SUPPORT_EMAIL', (string) env('MAIL_FROM_ADDRESS', 'admin@digitalforte.us')),
 
     'response_time' => env('BRAND_RESPONSE_TIME', 'two business days'),
 

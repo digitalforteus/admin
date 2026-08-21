@@ -1,5 +1,5 @@
 {
-    "name": "digitalforteus/digitalforte",
+    "name": "digitalforte/admin",
     "$schema": "https://getcomposer.org/schema.json",
     "require": {
         "php": "^8.5",
@@ -129,15 +129,15 @@
     },
     "minimum-stability": "stable",
     "prefer-stable": true,
-    "description": "DigitalForte Main Site",
+    "description": "The Administration App for DigitalForte",
     "authors": [
         {
             "name": "david_smith",
-            "email": "david@digitalforte.us"
+            "email": "admin@digitalforte.us"
         }
     ],
-    "homepage": "https://github.com/digitalforteus/digitalforte",
+    "homepage": "https://github.com/digitalforte/admin",
     "support": {
-        "issues": "https://github.com/digitalforteus/digitalforte/issues"
+        "issues": "https://github.com/digitalforte/admin/issues"
     }
 }
