@@ -48,6 +48,7 @@ const DEFAULTS = [
     'description' => '',
     'url' => 'http://localhost',
     'email' => 'admin@digitalforte.us',
+    'organisation' => 'digitalforte',
 ];
 
 const SKIP_DIRECTORIES = ['.git', '.idea', 'vendor', 'build', 'node_modules', 'storage'];
@@ -150,7 +151,7 @@ function ask_all(string $root, array $previous = []): array
     $was = static fn (string $key, string $fallback): string => $previous[$key] ?? $fallback;
     $slug = slugify(ask('Project slug', $was('slug', slugify(basename($root)) ?: TEMPLATE['slug'])));
     $title = ask('Application name', $was('title', titleise($slug)));
-    $organisation = slugify(ask('GitHub organisation', $was('organisation', slugify(git('config user.name')))));
+    $organisation = slugify(ask('GitHub organisation', $was('organisation', DEFAULTS['organisation'])));
 
     return [
         'slug' => $slug,
