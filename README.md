@@ -32,31 +32,30 @@ makes every later merge a normal three-way merge.
 ```shell
 git clone https://github.com/digitalforteus/laravel-template.git my-project
 cd my-project
-git remote rename origin template
-gh repo create digitalforteus/my-project --private --source=. --remote=origin
-git config merge.keepours.driver true
 php init
 ```
 
-`init` asks for the project's slug, name, description, url, database, admin and support
-addresses, organisation and author; it shows the values for confirmation before writing
-anything, and then offers to delete itself. The description becomes an environment value
-rather than a string in a source file, which is the pattern for everything it collects.
-Anything it does not ask for is environment configuration — set it in `.env`.
+`init` does the rest of the setup. It asks for the project's slug, name, description, url,
+database, admin and support addresses, organisation and author, and shows the values for
+confirmation before writing anything. The description becomes an environment value rather
+than a string in a source file, which is the pattern for everything it collects. Anything
+it does not ask for is environment configuration — set it in `.env`.
 
-Then bring the application up and confirm it is green before writing anything:
+With the values confirmed it then, prompting before each step that touches the network or
+the working tree:
 
-```shell
-cp .env.example .env
-composer update --ignore-platform-reqs
-sail up -d
-sail npm install
-php artisan key:generate
-composer fix
-sail npm run build
-composer check
-git push -u origin main
-```
+- renames the clone's `origin` to `template` and creates `<organisation>/<slug>` as a
+  private repository with `gh`, so the template stays upstream and the project pushes to
+  its own remote;
+- sets `merge.keepours.driver` and pins `pull.rebase` to false in the clone's config;
+- copies `.env.example` to `.env`, then runs `composer update`, `sail up -d`,
+  `sail npm install`, `key:generate`, `composer fix`, `sail npm run build` and
+  `composer check`, stopping at the first failure;
+- offers to delete itself, commit the result and push it.
+
+It classifies remotes by url rather than by name, so it will not offer to push a project
+onto this repository even in a clone whose remotes are wired the wrong way round. Running
+it twice is safe: the steps it has already done prompt nothing.
 
 ## Pulling template changes into a project
 

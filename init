@@ -8,13 +8,18 @@ declare(strict_types=1);
 | Template initialisation
 |------------------------------------------------------------------------------
 |
-| Configure a new application created from this template. Run this once from
-| the repository root:
+| Configure a new application created from this template, and leave it running.
+| Run this once from the repository root of a fresh clone:
 |
 |     php init
 |
+| It rewrites the template's identity out of source and into the environment,
+| wires the clone's remotes so the template stays upstream, installs, builds and
+| checks the application, and offers to commit and push the result.
+|
 | Edit TEMPLATE when the template's defaults change. Nothing is written until
-| the proposed values have been displayed and confirmed.
+| the proposed values have been displayed and confirmed, and every command that
+| reaches the network or the working tree is confirmed on its own.
 |
 */
 
@@ -31,6 +36,27 @@ const TEMPLATE = [
 
 const SKIP_DIRECTORIES = ['.git', '.idea', 'vendor', 'build', 'node_modules', 'storage'];
 const SKIP_FILES = ['init', 'composer.lock', 'package-lock.json', '.env', '.DS_Store'];
+
+/*
+ * The upstream this repository is a clone of. A remote pointing here is the
+ * template remote whatever it is currently called; every other remote is the
+ * project's own. Renaming the wrong one costs the shared ancestry the merge
+ * scheme depends on, so the classification is by url, never by name.
+ */
+const TEMPLATE_REMOTE = 'template';
+const TEMPLATE_REPOSITORY = 'https://github.com/digitalforteus/laravel-template.git';
+const TEMPLATE_MARKER = 'laravel-template';
+
+/** The bring-up sequence, in order. A failure stops the run. */
+const BUILD = [
+    'Installing PHP dependencies' => 'composer update --ignore-platform-reqs',
+    'Starting Sail' => './vendor/bin/sail up -d',
+    'Installing node modules' => './vendor/bin/sail npm install',
+    'Generating the application key' => 'php artisan key:generate',
+    'Formatting' => 'composer fix',
+    'Building assets' => './vendor/bin/sail npm run build',
+    'Checking' => 'composer check',
+];
 
 $root = __DIR__;
 
@@ -56,15 +82,43 @@ $changed = rewrite($root, replacements($answers), $answers);
 writeln('');
 writeln(sprintf('  Rewrote %d file%s.', $changed, $changed === 1 ? '' : 's'));
 
+configure_git();
+link_remotes($answers);
+
+$origin = project_origin();
+
+if (confirm('Install dependencies and bring the application up', true) && ! build($root)) {
+    writeln('');
+    writeln('  Stopped. Fix the failure above and run the remaining steps yourself:');
+    writeln('');
+
+    foreach (BUILD as $command) {
+        writeln('    '.$command);
+    }
+
+    writeln('');
+
+    exit(1);
+}
+
 if (confirm('Delete init', true)) {
     remove_self($root);
 }
 
+commit($answers);
+
+if ($origin === null) {
+    writeln('');
+    writeln('  No project origin, so nothing is pushed.');
+} elseif (confirm('Push '.branch().' to '.$origin, true)) {
+    step('Pushing', 'git push -u origin '.branch());
+}
+
 writeln('');
-writeln('  Next:');
+writeln('  Done. '.$answers['title'].' is configured at '.$answers['url'].'.');
 writeln('');
-writeln('    cp .env.example .env');
-writeln('    composer update --ignore-platform-reqs && sail up -d && sail npm install && php artisan key:generate && composer fix && sail npm run build && composer check');
+writeln('  Set ADMIN_PASSWORD in .env and migrate to create the admin account.');
+writeln('  Pull template changes with: git pull '.TEMPLATE_REMOTE.' '.branch());
 writeln('');
 
 exit(0);
@@ -177,6 +231,211 @@ function rewrite(string $root, array $replacements, array $answers): int
     return $changed + 1;
 }
 
+
+/*
+ * Every clone must set the merge driver named by the project-owned entries, and
+ * it lives in the repository's own config rather than travelling with the
+ * checkout. Without it git falls back to an ordinary conflicting merge and says
+ * nothing, so a clone that skipped this looks fine until a merge resolves the
+ * wrong way. Rebasing a pull replays the project onto the upstream and destroys
+ * the ancestry the scheme depends on, which a global preference can turn the
+ * ordinary command into, so the safe value is pinned here too.
+ */
+function configure_git(): void
+{
+    git('config merge.keepours.driver true');
+    git('config pull.rebase false');
+
+    writeln('');
+    writeln('  Set the project-owned merge driver and pinned merges on pull.');
+}
+
+/**
+ * Name the upstream and the project's own repository apart.
+ *
+ * @param  array<string, string>  $answers
+ */
+function link_remotes(array $answers): void
+{
+    $remotes = remotes();
+    $upstream = null;
+    $own = null;
+
+    foreach ($remotes as $name => $url) {
+        if (is_upstream($url)) {
+            $upstream ??= $name;
+
+            continue;
+        }
+
+        $own ??= $name;
+    }
+
+    if ($own !== null && $own !== 'origin' && ! has_remote('origin')) {
+        writeln('  Remote '.$own.' is this project, not the template: '.$remotes[$own]);
+
+        if (confirm('Rename '.$own.' to origin', true)) {
+            git('remote rename '.$own.' origin');
+
+            if ($upstream === $own) {
+                $upstream = 'origin';
+            }
+        }
+    }
+
+    if ($upstream !== null && $upstream !== TEMPLATE_REMOTE && ! has_remote(TEMPLATE_REMOTE)) {
+        if (confirm('Rename '.$upstream.' to '.TEMPLATE_REMOTE, true)) {
+            git('remote rename '.$upstream.' '.TEMPLATE_REMOTE);
+            $upstream = TEMPLATE_REMOTE;
+        }
+    }
+
+    if ($upstream === null && ! has_remote(TEMPLATE_REMOTE)) {
+        git('remote add '.TEMPLATE_REMOTE.' '.TEMPLATE_REPOSITORY);
+        writeln('  Added '.TEMPLATE_REMOTE.' '.TEMPLATE_REPOSITORY);
+    }
+
+    create_origin($answers);
+
+    writeln('');
+
+    foreach (remotes() as $name => $url) {
+        writeln(sprintf('    %-10s %s', $name, $url));
+    }
+}
+
+/** @param array<string, string> $answers */
+function create_origin(array $answers): void
+{
+    if (project_origin() !== null) {
+        return;
+    }
+
+    if (has_remote('origin')) {
+        writeln('  Origin is the template, not this project. Repoint it before pushing.');
+
+        return;
+    }
+
+    $repository = repository($answers);
+
+    if ($repository === '') {
+        writeln('  No organisation given, so no origin. Add one with: git remote add origin <url>');
+
+        return;
+    }
+
+    if (! installed('gh')) {
+        writeln('  gh not found. Create the repository, then: git remote add origin '.$repository.'.git');
+
+        return;
+    }
+
+    $command = sprintf('gh repo create %s/%s --private --source=. --remote=origin', $answers['organisation'], $answers['slug']);
+
+    if (! confirm('Create '.$repository.' on GitHub as a private repository', true)) {
+        return;
+    }
+
+    step('Creating the repository', $command);
+}
+
+/** @param array<string, string> $answers */
+function commit(array $answers): void
+{
+    if (git('status --porcelain') === '') {
+        return;
+    }
+
+    if (! confirm('Commit the initialisation', true)) {
+        return;
+    }
+
+    step('Committing', 'git add -A && git commit -m '.escapeshellarg('Initialise '.$answers['title']));
+}
+
+function build(string $root): bool
+{
+    if (! is_file($root.'/.env')) {
+        copy($root.'/.env.example', $root.'/.env');
+
+        writeln('');
+        writeln('  Created .env from .env.example.');
+    }
+
+    foreach (BUILD as $description => $command) {
+        if (! step($description, $command)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function step(string $description, string $command): bool
+{
+    writeln('');
+    writeln('  '.$description);
+    writeln('    $ '.$command);
+    writeln('');
+
+    passthru($command, $status);
+
+    if ($status !== 0) {
+        writeln('');
+        writeln(sprintf('  Failed (%d): %s', $status, $command));
+    }
+
+    return $status === 0;
+}
+
+/** @return array<string, string> */
+function remotes(): array
+{
+    $remotes = [];
+
+    foreach (array_filter(explode("\n", git('remote'))) as $name) {
+        $name = trim($name);
+        $remotes[$name] = git('remote get-url '.$name);
+    }
+
+    return $remotes;
+}
+
+function has_remote(string $name): bool
+{
+    return array_key_exists($name, remotes());
+}
+
+function is_upstream(string $url): bool
+{
+    return str_contains($url, TEMPLATE_MARKER);
+}
+
+/*
+ * The project's own push target, or nothing.
+ *
+ * A remote named origin is not evidence of one: a clone of the template arrives
+ * with the upstream under that name, and pushing a project onto the upstream is
+ * the one move the scheme cannot survive. Callers that write to a remote ask
+ * here, so declining the rename costs a prompt rather than the template.
+ */
+function project_origin(): ?string
+{
+    $url = remotes()['origin'] ?? null;
+
+    return $url !== null && ! is_upstream($url) ? $url : null;
+}
+
+function branch(): string
+{
+    return git('branch --show-current') ?: 'main';
+}
+
+function installed(string $binary): bool
+{
+    return trim((string) shell_exec('command -v '.$binary.' 2>/dev/null')) !== '';
+}
 
 function remove_self(string $root): void
 {
