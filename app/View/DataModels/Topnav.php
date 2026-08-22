@@ -3,6 +3,7 @@
 namespace App\View\DataModels;
 
 use App\Helpers\DataModel;
+use Zerotoprod\DataModel\Describe;
 
 class Topnav
 {
@@ -11,19 +12,23 @@ class Topnav
     public const string topnav = 'topnav';
     public const string leftNav = 'leftNav';
 
-    public bool $leftNav = false;
+    #[Describe([Describe::default => false])]
+    public bool $leftNav;
 
     public const string adminNav = 'adminNav';
 
-    public bool $adminNav = false;
+    #[Describe([Describe::default => false])]
+    public bool $adminNav;
 
     public const string settingsNav = 'settingsNav';
 
-    public bool $settingsNav = false;
+    #[Describe([Describe::default => false])]
+    public bool $settingsNav;
 
     public const string docsNav = 'docsNav';
 
-    public bool $docsNav = false;
+    #[Describe([Describe::default => false])]
+    public bool $docsNav;
 
     public function nav(): bool
     {
