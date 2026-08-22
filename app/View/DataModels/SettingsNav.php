@@ -24,6 +24,9 @@ enum SettingsNav
     #[NavItem([NavItem::label => 'Sessions', NavItem::icon => SvgName::desktop, NavItem::route => Auth::settingsSessions, NavItem::nested => true])]
     case sessions;
 
+    #[NavItem([NavItem::label => 'Organizations', NavItem::icon => SvgName::city, NavItem::route => Auth::settingsOrganizations, NavItem::nested => true])]
+    case organizations;
+
     /** @return list<NavItem> */
     public static function items(): array
     {

@@ -13,4 +13,5 @@ namespace App\Helpers;
 enum Directory: string
 {
     case profile_pictures = 'profile-pictures';
+    case organization_icons = 'organization-icons';
 }

@@ -37,6 +37,7 @@ test('every settings section is listed', function (): void {
             Auth::settingsSecurity,
             Auth::settingsCredentials,
             Auth::settingsSessions,
+            Auth::settingsOrganizations,
         ]);
 });
 
