@@ -8,14 +8,15 @@ use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Zerotoprod\DataModel\Describe;
 
-class Main
+readonly class Main
 {
     use DataModel;
 
     public const string main = 'main';
     public const string classnames = 'classnames';
 
-    public ?string $classnames = null;
+    #[Describe([Describe::nullable => true])]
+    public ?string $classnames;
 
     public const string adminNav = 'adminNav';
 
