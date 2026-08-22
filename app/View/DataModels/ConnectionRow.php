@@ -67,9 +67,17 @@ readonly class ConnectionRow
         ]);
     }
 
-    public function toggleUrl(): string
+    public function manageUrl(): string
     {
-        return OrganizationRoute::connectionToggle->url([
+        return OrganizationRoute::connectionManage->url([
+            OrganizationRoute::organizationParameter => $this->organization,
+            OrganizationRoute::connectionParameter => $this->slug,
+        ]);
+    }
+
+    public function enabledUrl(): string
+    {
+        return OrganizationRoute::connectionEnabled->url([
             OrganizationRoute::organizationParameter => $this->organization,
             OrganizationRoute::connectionParameter => $this->slug,
         ]);

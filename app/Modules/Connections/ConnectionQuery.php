@@ -6,6 +6,7 @@ use App\Models\Connection;
 use App\Models\Organization;
 use App\Sources\Db\App\Connections;
 use App\Sources\Db\App\OrganizationConnection;
+use App\Sources\Db\App\Organizations;
 use Illuminate\Database\Eloquent\Collection;
 use RuntimeException;
 
@@ -29,6 +30,31 @@ readonly class ConnectionQuery
         $Builder->orderBy(Connections::name->value);
 
         return $Builder->get();
+    }
+
+    public static function find(Organization $Organization, string $slug): Connection
+    {
+        $Connection = Connection::query()
+            ->where(Connections::enterprise_id->value, $Organization->enterprise_id)
+            ->where(Connections::slug->value, $slug)
+            ->first();
+
+        if (! $Connection instanceof Connection) {
+            abort(404);
+        }
+
+        return $Connection;
+    }
+
+    /** @return Collection<int, Organization> */
+    public static function organizations(Connection $Connection): Collection
+    {
+        $Relation = $Connection->organizations();
+
+        $Relation->whereNotNull(OrganizationConnection::table().'.'.OrganizationConnection::enabled_at->value);
+        $Relation->orderBy(Organizations::name->value);
+
+        return $Relation->get();
     }
 
     public static function bySlug(Organization $Organization, string $slug): ?Connection

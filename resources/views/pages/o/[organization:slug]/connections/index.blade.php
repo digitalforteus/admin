@@ -2,6 +2,7 @@
 
 use App\Models\Connection;
 use App\Modules\Connections\ConnectionQuery;
+use App\Helpers\OrganizationRole;
 use App\Modules\Organizations\MembershipQuery;
 use App\Modules\Organizations\OrganizationContext;
 use App\View\DataModels\ConnectionRow;
@@ -15,6 +16,7 @@ Head::title('Connections')
 ?>
 @php
     $Organization = OrganizationContext::organization();
+    $Role = MembershipQuery::role($Organization, request()->user());
     $enabled = ConnectionQuery::enabledIds($Organization);
     $connections = array_values(array_map(
         static fn (Connection $Connection): array => [
@@ -33,7 +35,8 @@ Head::title('Connections')
     <x-status-toast/>
     <x-organization-connections-table :organizationConnectionsTable="[
         OrganizationConnectionsTable::organization => $Organization->slug,
-        OrganizationConnectionsTable::manages => MembershipQuery::role($Organization, request()->user())?->manages() ?? false,
+        OrganizationConnectionsTable::manages => $Role?->manages() ?? false,
+        OrganizationConnectionsTable::owns => $Role === OrganizationRole::owner,
         OrganizationConnectionsTable::connections => $connections,
     ]"/>
 </x-organization-card>

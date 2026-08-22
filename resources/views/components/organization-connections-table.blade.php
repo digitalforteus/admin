@@ -3,6 +3,11 @@
     use App\View\DataModels\OrganizationConnectionsTable;
     $OrganizationConnectionsTable = OrganizationConnectionsTable::from($organizationConnectionsTable);
 @endphp
+@if($OrganizationConnectionsTable->owns)
+    <div class="mt-6">
+        <a class="btn btn-primary btn-sm" data-connection-add href="{{$OrganizationConnectionsTable->createUrl()}}">Add connection</a>
+    </div>
+@endif
 <div class="mt-6 overflow-x-auto rounded-box border border-base-300">
     <table class="table table-zebra">
         <thead>
@@ -39,14 +44,22 @@
                     @endif
                 </td>
                 <td class="whitespace-nowrap text-right">
-                    @if($OrganizationConnectionsTable->manages && $ConnectionRow->available())
-                        <form method="POST" action="{{$ConnectionRow->toggleUrl()}}">
-                            @csrf
-                            <button type="submit" class="btn btn-ghost btn-xs" data-connection-toggle>
-                                {{ $ConnectionRow->enabled ? 'Disable' : 'Enable' }}
-                            </button>
-                        </form>
-                    @endif
+                    <div class="flex items-center justify-end gap-2">
+                        @if($OrganizationConnectionsTable->manages && $ConnectionRow->available())
+                            <form method="POST" action="{{$ConnectionRow->enabledUrl()}}">
+                                @csrf
+                                @if($ConnectionRow->enabled)
+                                    @method('DELETE')
+                                @endif
+                                <button type="submit" class="btn btn-ghost btn-xs" data-connection-toggle>
+                                    {{ $ConnectionRow->enabled ? 'Disable' : 'Enable' }}
+                                </button>
+                            </form>
+                        @endif
+                        @if($OrganizationConnectionsTable->owns)
+                            <a class="btn btn-ghost btn-xs" data-connection-manage href="{{$ConnectionRow->manageUrl()}}">Manage</a>
+                        @endif
+                    </div>
                 </td>
             </tr>
         @empty

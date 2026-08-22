@@ -26,8 +26,8 @@
 @if($Main->nav === Nav::organization)
   @php($Switcher = OrganizationSwitcher::current())
   @if($Switcher !== null)
-    <aside aria-label="Organization" class="fixed bottom-0 left-0 top-16 z-10 hidden w-56 border-r border-base-300 bg-base-200 lg:block">
-      <div class="p-2">
+    <aside aria-label="Organization" class="fixed bottom-0 left-0 top-16 z-10 hidden w-56 bg-base-200 lg:block">
+      <div class="py-2">
         <x-organization-switcher :organizationSwitcher="$Switcher->props()"/>
       </div>
       <ul class="menu w-full gap-1 p-2">

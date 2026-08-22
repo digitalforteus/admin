@@ -108,7 +108,8 @@ test('the registry answers for the keys it names, answers nothing for the rest, 
     expect($Known->available())->toBeTrue()
         ->and($Known->label())->toBe('GitHub')
         ->and($Known->url())->toContain($Organization->slug, 'primary')
-        ->and($Known->toggleUrl())->toContain('connections');
+        ->and($Known->enabledUrl())->toContain('connections', 'enabled')
+        ->and($Known->manageUrl())->toContain('connections', 'primary');
 });
 
 function GithubConnectionClass(): string

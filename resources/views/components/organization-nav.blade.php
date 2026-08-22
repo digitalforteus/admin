@@ -3,7 +3,7 @@
     use App\View\DataModels\OrganizationSwitcher;
     $OrganizationSwitcher = OrganizationSwitcher::current();
 @endphp
-<aside aria-label="Organization" class="fixed bottom-0 left-0 top-16 z-10 hidden w-56 border-r border-base-300 bg-base-200 lg:block">
+<aside aria-label="Organization" class="fixed bottom-0 left-0 top-16 z-10 hidden w-56 bg-base-200 lg:block">
     @if($OrganizationSwitcher !== null)
         <div class="p-2">
             <x-organization-switcher :organizationSwitcher="$OrganizationSwitcher->props()"/>
