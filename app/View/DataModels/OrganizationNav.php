@@ -9,11 +9,16 @@ use App\Modules\Connections\ConnectionProvider;
 use App\Modules\Organizations\OrganizationContext;
 use App\Routes\OrganizationRoute;
 
-readonly class OrganizationNav
+readonly class OrganizationNav implements DescribesNav
 {
     public static function visible(): bool
     {
         return OrganizationContext::active();
+    }
+
+    public static function label(): string
+    {
+        return 'Organization';
     }
 
     /** @return list<NavItem> */

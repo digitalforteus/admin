@@ -5,6 +5,7 @@
     use App\Helpers\SvgName;
     use App\Routes\Web;
     use App\View\DataModels\ConnectionBreadcrumb;
+    use App\View\DataModels\NavLink;
     use App\View\DataModels\Svg;
     use App\View\DataModels\Topnav;
     use App\View\DataModels\UserMenu;
@@ -14,7 +15,7 @@
 <div class="fixed top-0 z-20 shadow-md navbar bg-base-100">
     <div class="navbar-start">
         <div class="navbar-start">
-            @if($Topnav->nav())
+            @if($Topnav->nav)
                 <div class="dropdown lg:hidden">
                     <div tabindex="0" role="button" class="btn btn-ghost size-14" title="Open navigation">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -24,10 +25,7 @@
                     <x-dropdown-menu>
                         @foreach($Topnav->items() as $NavItem)
                             <li>
-                                <a href="{{$NavItem->url()}}" @class(['items-center gap-3 my-1 font-medium', 'menu-active' => $NavItem->active()])>
-                                    <x-svg :svg="$NavItem->svg()"/>
-                                    {{$NavItem->label}}
-                                </a>
+                                <x-nav-link :navLink="[...$NavItem->navLink(), NavLink::classnames => 'items-center gap-3 my-1 font-medium']"/>
                             </li>
                         @endforeach
                     </x-dropdown-menu>

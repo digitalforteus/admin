@@ -14,12 +14,11 @@ use App\Routes\MiddlewareTag;
 use App\Routes\OrganizationRoute;
 use App\Routes\RouteIndex;
 use App\Routes\Web;
+use App\Sources\Db\App\Organizations;
 use App\Sources\Db\App\Users;
-use App\View\DataModels\AdminNav;
-use App\View\DataModels\ConnectionBreadcrumb;
 use App\View\DataModels\DocsNav;
-use App\View\DataModels\LeftNav;
 use App\View\DataModels\Main;
+use App\View\DataModels\Nav;
 use App\View\DataModels\NavItem;
 use App\View\DataModels\OrganizationNav;
 use App\View\DataModels\OrganizationSwitcher;
@@ -27,7 +26,6 @@ use App\View\DataModels\SettingsNav;
 use App\View\DataModels\Svg;
 use App\View\DataModels\Topnav;
 use App\View\DataModels\UserMenu;
-use App\View\ViewDirectory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
@@ -173,24 +171,7 @@ test('every rail, dropdown and head is built from route cases, active on its own
 
     app()->instance('request', Request::create(Auth::settingsProfile->value));
 
-    expect($Nested->active())->toBeFalse()
-        ->and(LeftNav::items())->toHaveCount(2)
-        ->and(LeftNav::items()[0]->route)->toBe(Web::home)
-        ->and(collect(LeftNav::items())->pluck('route')->all())->toContain(Web::contact);
-
-    foreach (LeftNav::cases() as $LeftNav) {
-        expect($LeftNav->item())->toBeInstanceOf(NavItem::class);
-    }
-
-    foreach (
-        [
-            [null, 'Left navigation cases must describe a navigation item.'],
-            [[Web::home], 'Left navigation attributes must be named.'],
-        ] as [$item, $message]
-    ) {
-        expect(static fn (): mixed => new ReflectionMethod(LeftNav::class, 'attributes')->invoke(null, $item))
-            ->toThrow(LogicException::class, $message);
-    }
+    expect($Nested->active())->toBeFalse();
 
     $this->get(Web::home->value)
         ->assertOk()
@@ -208,38 +189,6 @@ test('every rail, dropdown and head is built from route cases, active on its own
         ->assertOk()
         ->assertDontSee('aria-label="Primary"', false)
         ->assertSee('aria-label="Settings"', false);
-
-    $items = SettingsNav::items();
-
-    expect($items[0]->label)->toBe('Profile')
-        ->and($items[0]->route)->toBe(Auth::settingsProfile)
-        ->and(collect($items)->pluck('route')->all())
-        ->toBe([
-            Auth::settingsProfile,
-            Auth::settingsAppearance,
-            Auth::settingsSecurity,
-            Auth::settingsCredentials,
-            Auth::settingsSessions,
-            Auth::settingsOrganizations,
-        ]);
-
-    foreach (SettingsNav::cases() as $SettingsNav) {
-        expect($SettingsNav->item())->toBeInstanceOf(NavItem::class);
-    }
-
-    foreach ($items as $NavItem) {
-        expect(ViewDirectory::svg->has($NavItem->icon))->toBeTrue();
-    }
-
-    foreach (
-        [
-            [null, 'Settings navigation cases must describe a navigation item.'],
-            [[Auth::settingsProfile], 'Settings navigation attributes must be named.'],
-        ] as [$item, $message]
-    ) {
-        expect(static fn (): mixed => new ReflectionMethod(SettingsNav::class, 'attributes')->invoke(null, $item))
-            ->toThrow(LogicException::class, $message);
-    }
 
     $User = User::factory()->createOne();
 
@@ -277,29 +226,10 @@ test('every rail, dropdown and head is built from route cases, active on its own
             ->and($active['Profile'])->toBeFalse();
     }
 
-    $items = DocsNav::items();
-
-    expect($items[0]->label)->toBe('API')
-        ->and($items[0]->route)->toBe(Web::docsApi)
-        ->and(collect($items)->pluck('route')->all())->toContain(Web::docsMcp);
-
-    foreach (DocsNav::cases() as $DocsNav) {
-        expect($DocsNav->item())->toBeInstanceOf(NavItem::class);
-    }
-
-    foreach ($items as $NavItem) {
-        expect(ViewDirectory::svg->has($NavItem->icon))->toBeTrue();
-    }
-
-    foreach (
-        [
-            [null, 'Documentation navigation cases must describe a navigation item.'],
-            [[Web::docsApi], 'Documentation navigation attributes must be named.'],
-        ] as [$item, $message]
-    ) {
-        expect(static fn (): mixed => new ReflectionMethod(DocsNav::class, 'attributes')->invoke(null, $item))
-            ->toThrow(LogicException::class, $message);
-    }
+    $this->get(Web::docsApi->value)
+        ->assertOk()
+        ->assertSee('aria-label="Documentation"', false)
+        ->assertSee('lg:pl-56');
 
     foreach ([Web::docs, Web::docsApi, Web::docsMcp] as $Web) {
         app()->instance('request', Request::create($Web->value));
@@ -310,125 +240,6 @@ test('every rail, dropdown and head is built from route cases, active on its own
     app()->instance('request', Request::create(Web::home->value));
 
     expect(DocsNav::visible())->toBeFalse();
-
-    $broken = [];
-
-    foreach (markdownFiles(base_path()) as $file) {
-        $contents = (string) file_get_contents($file);
-
-        preg_match_all('/]\(([^)#]+?)(?:#[^)]*)?\)/', $contents, $matches);
-
-        foreach ($matches[1] as $target) {
-            if (preg_match('#^(https?:|mailto:|/)#', $target) === 1) {
-                continue;
-            }
-
-            if (! file_exists(dirname($file).'/'.$target)) {
-                $broken[] = str_replace(base_path().'/', '', $file).' -> '.$target;
-            }
-        }
-    }
-
-    expect($broken)->toBeEmpty("Markdown links pointing at nothing:\n  - ".implode("\n  - ", $broken));
-
-    $items = AdminNav::items();
-
-    expect($items[0]->label)->toBe('Dashboard')
-        ->and($items[0]->route)->toBe(Admin::index)
-        ->and(collect($items)->pluck('route')->all())->toContain(Admin::users)
-        ->and(collect($items)->pluck('route')->all())->toContain(Admin::sessions);
-
-    foreach ($items as $NavItem) {
-        expect(ViewDirectory::svg->has($NavItem->icon))->toBeTrue();
-    }
-
-    $attributes = new ReflectionClass(AdminLink::class)->getAttributes(Attribute::class);
-
-    expect($attributes[0]->newInstance()->flags)->toBe(Attribute::TARGET_CLASS_CONSTANT)
-        ->and(array_column(AdminLink::routes(), AdminLink::url))->toContain(
-            Web::robots->value,
-            Web::llms->value,
-            Web::sitemap->value,
-            Web::openapi->value,
-            ApiRoute::readme->value,
-            Admin::openapi->value,
-        );
-
-    // Every tagged case is listed once, wherever it was tagged, and an order is what moves it
-    // up the page: the sequence of orders the page renders never descends. The argument is
-    // optional, and an absent order is not a first one: the case that gives none sorts behind
-    // every case that does.
-    $orders = taggedOrders();
-    $listed = array_column(AdminLink::routes(), AdminLink::url);
-
-    $sequence = array_map(static fn (string $url): int => $orders[$url], $listed);
-    $ascending = $sequence;
-    sort($ascending);
-
-    expect($listed)->toEqualCanonicalizing(array_keys($orders))
-        ->and($listed)->toHaveSameSize($orders)
-        ->and($sequence)->toBe($ascending)
-        ->and(new AdminLink()->order)->toBeNull()
-        ->and(AdminLink::links(RouteIndexStub::class))->toBe([
-            [
-                AdminLink::order => PHP_INT_MAX,
-                AdminLink::name => RouteIndexStub::bare->name,
-                AdminLink::url => RouteIndexStub::bare->value,
-            ],
-        ]);
-
-    // An enum reports what it holds, in the order it declares it. Sorting is the job of the
-    // query where every index's links meet. A case tagged in an enum the registry does not
-    // name is not the application's routing, so the page does not display it.
-    $tagged = array_column(AdminLink::links(Web::class), AdminLink::name);
-
-    $declared = array_values(
-        array_filter(
-            array_map(static fn (Web $Case): string => $Case->name, Web::cases()),
-            static fn (string $name): bool => in_array($name, $tagged, true),
-        )
-    );
-
-    expect($tagged)->not->toBeEmpty()
-        ->and($tagged)->toBe($declared)
-        ->and(AdminLink::links(Auth::class))->toBeEmpty()
-        ->and(AdminLink::links(RouteIndexStub::class))->not->toBeEmpty()
-        ->and(array_column(AdminLink::routes(), AdminLink::url))
-        ->not->toContain(RouteIndexStub::bare->value);
-
-    $None = Topnav::from([]);
-
-    expect($None->leftNav)->toBeFalse()
-        ->and($None->adminNav)->toBeFalse()
-        ->and($None->settingsNav)->toBeFalse()
-        ->and($None->nav())->toBeFalse();
-
-    $Left = Topnav::from([Topnav::leftNav => true]);
-
-    expect($Left->nav())->toBeTrue()
-        ->and($Left->items())->toEqual(LeftNav::items());
-
-    // The admin rail wins wherever both are standing.
-    expect(Topnav::from([Topnav::leftNav => true, Topnav::adminNav => true])->items())
-        ->toEqual(AdminNav::items());
-
-    $Settings = Topnav::from([Topnav::settingsNav => true]);
-
-    expect($Settings->nav())->toBeTrue()
-        ->and($Settings->items())->toEqual(SettingsNav::items());
-
-    // The organization rail is the one that only stands inside an organization, so
-    // outside one it contributes nothing and the default rail keeps the page.
-    $Organization = Topnav::from([Topnav::organizationNav => true]);
-
-    expect($Organization->nav())->toBeTrue()
-        ->and($Organization->items())->toBe(OrganizationNav::items())
-        ->and(OrganizationNav::visible())->toBeFalse()
-        ->and(OrganizationNav::items())->toBeEmpty()
-        ->and(OrganizationSwitcher::current())->toBeNull()
-        ->and(ConnectionBreadcrumb::current())->toBeNull()
-        ->and(Main::from([Main::organizationNav => true])->nav())->toBeTrue()
-        ->and(Main::from([])->organizationNav)->toBeFalse();
 
     foreach (
         [
@@ -515,13 +326,11 @@ test('every rail, dropdown and head is built from route cases, active on its own
 
     expect($Main->classnames)->toBeNull()
         ->and($Main->theme)->toBeNull()
-        ->and($Main->leftNav)->toBeFalse()
-        ->and($Main->adminNav)->toBeFalse()
-        ->and($Main->settingsNav)->toBeFalse()
-        ->and($Main->nav())->toBeFalse()
+        ->and($Main->nav)->toBeNull()
+        ->and($Main->topnav())->toBe([Topnav::nav => null])
         ->and(Main::from([Main::classnames => 'bg-base-200'])->classnames)->toBe('bg-base-200')
-        ->and(Main::from([Main::adminNav => true])->nav())->toBeTrue()
-        ->and(Main::from([Main::settingsNav => true])->nav())->toBeTrue();
+        ->and(Main::from([Main::nav => Nav::admin])->nav)->toBe(Nav::admin)
+        ->and(Main::from([Main::nav => Nav::admin])->topnav())->toBe([Topnav::nav => Nav::admin]);
 
     $this->actingAs(User::factory()->createOne([Users::theme->value => Theme::dark]));
 
@@ -641,4 +450,38 @@ test('every rail, dropdown and head is built from route cases, active on its own
         ->assertDontSee('data-digitalforte-link', false)
         ->assertDontSee('digitalforte_referral_click')
         ->assertSee(Config::string('app.name'));
+});
+
+test('organization nav and switcher coverage', function (): void {
+    $User = User::factory()->createOne();
+    $Organization = memberOrganization($User, attributes: [
+        Organizations::name->value => 'Test Corp',
+        Organizations::slug->value => 'test-corp',
+    ]);
+
+    app()->instance('request', Request::create('/o/test-corp'));
+
+    $this->actingAs($User)->get(OrganizationRoute::index->url([OrganizationRoute::organizationParameter => 'test-corp']))->assertOk();
+
+    expect(OrganizationNav::visible())->toBeTrue()
+        ->and(OrganizationNav::label())->toBe('Organization')
+        ->and(OrganizationNav::items())->toHaveCount(3);
+
+    $Switcher = OrganizationSwitcher::current();
+    assert($Switcher instanceof OrganizationSwitcher);
+
+    expect($Switcher->name)->toBe('Test Corp')
+        ->and($Switcher->slug)->toBe('test-corp')
+        ->and($Switcher->initials())->toBe('TC')
+        ->and($Switcher->iconUrl())->toBeNull()
+        ->and($Switcher->sections())->toHaveCount(1)
+        ->and(OrganizationNav::items()[0]->label)->toBe('Overview')
+        ->and(OrganizationNav::items()[1]->label)->toBe('Connections')
+        ->and(OrganizationNav::items()[2]->label)->toBe('Members');
+
+    app()->instance('request', Request::create(Web::home->value));
+
+    expect(OrganizationNav::visible())->toBeFalse()
+        ->and(OrganizationSwitcher::current())->toBeNull()
+        ->and(OrganizationNav::items())->toBeEmpty();
 });

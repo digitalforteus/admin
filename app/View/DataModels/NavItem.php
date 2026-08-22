@@ -70,4 +70,15 @@ readonly class NavItem
             Svg::classname => 'h-4 w-4 opacity-70',
         ];
     }
+
+    /** @return array<string, mixed> */
+    public function navLink(): array
+    {
+        return [
+            NavLink::url => $this->url(),
+            NavLink::label => $this->label,
+            NavLink::active => $this->active(),
+            NavLink::svg => $this->svg(),
+        ];
+    }
 }

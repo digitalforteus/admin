@@ -1,6 +1,8 @@
 @php
     use App\Helpers\PublicAsset;
     use App\View\DataModels\Main;
+    use App\View\DataModels\Nav;
+    use App\View\DataModels\OrganizationSwitcher;
     $Main = Main::from($main);
 @endphp
 <!doctype html>
@@ -21,16 +23,29 @@
 <body class="h-screen overflow-y-scroll scrollbar-visible {{$Main->classnames}}">
 <x-google-tag-manager-noscript/>
 <x-topnav :topnav="$Main->topnav()"/>
-@if($Main->adminNav)
-  <x-admin-nav/>
-@elseif($Main->settingsNav)
-  <x-settings-nav/>
-@elseif($Main->docsNav)
-  <x-docs-nav/>
-@elseif($Main->organizationNav)
-  <x-organization-nav/>
+@if($Main->nav === Nav::organization)
+  @php($Switcher = OrganizationSwitcher::current())
+  @if($Switcher !== null)
+    <aside aria-label="Organization" class="fixed bottom-0 left-0 top-16 z-10 hidden w-56 border-r border-base-300 bg-base-200 lg:block">
+      <div class="p-2">
+        <x-organization-switcher :organizationSwitcher="$Switcher->props()"/>
+      </div>
+      <ul class="menu w-full gap-1 p-2">
+        @foreach($Main->nav->items() as $NavItem)
+          <li>
+            <a href="{{$NavItem->url()}}" @class(['menu-active' => $NavItem->active()])>
+              <x-svg :svg="$NavItem->svg()"/>
+              <span title="{{$NavItem->label}}">{{$NavItem->label}}</span>
+            </a>
+          </li>
+        @endforeach
+      </ul>
+    </aside>
+  @endif
+@elseif($Main->nav)
+  <x-nav-rail :navRail="$Main->nav->navRail()"/>
 @endif
-<div @class(['mt-16', 'lg:pl-56' => $Main->nav()])>
+<div @class(['mt-16', 'lg:pl-56' => $Main->nav])>
   <div class="min-h-[calc(100vh-4rem)]">{{$slot}}</div>
 </div>
 <x-footer/>

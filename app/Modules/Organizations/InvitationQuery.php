@@ -53,7 +53,7 @@ class InvitationQuery
 
             $Invitation = $Builder->first();
 
-            if (!$Invitation instanceof OrganizationInvitation || $Invitation->expired()) {
+            if (! $Invitation instanceof OrganizationInvitation || $Invitation->expired()) {
                 abort(404);
             }
 

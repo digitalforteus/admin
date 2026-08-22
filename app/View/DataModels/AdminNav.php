@@ -2,12 +2,14 @@
 
 namespace App\View\DataModels;
 
+use App\Helpers\HasNavItems;
 use App\Helpers\SvgName;
 use App\Routes\Admin;
-use ReflectionEnumUnitCase;
 
-enum AdminNav
+enum AdminNav implements DescribesNav
 {
+    use HasNavItems;
+
     #[NavItem([NavItem::label => 'Dashboard', NavItem::icon => SvgName::home, NavItem::route => Admin::index])]
     case dashboard;
 
@@ -23,20 +25,9 @@ enum AdminNav
     #[NavItem([NavItem::label => 'Links', NavItem::icon => SvgName::document, NavItem::route => Admin::links])]
     case links;
 
-    /** @return list<NavItem> */
-    public static function items(): array
+    public static function label(): string
     {
-        return array_map(
-            static fn (self $AdminNav): NavItem => $AdminNav->item(),
-            self::cases(),
-        );
-    }
-
-    public function item(): NavItem
-    {
-        $attributes = new ReflectionEnumUnitCase(self::class, $this->name)->getAttributes(NavItem::class);
-
-        return $attributes[0]->newInstance();
+        return 'Admin';
     }
 
     public static function visible(): bool

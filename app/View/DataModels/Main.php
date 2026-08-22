@@ -18,51 +18,20 @@ readonly class Main
     #[Describe([Describe::nullable => true])]
     public ?string $classnames;
 
-    public const string adminNav = 'adminNav';
+    public const string nav = 'nav';
 
-    #[Describe([Describe::default => [AdminNav::class, 'visible']])]
-    public bool $adminNav;
-
-    public const string settingsNav = 'settingsNav';
-
-    #[Describe([Describe::default => [SettingsNav::class, 'visible']])]
-    public bool $settingsNav;
-
-    public const string docsNav = 'docsNav';
-
-    #[Describe([Describe::default => [DocsNav::class, 'visible']])]
-    public bool $docsNav;
-
-    public const string organizationNav = 'organizationNav';
-
-    #[Describe([Describe::default => [OrganizationNav::class, 'visible']])]
-    public bool $organizationNav;
-
-    public const string leftNav = 'leftNav';
-
-    #[Describe([Describe::default => [LeftNav::class, 'visible']])]
-    public bool $leftNav;
+    #[Describe([Describe::default => [Nav::class, 'active']])]
+    public ?Nav $nav;
 
     public const string theme = 'theme';
 
     #[Describe([Describe::default => [self::class, 'userTheme']])]
     public ?string $theme;
 
-    public function nav(): bool
-    {
-        return $this->adminNav || $this->settingsNav || $this->docsNav || $this->organizationNav;
-    }
-
     /** @return array<string, mixed> */
     public function topnav(): array
     {
-        return [
-            Topnav::leftNav => $this->leftNav,
-            Topnav::adminNav => $this->adminNav,
-            Topnav::settingsNav => $this->settingsNav,
-            Topnav::docsNav => $this->docsNav,
-            Topnav::organizationNav => $this->organizationNav,
-        ];
+        return [Topnav::nav => $this->nav];
     }
 
     public static function userTheme(): ?string

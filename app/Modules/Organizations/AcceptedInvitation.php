@@ -11,8 +11,10 @@ readonly class AcceptedInvitation
     use DataModel;
 
     public const string Organization = 'Organization';
+
     public Organization $Organization;
 
     public const string User = 'User';
+
     public User $User;
 }

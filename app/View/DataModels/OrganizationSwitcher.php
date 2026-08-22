@@ -49,7 +49,7 @@ readonly class OrganizationSwitcher
         $Organization = OrganizationContext::organization();
         $User = Auth::user();
 
-        if (!$Organization instanceof Organization || !$User instanceof User) {
+        if (! $Organization instanceof Organization || ! $User instanceof User) {
             return null;
         }
 
@@ -59,7 +59,7 @@ readonly class OrganizationSwitcher
             $groups[] = [
                 OrganizationSwitcherGroup::label => $Organizations[0]->enterprise->name,
                 OrganizationSwitcherGroup::active => $Organization->slug,
-                OrganizationSwitcherGroup::items => array_map(static fn(Organization $Each): array => [
+                OrganizationSwitcherGroup::items => array_map(static fn (Organization $Each): array => [
                     NavItem::label => $Each->name,
                     NavItem::icon => SvgName::city,
                     NavItem::route => OrganizationRoute::index,
@@ -96,7 +96,7 @@ readonly class OrganizationSwitcher
     public function sections(): array
     {
         return array_map(
-            static fn(array $group): OrganizationSwitcherGroup => OrganizationSwitcherGroup::from($group),
+            static fn (array $group): OrganizationSwitcherGroup => OrganizationSwitcherGroup::from($group),
             $this->groups,
         );
     }

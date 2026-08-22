@@ -129,10 +129,10 @@ sitemap. A registered user holds no role: `admin` is granted only by
 creates the role, to the `ADMIN_EMAIL`/`ADMIN_PASSWORD` account
 ([config/admin.php](config/admin.php)) — with either unset it creates the role
 alone. The five permission tables are mirrored by table enums like every other
-table. The admin pages carry their own rail, `x-admin-nav`, backed by
-[AdminNav](app/View/DataModels/AdminNav.php)`::items()` — each entry a
-[NavItem](app/View/DataModels/NavItem.php) over a route case; `LeftNav` stands
-down wherever `AdminNav::visible()` holds. /admin/links
+table. The admin pages carry their own rail,
+[AdminNav](app/View/DataModels/AdminNav.php) — a case on the navigation registry
+declared ahead of the authed default, so the default stands down under `/admin`
+without knowing it exists (see Navigation, below). /admin/links
 lists the cases tagged [AdminLink](app/Routes/AdminLink.php), whose optional
 `$order` sorts them across every index; untagged-order cases follow, in
 declaration order. `AdminLink::routes()` returns `name`/`url` pairs rather than
@@ -293,6 +293,19 @@ DataModel, then read as typed properties:
   `label`/`icon`/`route`, with `url()`, `active()` and `svg()`. Every rail,
   dropdown and settings list returns `list<NavItem>`, so a blade never reads
   `$item['route']` or restates the icon classes.
+
+### Navigation
+
+Every rail and dropdown reads one registry: [Nav](app/View/DataModels/Nav.php). A
+case is the whole of registering a navigation, and where it sits is its precedence:
+the first that reports itself visible answers, so one that must yield to another is
+declared after it and nothing negates a sibling. Two conditions that overlap in the
+wrong order render the wrong rail, silently. The case declared last is the fallback,
+so its condition is the widest and it is the only one that may name no route — every
+other is visible under its own root case, never a path literal.
+
+Adding a navigation is an enum and a case, and touches no blade. The test loops the
+registry, so a new case owes it only the order it claims.
 
 ### Form fields
 

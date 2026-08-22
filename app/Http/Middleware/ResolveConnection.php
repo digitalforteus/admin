@@ -19,7 +19,7 @@ readonly class ResolveConnection
         $slug = $parameter instanceof Connection ? $parameter->slug : $parameter;
         $Organization = OrganizationContext::organization();
 
-        if (!is_string($slug) || $slug === '' || !$Organization instanceof Organization) {
+        if (! is_string($slug) || $slug === '' || ! $Organization instanceof Organization) {
             return $Closure($Request);
         }
 

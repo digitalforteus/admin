@@ -2,13 +2,14 @@
 
 namespace App\View\DataModels;
 
+use App\Helpers\HasNavItems;
 use App\Helpers\SvgName;
 use App\Routes\Auth;
-use LogicException;
-use ReflectionEnumUnitCase;
 
-enum SettingsNav
+enum SettingsNav implements DescribesNav
 {
+    use HasNavItems;
+
     #[NavItem([NavItem::label => 'Profile', NavItem::icon => SvgName::user, NavItem::route => Auth::settingsProfile])]
     case profile;
 
@@ -24,44 +25,9 @@ enum SettingsNav
     #[NavItem([NavItem::label => 'Sessions', NavItem::icon => SvgName::desktop, NavItem::route => Auth::settingsSessions, NavItem::nested => true])]
     case sessions;
 
-    #[NavItem([NavItem::label => 'Organizations', NavItem::icon => SvgName::city, NavItem::route => Auth::settingsOrganizations, NavItem::nested => true])]
-    case organizations;
-
-    /** @return list<NavItem> */
-    public static function items(): array
+    public static function label(): string
     {
-        return array_map(
-            static fn (self $SettingsNav): NavItem => $SettingsNav->item(),
-            self::cases(),
-        );
-    }
-
-    public function item(): NavItem
-    {
-        $attributes = new ReflectionEnumUnitCase(self::class, $this->name)->getAttributes(NavItem::class);
-        $arguments = $attributes[0]->getArguments();
-
-        return new NavItem(self::attributes($arguments[0] ?? null));
-    }
-
-    /** @return array<string, mixed> */
-    private static function attributes(mixed $item): array
-    {
-        if (! is_array($item)) {
-            throw new LogicException('Settings navigation cases must describe a navigation item.');
-        }
-
-        $attributes = [];
-
-        foreach ($item as $key => $value) {
-            if (! is_string($key)) {
-                throw new LogicException('Settings navigation attributes must be named.');
-            }
-
-            $attributes[$key] = $value;
-        }
-
-        return $attributes;
+        return 'Settings';
     }
 
     public static function visible(): bool
