@@ -15,10 +15,14 @@ use App\Routes\RouteIndex;
 use App\Routes\Web;
 use App\Sources\Db\App\Users;
 use App\View\DataModels\AdminNav;
+use App\View\DataModels\DescribesNav;
 use App\View\DataModels\DocsNav;
 use App\View\DataModels\LeftNav;
 use App\View\DataModels\Main;
+use App\View\DataModels\Nav;
 use App\View\DataModels\NavItem;
+use App\View\DataModels\NavLink;
+use App\View\DataModels\NavRail;
 use App\View\DataModels\SettingsNav;
 use App\View\DataModels\Svg;
 use App\View\DataModels\Topnav;
@@ -27,6 +31,7 @@ use App\View\ViewDirectory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\View;
 use Laravel\Head\Facades\Head;
 use Tests\Fixtures\RouteIndexStub;
 use Zerotoprod\DataModel\PropertyRequiredException;
@@ -72,12 +77,7 @@ function markdownFiles(string $base): array
     return $files;
 }
 
-/**
- * The order every tagged case asked for, keyed by the url it renders. Read off the
- * indexes rather than restated, so tagging a case is the only place an order is written.
- *
- * @return array<string, int>
- */
+/** @return array<string, int> */
 function taggedOrders(): array
 {
     $orders = [];
@@ -159,22 +159,7 @@ test('every rail, dropdown and head is built from route cases, active on its own
 
     app()->instance('request', Request::create(Auth::settingsProfile->value));
 
-    expect($Nested->active())->toBeFalse()
-        ->and(LeftNav::items())->toHaveCount(2)
-        ->and(LeftNav::items()[0]->route)->toBe(Web::home)
-        ->and(collect(LeftNav::items())->pluck('route')->all())->toContain(Web::contact);
-
-    foreach (LeftNav::cases() as $LeftNav) {
-        expect($LeftNav->item())->toBeInstanceOf(NavItem::class);
-    }
-
-    foreach ([
-        [null, 'Left navigation cases must describe a navigation item.'],
-        [[Web::home], 'Left navigation attributes must be named.'],
-    ] as [$item, $message]) {
-        expect(static fn (): mixed => new ReflectionMethod(LeftNav::class, 'attributes')->invoke(null, $item))
-            ->toThrow(LogicException::class, $message);
-    }
+    expect($Nested->active())->toBeFalse();
 
     $this->get(Web::home->value)
         ->assertOk()
@@ -192,35 +177,6 @@ test('every rail, dropdown and head is built from route cases, active on its own
         ->assertOk()
         ->assertDontSee('aria-label="Primary"', false)
         ->assertSee('aria-label="Settings"', false);
-
-    $items = SettingsNav::items();
-
-    expect($items[0]->label)->toBe('Profile')
-        ->and($items[0]->route)->toBe(Auth::settingsProfile)
-        ->and(collect($items)->pluck('route')->all())
-        ->toBe([
-            Auth::settingsProfile,
-            Auth::settingsAppearance,
-            Auth::settingsSecurity,
-            Auth::settingsCredentials,
-            Auth::settingsSessions,
-        ]);
-
-    foreach (SettingsNav::cases() as $SettingsNav) {
-        expect($SettingsNav->item())->toBeInstanceOf(NavItem::class);
-    }
-
-    foreach ($items as $NavItem) {
-        expect(ViewDirectory::svg->has($NavItem->icon))->toBeTrue();
-    }
-
-    foreach ([
-        [null, 'Settings navigation cases must describe a navigation item.'],
-        [[Auth::settingsProfile], 'Settings navigation attributes must be named.'],
-    ] as [$item, $message]) {
-        expect(static fn (): mixed => new ReflectionMethod(SettingsNav::class, 'attributes')->invoke(null, $item))
-            ->toThrow(LogicException::class, $message);
-    }
 
     $User = User::factory()->createOne();
 
@@ -256,27 +212,10 @@ test('every rail, dropdown and head is built from route cases, active on its own
             ->and($active['Profile'])->toBeFalse();
     }
 
-    $items = DocsNav::items();
-
-    expect($items[0]->label)->toBe('API')
-        ->and($items[0]->route)->toBe(Web::docsApi)
-        ->and(collect($items)->pluck('route')->all())->toContain(Web::docsMcp);
-
-    foreach (DocsNav::cases() as $DocsNav) {
-        expect($DocsNav->item())->toBeInstanceOf(NavItem::class);
-    }
-
-    foreach ($items as $NavItem) {
-        expect(ViewDirectory::svg->has($NavItem->icon))->toBeTrue();
-    }
-
-    foreach ([
-        [null, 'Documentation navigation cases must describe a navigation item.'],
-        [[Web::docsApi], 'Documentation navigation attributes must be named.'],
-    ] as [$item, $message]) {
-        expect(static fn (): mixed => new ReflectionMethod(DocsNav::class, 'attributes')->invoke(null, $item))
-            ->toThrow(LogicException::class, $message);
-    }
+    $this->get(Web::docsApi->value)
+        ->assertOk()
+        ->assertSee('aria-label="Documentation"', false)
+        ->assertSee('lg:pl-56');
 
     foreach ([Web::docs, Web::docsApi, Web::docsMcp] as $Web) {
         app()->instance('request', Request::create($Web->value));
@@ -307,17 +246,6 @@ test('every rail, dropdown and head is built from route cases, active on its own
     }
 
     expect($broken)->toBeEmpty("Markdown links pointing at nothing:\n  - ".implode("\n  - ", $broken));
-
-    $items = AdminNav::items();
-
-    expect($items[0]->label)->toBe('Dashboard')
-        ->and($items[0]->route)->toBe(Admin::index)
-        ->and(collect($items)->pluck('route')->all())->toContain(Admin::users)
-        ->and(collect($items)->pluck('route')->all())->toContain(Admin::sessions);
-
-    foreach ($items as $NavItem) {
-        expect(ViewDirectory::svg->has($NavItem->icon))->toBeTrue();
-    }
 
     $attributes = new ReflectionClass(AdminLink::class)->getAttributes(Attribute::class);
 
@@ -371,24 +299,91 @@ test('every rail, dropdown and head is built from route cases, active on its own
 
     $None = Topnav::from([]);
 
-    expect($None->leftNav)->toBeFalse()
-        ->and($None->adminNav)->toBeFalse()
-        ->and($None->settingsNav)->toBeFalse()
-        ->and($None->nav())->toBeFalse();
+    expect($None->nav)->toBeNull()
+        ->and($None->items())->toBeEmpty();
 
-    $Left = Topnav::from([Topnav::leftNav => true]);
+    foreach ([
+        [Nav::left, LeftNav::items()],
+        [Nav::admin, AdminNav::items()],
+        [Nav::settings, SettingsNav::items()],
+    ] as [$Nav, $items]) {
+        expect(Topnav::from([Topnav::nav => $Nav])->nav)->toBe($Nav)
+            ->and(Topnav::from([Topnav::nav => $Nav])->items())->toEqual($items);
+    }
 
-    expect($Left->nav())->toBeTrue()
-        ->and($Left->items())->toEqual(LeftNav::items());
+    expect(Nav::admin->enum())->toBe(AdminNav::class)
+        ->and(array_column(Nav::cases(), 'value'))
+        ->toBe([AdminNav::class, SettingsNav::class, DocsNav::class, LeftNav::class])
+        ->and(View::exists('components.nav-rail'))->toBeTrue()
+        ->and(View::exists('components.nav-link'))->toBeTrue();
 
-    // The admin rail wins wherever both are standing.
-    expect(Topnav::from([Topnav::leftNav => true, Topnav::adminNav => true])->items())
-        ->toEqual(AdminNav::items());
+    // The rail a case renders is the items its enum declares, in the order it declares
+    // them, so the only thing a new navigation owes this test is the order it claims.
+    $declared = [
+        Nav::admin->name => [Admin::index, Admin::users, Admin::sessions, Admin::content, Admin::links],
+        Nav::settings->name => [
+            Auth::settingsProfile,
+            Auth::settingsAppearance,
+            Auth::settingsSecurity,
+            Auth::settingsCredentials,
+            Auth::settingsSessions,
+        ],
+        Nav::docs->name => [Web::docsApi, Web::docsMcp],
+        Nav::left->name => [Web::home, Web::contact],
+    ];
 
-    $Settings = Topnav::from([Topnav::settingsNav => true]);
+    foreach (Nav::cases() as $Nav) {
+        $NavRail = NavRail::from($Nav->navRail());
 
-    expect($Settings->nav())->toBeTrue()
-        ->and($Settings->items())->toEqual(SettingsNav::items());
+        expect(enum_exists($Nav->enum()))->toBeTrue()
+            ->and(is_subclass_of($Nav->enum(), DescribesNav::class))->toBeTrue()
+            ->and($Nav->items())->toEqual($Nav->enum()::items())
+            ->and($NavRail->label)->not->toBeEmpty()
+            ->and($NavRail->items)->toEqual($Nav->items())
+            ->and($NavRail->items)->not->toBeEmpty()
+            ->and(collect($NavRail->items)->pluck('route')->all())->toBe($declared[$Nav->name]);
+
+        foreach ($NavRail->items as $NavItem) {
+            $NavLink = NavLink::from($NavItem->navLink());
+
+            expect($NavItem)->toBeInstanceOf(NavItem::class)
+                ->and(ViewDirectory::svg->has($NavItem->icon))->toBeTrue()
+                ->and($NavLink->url)->toBe($NavItem->url())
+                ->and($NavLink->label)->toBe($NavItem->label)
+                ->and(Svg::from($NavLink->svg)->name)->toBe($NavItem->icon)
+                ->and($NavLink->classnames)->toBeEmpty()
+                ->and($NavLink->classes())->toBe(['' => false, 'menu-active' => $NavItem->active()]);
+        }
+    }
+
+    // The dropdown renders the same link the rail does, styled for where it stands.
+    $Styled = NavLink::from([
+        ...LeftNav::home->item()->navLink(),
+        NavLink::classnames => 'items-center gap-3 my-1 font-medium',
+    ]);
+
+    expect($Styled->classes())->toBe(['items-center gap-3 my-1 font-medium' => true, 'menu-active' => $Styled->active])
+        ->and(static fn () => NavLink::from([]))->toThrow(PropertyRequiredException::class)
+        ->and(static fn () => NavRail::from([]))->toThrow(PropertyRequiredException::class);
+
+    $this->actingAs(User::factory()->createOne());
+
+    foreach ([
+        [Auth::settingsProfile->value, Nav::settings],
+        [Web::docsApi->value, Nav::docs],
+        [Web::home->value, Nav::left],
+    ] as [$path, $Nav]) {
+        app()->instance('request', Request::create($path));
+
+        expect(Nav::active())->toBe($Nav)
+            ->and($Nav->visible())->toBeTrue();
+    }
+
+    $this->forgetCredentials();
+
+    app()->instance('request', Request::create(Web::home->value));
+
+    expect(Nav::active())->toBeNull();
 
     foreach ([
         ['John Doe', 'JD'],
@@ -473,13 +468,11 @@ test('every rail, dropdown and head is built from route cases, active on its own
 
     expect($Main->classnames)->toBeNull()
         ->and($Main->theme)->toBeNull()
-        ->and($Main->leftNav)->toBeFalse()
-        ->and($Main->adminNav)->toBeFalse()
-        ->and($Main->settingsNav)->toBeFalse()
-        ->and($Main->nav())->toBeFalse()
+        ->and($Main->nav)->toBeNull()
+        ->and($Main->topnav())->toBe([Topnav::nav => null])
         ->and(Main::from([Main::classnames => 'bg-base-200'])->classnames)->toBe('bg-base-200')
-        ->and(Main::from([Main::adminNav => true])->nav())->toBeTrue()
-        ->and(Main::from([Main::settingsNav => true])->nav())->toBeTrue();
+        ->and(Main::from([Main::nav => Nav::admin])->nav)->toBe(Nav::admin)
+        ->and(Main::from([Main::nav => Nav::admin])->topnav())->toBe([Topnav::nav => Nav::admin]);
 
     $this->actingAs(User::factory()->createOne([Users::theme->value => Theme::dark]));
 
