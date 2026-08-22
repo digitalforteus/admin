@@ -3,7 +3,10 @@
 use App\Helpers\SvgName;
 use App\Models\User;
 use App\Modules\Settings\Profile\ProfileForm;
+use App\Modules\Settings\Profile\ProfilePictureRequest;
 use App\Routes\Auth;
+use App\Helpers\ProfilePicture;
+use App\View\DataModels\PictureField;
 use App\View\DataModels\SettingsCard;
 use App\View\DataModels\TextInput;
 use Laravel\Head\Facades\Head;
@@ -16,6 +19,13 @@ Head::title('Profile')
 ?>
 <x-settings-card :settingsCard="[SettingsCard::title => 'Profile']">
     <x-status-toast/>
+    <x-picture-field :pictureField="[
+        PictureField::legend => 'Profile picture',
+        PictureField::field => ProfilePictureRequest::picture,
+        PictureField::action => Auth::settingsProfilePicture->value,
+        PictureField::picture => ProfilePicture::current(),
+        PictureField::label => $User?->name ?? '',
+    ]"/>
     <form class="mt-2 space-y-4" method="POST" action="{{Auth::settingsProfile->value}}" data-profile-form>
         @csrf
         <x-text-input :textInput="[

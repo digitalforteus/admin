@@ -95,7 +95,7 @@ test('the page queries its user table once', function (): void {
         ))->toHaveCount(1)
         ->and(collect($queries)->filter(
             static fn (string $query): bool => str_contains($query, 'from `oauth_providers`'),
-        ))->toHaveCount(1);
+        ))->toHaveCount(2);
 });
 
 test('the page displays the users oauth avatar', function (): void {

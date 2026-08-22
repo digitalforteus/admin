@@ -1,14 +1,14 @@
 @props(['topnav'])
 @php
     use App\Helpers\BrandLink;
-    use App\Helpers\SessionKey;
+    use App\Helpers\ProfilePicture;
     use App\Helpers\SvgName;
     use App\Routes\Web;
     use App\View\DataModels\Svg;
     use App\View\DataModels\Topnav;
     use App\View\DataModels\UserMenu;
     $Topnav = Topnav::from($topnav);
-    $picture = session(SessionKey::user_picture->value);
+    $picture = ProfilePicture::current();
 @endphp
 <div class="fixed top-0 z-20 shadow-md navbar bg-base-100">
     <div class="navbar-start">
@@ -58,7 +58,7 @@
             <x-user-menu :userMenu="[
                 UserMenu::name => auth()->user()?->name ?? '',
                 UserMenu::email => auth()->user()?->email ?? '',
-                UserMenu::picture => is_string($picture) && $picture !== '' ? $picture : null,
+                UserMenu::picture => $picture,
             ]"/>
         @else
             <div class="relative flex items-center">

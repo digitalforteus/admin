@@ -1,6 +1,7 @@
 <?php
 
 use App\Helpers\Gravatar;
+use App\Helpers\ProfilePicture;
 use App\Helpers\Initials;
 use App\Helpers\Role;
 use App\Helpers\SvgName;
@@ -26,7 +27,7 @@ Head::title('User')
         ? $Authenticated
         : User::query()->findOrFail($userId);
     $user->load('oauthProviders');
-    $picture = $user->oauthProviders->first()?->picture ?? Gravatar::url($user->email);
+    $picture = ProfilePicture::url($user) ?? Gravatar::url($user->email);
     $action = Admin::user->url([Admin::userParameter => $user->id]);
     $verified = (bool) old(UsersUpdateRequest::verified, $user->email_verified_at !== null);
     $administrator = (bool) old(UsersUpdateRequest::admin, $user->hasRole(Role::admin->value));

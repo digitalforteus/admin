@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Helpers\Gravatar;
+use App\Helpers\ProfilePicture;
 use App\Helpers\SessionKey;
 use App\Models\User;
 use Closure;
@@ -17,7 +18,7 @@ readonly class CacheUserPicture
         $User = $Request->user();
 
         if ($User instanceof User && ! $Request->session()->has($key)) {
-            $Request->session()->put($key, Gravatar::image($User->email) ?? '');
+            $Request->session()->put($key, ProfilePicture::url($User) ?? Gravatar::image($User->email) ?? '');
         }
 
         return $Closure($Request);

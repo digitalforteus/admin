@@ -16,6 +16,8 @@ enum Rule: string
     case required = 'required';
     case nullable = 'nullable';
     case string = 'string';
+    case image = 'image';
+    case mimes = 'mimes';
     case boolean = 'boolean';
     case url = 'url';
     case email = 'email';
@@ -33,6 +35,11 @@ enum Rule: string
     public static function after(string $date): string
     {
         return self::after->value.':'.$date;
+    }
+
+    public static function mimes(string ...$extensions): string
+    {
+        return self::mimes->value.':'.implode(',', $extensions);
     }
 
     public static function max(int $length): string
