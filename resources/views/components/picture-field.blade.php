@@ -6,7 +6,7 @@
 <x-field :fieldset="$PictureField->fieldset()">
     <div class="relative w-fit" data-picture-field>
         <div @class(['avatar', 'avatar-placeholder' => $PictureField->picture === null])>
-            <div class="{{$PictureField->size}} rounded-full bg-neutral text-neutral-content">
+            <div class="{{$PictureField->size}} rounded-full">
                 @if($PictureField->picture !== null)
                     <img src="{{$PictureField->picture}}" alt="{{$PictureField->label}}" title="{{$PictureField->label}}" referrerpolicy="no-referrer">
                 @else
