@@ -2,10 +2,11 @@
 
 namespace Tests;
 
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Routing\Route;
-use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Assert;
@@ -16,25 +17,50 @@ use ZeroToProd\SchemaValidator\SchemaValidator;
 
 abstract class TestCase extends BaseTestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
     use ValidatesSchema {
         assertMatchesSchema as private assertLeagueMatchesSchema;
     }
 
-    private static bool $migrated = false;
+    /**
+     * The guard the application defaults to, as configured.
+     *
+     * An authenticating middleware announces the guard that answered it by
+     * making that guard the default, which rewrites the configured value for
+     * the rest of the process. Reading it before anything has authenticated is
+     * the only reading that still says what the application configured.
+     */
+    private string $defaultGuard;
 
     protected function setUp(): void
     {
         parent::setUp();
 
+        $this->defaultGuard = Config::string('auth.defaults.guard');
+
         Http::fake([
             'www.gravatar.com/avatar/*' => Http::response('gravatar', 200, ['Content-Type' => 'image/jpeg']),
         ]);
+    }
 
-        if (! self::$migrated) {
-            Artisan::call('migrate:fresh');
-            self::$migrated = true;
-        }
+    /**
+     * Returns the client to what a caller who has never visited holds.
+     *
+     * One test is one process, so a guard resolved for an earlier visit, the
+     * default one an authenticating middleware left behind, credentials on the
+     * wire and a session all outlive the visit that established them. A later
+     * visit meant to arrive as a stranger, or as somebody else, silently arrives
+     * as the one before it unless every one of them is dropped together.
+     */
+    protected function forgetCredentials(): static
+    {
+        Auth::forgetGuards();
+        Auth::shouldUse($this->defaultGuard);
+
+        $this->flushHeaders();
+        $this->flushSession();
+
+        return $this;
     }
 
     /**

@@ -149,18 +149,34 @@ of this application's routes, wherever it lives.
 
 ### 8. Tests
 
-`tests/Behavior/Api/<Concept><Verb>Test.php`, Pest `test('...')`. Wrap every
-response in `$this->assertMatchesSchema(...)` — runs the body through the league
-validator *and* the request-rule validator, and fails if the operation declares
-no such status ([TestCase](tests/TestCase.php)). Assert with class consts
-(`XRequest::name`, `ApiResponse::data`) and `Users::table()`. A declared response
-no test reaches fails `openapi:coverage`.
+One `test('...')` per file, and one file per subject: the api under
+[tests/Behavior/Api](tests/Behavior/Api), the pages under
+[tests/Behavior/Web](tests/Behavior/Web), everything else under
+[tests/Feature](tests/Feature) and [tests/Unit](tests/Unit). Booting a test is
+what a test costs; an assertion is free. A new endpoint or page joins the test
+that already covers its subject rather than starting one — a second `test()` in a
+file is for the case the first genuinely cannot reach.
+
+That makes one test many visits in one process, so a guard, the default guard an
+authenticating middleware left behind, a token on the wire, a session, a facade
+swapped for a mock, a rate limiter and every row written all outlive the visit
+that made them. `$this->forgetCredentials()` ([TestCase](tests/TestCase.php))
+returns the client to what a stranger holds; a mocked facade is swapped back for a
+real instance before anything fakes it again; and a segment that must be the first
+to use an address uses one of its own.
+
+Wrap every api response in `$this->assertMatchesSchema(...)` — runs the body
+through the league validator *and* the request-rule validator, and fails if the
+operation declares no such status. Assert with class consts (`XRequest::name`,
+`ApiResponse::data`) and `Users::table()`. A declared response no test reaches
+fails `openapi:coverage`.
 
 ### 9. Scaffolding
 
 `mcp__project__scaffold-endpoint` writes all six artifacts (four files + route
 case + test), leaving `@todo` where a decision is owed; `composer check` fails
-until they are gone.
+until they are gone. The test it writes is its own file — fold it into the one
+that already covers the concept, per §8, and delete it.
 
 ## Comments — evergreen only
 
