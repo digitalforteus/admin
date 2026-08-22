@@ -14,6 +14,7 @@ return new class extends Migration
             $Blueprint->string('name')->comment('The users name');
             $Blueprint->string('email')->unique()->comment('The users email');
             $Blueprint->string('phone')->nullable()->comment('The users phone number');
+            $Blueprint->string('picture')->nullable()->comment('The path of the profile picture the user uploaded');
             $Blueprint->timestamp('email_verified_at')->nullable()->comment('When the users email was verified');
             $Blueprint->string('password')->comment('The users hashed password');
             $Blueprint->text('two_factor_secret')->nullable();

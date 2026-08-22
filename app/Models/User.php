@@ -29,6 +29,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property string $name
  * @property string $email
  * @property string|null $phone
+ * @property string|null $picture
  * @property Carbon|null $email_verified_at
  * @property string $password
  * @property Theme $theme
@@ -61,6 +62,7 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
         Users::name->value,
         Users::email->value,
         Users::phone->value,
+        Users::picture->value,
         Users::password->value,
         Users::theme->value,
     ];
@@ -68,6 +70,7 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
     /** @var array<string, mixed> */
     protected $attributes = [
         Users::theme->value => Theme::auto->value,
+        Users::picture->value => null,
         Users::two_factor_secret->value => null,
         Users::two_factor_recovery_codes->value => null,
         Users::two_factor_confirmed_at->value => null,

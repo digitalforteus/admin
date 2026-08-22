@@ -64,7 +64,7 @@ test('the authenticated user and roles are not queried twice on their own page',
         ->assertOk();
 
     expect($queries)
-        ->toHaveCount(4)
+        ->toHaveCount(5)
         ->toHaveSameSize(array_unique(array_map(serialize(...), $queries)));
 });
 

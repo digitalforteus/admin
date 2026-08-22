@@ -27,6 +27,7 @@ enum SvgName: string
     case magnifying_glass = 'magnifying-glass';
     case mailbox = 'mailbox';
     case moon = 'moon';
+    case pencil = 'pencil';
     case sun = 'sun';
     case swatch = 'swatch';
     case user = 'user';

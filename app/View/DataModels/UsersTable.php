@@ -3,6 +3,7 @@
 namespace App\View\DataModels;
 
 use App\Helpers\DataModel;
+use App\Helpers\ProfilePicture;
 use App\Helpers\SortDirection;
 use App\Helpers\SvgName;
 use App\Models\User;
@@ -72,7 +73,7 @@ readonly class UsersTable
         return array_values($this->paginator->getCollection()
             ->map(static fn (User $User): UserRow => UserRow::from([
                 ...$User->toArray(),
-                UserRow::picture => $User->oauthProviders->first()?->picture,
+                UserRow::picture => ProfilePicture::url($User),
             ]))
             ->all());
     }

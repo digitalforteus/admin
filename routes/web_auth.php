@@ -17,6 +17,8 @@ use App\Modules\Settings\Credentials\TokenController;
 use App\Modules\Settings\Credentials\TokenDestroyController;
 use App\Modules\Settings\Credentials\TokenUpdateController;
 use App\Modules\Settings\Profile\ProfileController;
+use App\Modules\Settings\Profile\ProfilePictureController;
+use App\Modules\Settings\Profile\ProfilePictureDestroyController;
 use App\Modules\Settings\Sessions\SessionDestroyController;
 use App\Modules\Settings\Sessions\SessionsDestroyController;
 use App\Routes\Auth;
@@ -40,6 +42,8 @@ Route::middleware(MiddlewareTag::verified->value)->group(function () {
     Route::post(Auth::confirmPassword->value, PasswordConfirmationController::class)
         ->middleware(MiddlewareTag::throttleTenPerMinute->value);
     Route::post(Auth::settingsProfile->value, ProfileController::class);
+    Route::post(Auth::settingsProfilePicture->value, ProfilePictureController::class);
+    Route::delete(Auth::settingsProfilePicture->value, ProfilePictureDestroyController::class);
     Route::delete(Auth::settingsSessions->value, SessionsDestroyController::class);
     Route::delete(Auth::settingsSession->value, SessionDestroyController::class);
     Route::post(Auth::settingsSecurity->value, PasswordController::class);

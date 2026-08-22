@@ -25,6 +25,7 @@ enum Auth: string
     case confirmPassword = '/confirm-password';
     case settings = '/settings';
     case settingsProfile = '/settings/profile';
+    case settingsProfilePicture = '/settings/profile/picture';
     case settingsSessions = '/settings/sessions';
     case settingsSession = '/settings/sessions/{'.self::sessionParameter.'}';
     case settingsSecurity = '/settings/security';
