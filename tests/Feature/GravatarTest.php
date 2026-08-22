@@ -26,6 +26,8 @@ test('an image that cannot be reached, was not found, or is not an image is noth
         Http::response(status: 404, headers: ['Content-Type' => 'image/png']),
         Http::response('not an image', headers: ['Content-Type' => 'text/plain']),
     ] as $Response) {
+        // Stubs accumulate and the first match wins, so each case needs its own client.
+        Http::swap(new Factory);
         Http::fake(['*' => $Response]);
 
         expect(Gravatar::image('person@example.com'))->toBeNull();

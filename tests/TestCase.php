@@ -2,10 +2,9 @@
 
 namespace Tests;
 
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Routing\Route;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Assert;
@@ -16,12 +15,10 @@ use ZeroToProd\SchemaValidator\SchemaValidator;
 
 abstract class TestCase extends BaseTestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
     use ValidatesSchema {
         assertMatchesSchema as private assertLeagueMatchesSchema;
     }
-
-    private static bool $migrated = false;
 
     protected function setUp(): void
     {
@@ -30,11 +27,6 @@ abstract class TestCase extends BaseTestCase
         Http::fake([
             'www.gravatar.com/avatar/*' => Http::response('gravatar', 200, ['Content-Type' => 'image/jpeg']),
         ]);
-
-        if (! self::$migrated) {
-            Artisan::call('migrate:fresh');
-            self::$migrated = true;
-        }
     }
 
     /**

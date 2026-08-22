@@ -67,7 +67,6 @@ test('a response model initializes every nullable property, so the field is publ
         ->toContain(AuthenticatedResponse::class);
 });
 
-
 /**
  * Every class under `app/Modules/Api` that publishes a response envelope.
  *

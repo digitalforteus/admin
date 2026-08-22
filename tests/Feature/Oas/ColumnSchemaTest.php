@@ -13,7 +13,7 @@ test('a column becomes an openapi schema object, publishing nothing the vocabula
         Property::maxLength => 255,
         Property::description => 'The users email',
     ])
-        ->not->toHaveKey('unique')
+        ->and(Users::email->schema())->not->toHaveKey('unique')
         ->and(Users::email_verified_at->schema())->toBe([
             Property::type => Property::string,
             Property::format => Property::date_time,

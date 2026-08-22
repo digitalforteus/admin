@@ -5,9 +5,10 @@ use Illuminate\Support\Facades\Validator;
 use Tests\Fixtures\RequestStub;
 
 test('an error response carries its status, its code and whatever data it was given', function (): void {
-    expect(api_response()->notFound(ErrorCode::unauthorized, ['id' => 1]))
-        ->getStatusCode()->toBe(404)
-        ->and(api_response()->notFound(ErrorCode::unauthorized, ['id' => 1])->getData(true))->toBe([
+    $NotFound = api_response()->notFound(ErrorCode::unauthorized, ['id' => 1]);
+
+    expect($NotFound->getStatusCode())->toBe(404)
+        ->and($NotFound->getData(true))->toBe([
             'success' => false,
             'message' => ErrorCode::unauthorized->value,
             'errors' => [ErrorCode::unauthorized->value],
