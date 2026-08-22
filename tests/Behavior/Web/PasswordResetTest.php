@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 
-test('the forgot password page is linked from login and renders', function (): void {
+test('the reset pages render, and an authenticated user is sent away from every one of them', function (): void {
     $this->get(Web::login->value)
         ->assertOk()
         ->assertSee(Web::forgotPassword->value);
@@ -21,65 +21,14 @@ test('the forgot password page is linked from login and renders', function (): v
         ->assertOk()
         ->assertSee('data-page-header', false)
         ->assertSee('data-password-reset-request', false);
-});
 
-test('authenticated users are redirected away from password reset pages', function (): void {
-    $User = User::factory()->createOne();
-
-    $this->actingAs($User)
-        ->get(Web::forgotPassword->value)
-        ->assertRedirect(Web::home->value);
-
-    $this->actingAs($User)
-        ->get(Web::resetPassword->url([ResetPasswordForm::token => 'token']))
-        ->assertRedirect(Web::home->value);
-
-    $this->actingAs($User)
-        ->get(Web::forgotPasswordSent->value)
-        ->assertRedirect(Web::home->value);
-});
-
-test('the password reset confirmation page renders next steps', function (): void {
     $this->get(Web::forgotPasswordSent->value)
         ->assertOk()
         ->assertSee('data-page-header', false)
         ->assertSee('data-password-reset-sent', false)
         ->assertSee(Web::login->value)
         ->assertSee(Web::forgotPassword->value);
-});
 
-test(
-    /**
-     * @throws Exception
-     */ 'a password reset link is sent to an existing user', function (): void {
-        Notification::fake();
-        $User = User::factory()->createOne();
-
-        $this->post(Web::forgotPassword->value, [
-            ForgotPasswordForm::email => strtoupper($User->email),
-        ])->assertRedirect(Web::forgotPasswordSent->value);
-
-        Notification::assertSentTo($User, ResetPassword::class);
-    });
-
-test('forgot password does not disclose whether an account exists', function (): void {
-    Notification::fake();
-
-    $this->post(Web::forgotPassword->value, [
-        ForgotPasswordForm::email => 'missing@example.com',
-    ])->assertRedirect(Web::forgotPasswordSent->value);
-
-    Notification::assertNothingSent();
-});
-
-test('forgot password validates the email', function (): void {
-    $this->from(Web::forgotPassword->value)
-        ->post(Web::forgotPassword->value, [ForgotPasswordForm::email => 'not-an-email'])
-        ->assertRedirect(Web::forgotPassword->value)
-        ->assertSessionHasErrors(ForgotPasswordForm::email);
-});
-
-test('the reset password page renders the token action and email', function (): void {
     $url = Web::resetPassword->url([ResetPasswordForm::token => 'reset-token']);
 
     $this->get($url.'?email=user%40example.com')
@@ -93,6 +42,40 @@ test('the reset password page renders the token action and email', function (): 
         ResetPasswordForm::token => 'reset-token',
         ResetPasswordForm::email => 'user@example.com',
     ]))->toContain($url.'?email=user%40example.com');
+
+    $User = User::factory()->createOne();
+
+    foreach ([
+        Web::forgotPassword->value,
+        Web::resetPassword->url([ResetPasswordForm::token => 'token']),
+        Web::forgotPasswordSent->value,
+    ] as $guarded) {
+        $this->actingAs($User)->get($guarded)->assertRedirect(Web::home->value);
+    }
+});
+
+test('a reset link is sent without disclosing whether an account exists, and the address is validated', function (): void {
+    Notification::fake();
+    $User = User::factory()->createOne();
+
+    $this->post(Web::forgotPassword->value, [
+        ForgotPasswordForm::email => strtoupper($User->email),
+    ])->assertRedirect(Web::forgotPasswordSent->value);
+
+    Notification::assertSentTo($User, ResetPassword::class);
+
+    Notification::fake();
+
+    $this->post(Web::forgotPassword->value, [
+        ForgotPasswordForm::email => 'missing@example.com',
+    ])->assertRedirect(Web::forgotPasswordSent->value);
+
+    Notification::assertNothingSent();
+
+    $this->from(Web::forgotPassword->value)
+        ->post(Web::forgotPassword->value, [ForgotPasswordForm::email => 'not-an-email'])
+        ->assertRedirect(Web::forgotPassword->value)
+        ->assertSessionHasErrors(ForgotPasswordForm::email);
 });
 
 test('a password can be reset with a valid token', function (): void {
@@ -117,25 +100,23 @@ test('a password can be reset with a valid token', function (): void {
     Event::assertDispatched(PasswordResetEvent::class);
 });
 
-test('an invalid password reset token is rejected', function (): void {
+test('an unusable token, a malformed address or a weak password is refused', function (): void {
     $User = User::factory()->createOne([
         Users::password->value => Hash::make('old-password'),
     ]);
-    $url = Web::resetPassword->url([ResetPasswordForm::token => 'invalid-token']);
+    $invalidUrl = Web::resetPassword->url([ResetPasswordForm::token => 'invalid-token']);
 
-    $this->from($url)->post(route('password.update'), [
+    $this->from($invalidUrl)->post(route('password.update'), [
         ResetPasswordForm::token => 'invalid-token',
         ResetPasswordForm::email => $User->email,
         ResetPasswordForm::password => 'new-password-1234',
         ResetPasswordForm::password_confirmation => 'new-password-1234',
-    ])->assertRedirect($url)
+    ])->assertRedirect($invalidUrl)
         ->assertSessionHasErrors(ResetPasswordForm::email)
         ->assertSessionHasInput(ResetPasswordForm::email, $User->email);
 
     expect(Hash::check('old-password', $User->refresh()->password))->toBeTrue();
-});
 
-test('reset password validates the submitted fields', function (): void {
     $url = Web::resetPassword->url([ResetPasswordForm::token => 'token']);
 
     $this->from($url)->post(route('password.update'), [
@@ -146,19 +127,16 @@ test('reset password validates the submitted fields', function (): void {
     ])->assertRedirect($url)
         ->assertSessionHasErrors(ResetPasswordForm::email)
         ->assertSessionMissing(ResetPasswordForm::password);
-});
 
-test('reset password enforces the password policy', function (): void {
-    $User = User::factory()->createOne();
     $token = Password::createToken($User);
-    $url = Web::resetPassword->url([ResetPasswordForm::token => $token]);
+    $tokenUrl = Web::resetPassword->url([ResetPasswordForm::token => $token]);
 
-    $this->from($url)->post(route('password.update'), [
+    $this->from($tokenUrl)->post(route('password.update'), [
         ResetPasswordForm::token => $token,
         ResetPasswordForm::email => $User->email,
         ResetPasswordForm::password => 'short',
         ResetPasswordForm::password_confirmation => 'different',
-    ])->assertRedirect($url)
+    ])->assertRedirect($tokenUrl)
         ->assertSessionHasErrors(ResetPasswordForm::password)
         ->assertSessionMissing(ResetPasswordForm::password);
 });

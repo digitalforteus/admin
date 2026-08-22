@@ -3,7 +3,7 @@
 use App\Mcp\Servers\AppServer;
 use App\Mcp\Tools\ScaffoldOpenApi;
 
-test('it scaffolds the operations in an openapi 3 schema', function (): void {
+test('it scaffolds the operations in an openapi 3 schema, prefixing paths that are not this apis', function (): void {
     $schema = [
         'openapi' => '3.1.0',
         'info' => ['title' => 'Widgets', 'version' => '1.0.0'],
@@ -51,10 +51,9 @@ test('it scaffolds the operations in an openapi 3 schema', function (): void {
         ->assertSee('public ?string $label;')
         ->assertSee('app/Modules/Api/Widget/WidgetParameter.php')
         ->assertSee('The widget was not found.');
-});
 
-test('it prefixes external paths and uses operation ids to avoid conventional module collisions', function (): void {
-    $schema = <<<'YAML'
+    // An operation id is what keeps a foreign path off a conventional module name.
+    $external = <<<'YAML'
         openapi: 3.0.4
         info:
           title: Pets
@@ -70,21 +69,14 @@ test('it prefixes external paths and uses operation ids to avoid conventional mo
                   description: Matching pets.
         YAML;
 
-    AppServer::tool(ScaffoldOpenApi::class, ['openapi' => $schema, 'dry_run' => true])
+    AppServer::tool(ScaffoldOpenApi::class, ['openapi' => $external, 'dry_run' => true])
         ->assertOk()
         ->assertHasNoErrors()
         ->assertSee('app/Modules/Api/Pet/FindByStatus/PetFindByStatusController.php')
         ->assertSee("case pet_find_by_status = self::prefix.'/pet/findByStatus';");
 });
 
-test('it rejects a non-openapi 3 schema', function (): void {
-    AppServer::tool(ScaffoldOpenApi::class, [
-        'openapi' => '{"swagger":"2.0"}',
-        'dry_run' => true,
-    ])->assertHasErrors()->assertSee('Only OpenAPI 3.x schemas are supported.');
-});
-
-test('it targets every operation at the selected admin api', function (): void {
+test('it targets every operation at the selected api, and rejects a document that is not openapi 3', function (): void {
     $schema = <<<'YAML'
         openapi: 3.0.4
         info: {title: Admin users, version: 1.0.0}
@@ -106,4 +98,9 @@ test('it targets every operation at the selected admin api', function (): void {
         ->assertSee('Admin::api_gadgets->value')
         ->assertSee('#[AdminApiSchema(')
         ->assertSee('routes/api_admin.php');
+
+    AppServer::tool(ScaffoldOpenApi::class, [
+        'openapi' => '{"swagger":"2.0"}',
+        'dry_run' => true,
+    ])->assertHasErrors()->assertSee('Only OpenAPI 3.x schemas are supported.');
 });

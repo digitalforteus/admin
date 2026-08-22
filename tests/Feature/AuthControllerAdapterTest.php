@@ -65,7 +65,7 @@ function typedMock(string $class): MockInterface
     return $Mock;
 }
 
-test('fortify route controllers delegate to the package controllers', function (): void {
+test('every fortify and passkey route controller delegates to the package controller', function (): void {
     $Responsable = typedMock(Responsable::class);
     $Request = typedMock(Request::class);
 
@@ -105,9 +105,7 @@ test('fortify route controllers delegate to the package controllers', function (
     $RecoveryCodeController = typedMock(RecoveryCodeController::class);
     $RecoveryCodeController->shouldReceive('store')->once()->with($Request, $GenerateNewRecoveryCodes)->andReturn($Responsable);
     expect((new RecoveryCodesRegenerateController($RecoveryCodeController))($Request, $GenerateNewRecoveryCodes))->toBe($Responsable);
-});
 
-test('passkey route controllers delegate to the package controllers', function (): void {
     $Request = typedMock(Request::class);
     $JsonResponse = new JsonResponse;
     $GenerateVerificationOptions = typedMock(GenerateVerificationOptions::class);

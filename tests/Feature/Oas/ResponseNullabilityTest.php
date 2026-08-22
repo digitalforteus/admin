@@ -57,15 +57,16 @@ test('a response model initializes every nullable property, so the field is publ
         "uninitialized, so the body omits it. Add #[Describe([Describe::nullable => true])] to the class:\n  - ".
         implode("\n  - ", $offenders)
     );
-});
 
-test('the walk reaches the models, rather than passing over an empty list', function (): void {
+    // The walk has to reach the models, rather than pass over an empty list.
+
     expect(responseModels())
         ->toContain(UserShowResponse::class)
         ->toContain(PaginationResponse::class)
         // One with no properties at all, which the walk still has to see.
         ->toContain(AuthenticatedResponse::class);
 });
+
 
 /**
  * Every class under `app/Modules/Api` that publishes a response envelope.

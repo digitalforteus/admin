@@ -22,59 +22,65 @@ function usersUrl(array $query = []): string
     return $query === [] ? Admin::users->value : Admin::users->value.'?'.http_build_query($query);
 }
 
-test('guests are redirected to login', function (): void {
-    $this->get(Admin::users->value)
-        ->assertRedirect(Web::login->value);
-});
+test('guests and users without the admin role are refused', function (): void {
+    $this->get(Admin::users->value)->assertRedirect(Web::login->value);
 
-test('a user without the admin role is forbidden', function (): void {
     $this->actingAs(User::factory()->createOne())
         ->get(Admin::users->value)
         ->assertForbidden();
 });
 
-test('the page lists a user', function (): void {
-    $User = adminUser();
+test('a row carries the avatar, the initials fallback, the last session and the verification chip', function (): void {
+    $Admin = adminUser();
+    $Admin->oauthProviders()->create([
+        OauthProviders::provider_id->value => OauthProviderId::google->value,
+        OauthProviders::sub->value => '123456789',
+        OauthProviders::name->value => $Admin->name,
+        OauthProviders::given_name->value => 'Admin',
+        OauthProviders::family_name->value => 'User',
+        OauthProviders::picture->value => 'https://example.com/avatar.jpg',
+        OauthProviders::email->value => $Admin->email,
+        OauthProviders::email_verified->value => true,
+        OauthProviders::hd->value => null,
+        OauthProviders::id->value => '123456789',
+        OauthProviders::verified_email->value => true,
+    ]);
 
-    $this->actingAs($User)
+    $Verified = User::factory()->createOne([
+        Users::name->value => 'Ada Lovelace',
+        Users::email_verified_at->value => now(),
+    ]);
+    $Unverified = User::factory()->createOne([Users::email_verified_at->value => null]);
+
+    $lastSessionAt = now()->subHour()->startOfSecond();
+    Session::query()->create([
+        Sessions::id->value => 'listed-user-session',
+        Sessions::user_id->value => $Verified->id,
+        Sessions::payload->value => 'payload',
+        Sessions::last_activity->value => $lastSessionAt->timestamp,
+    ]);
+
+    $TestResponse = $this->actingAs($Admin)
         ->get(Admin::users->value)
         ->assertOk()
         ->assertSee('data-admin-users', false)
-        ->assertSee($User->name)
-        ->assertSee($User->email);
-});
-
-test('only unverified users have an unverified email chip', function (): void {
-    $Verified = User::factory()->createOne([Users::email_verified_at->value => now()]);
-    $Unverified = User::factory()->createOne([Users::email_verified_at->value => null]);
-
-    $content = (string) $this->actingAs(adminUser())
-        ->get(Admin::users->value)
-        ->assertOk()
+        ->assertSee($Admin->name)
+        ->assertSee($Admin->email)
         ->assertDontSee('Email Verified At')
-        ->getContent();
+        ->assertSee('https://example.com/avatar.jpg')
+        ->assertSee('alt="'.e($Admin->name).'"', false)
+        ->assertSee('avatar-placeholder', false)
+        ->assertSee("classList.add('bg-neutral')", false)
+        ->assertSee('<span class="hidden text-xs" title="AL">AL</span>', false)
+        ->assertSee('data-last-session-column', false)
+        ->assertSee($lastSessionAt->diffForHumans());
+
+    $content = (string) $TestResponse->getContent();
 
     expect($content)
         ->toContain('<a href="'.Admin::user->url([Admin::userParameter => $Verified->id]).'" class="link" title="'.$Verified->email.'">'.$Verified->email.'</a>')
         ->toContain('<a href="'.Admin::user->url([Admin::userParameter => $Unverified->id]).'" class="link" title="'.$Unverified->email.'">'.$Unverified->email.'</a>')
         ->and(substr_count($content, '>Unverified</span>'))->toBe(1);
-});
-
-test('the page lists each users last session time', function (): void {
-    $User = User::factory()->createOne();
-    $lastSessionAt = now()->subHour()->startOfSecond();
-    Session::query()->create([
-        Sessions::id->value => 'listed-user-session',
-        Sessions::user_id->value => $User->id,
-        Sessions::payload->value => 'payload',
-        Sessions::last_activity->value => $lastSessionAt->timestamp,
-    ]);
-
-    $this->actingAs(adminUser())
-        ->get(Admin::users->value)
-        ->assertOk()
-        ->assertSee('data-last-session-column', false)
-        ->assertSee($lastSessionAt->diffForHumans());
 });
 
 test('the page queries its user table once', function (): void {
@@ -98,43 +104,7 @@ test('the page queries its user table once', function (): void {
         ))->toHaveCount(2);
 });
 
-test('the page displays the users oauth avatar', function (): void {
-    $User = adminUser();
-    $User->oauthProviders()->create([
-        OauthProviders::provider_id->value => OauthProviderId::google->value,
-        OauthProviders::sub->value => '123456789',
-        OauthProviders::name->value => $User->name,
-        OauthProviders::given_name->value => 'Admin',
-        OauthProviders::family_name->value => 'User',
-        OauthProviders::picture->value => 'https://example.com/avatar.jpg',
-        OauthProviders::email->value => $User->email,
-        OauthProviders::email_verified->value => true,
-        OauthProviders::hd->value => null,
-        OauthProviders::id->value => '123456789',
-        OauthProviders::verified_email->value => true,
-    ]);
-
-    $this->actingAs($User)
-        ->get(Admin::users->value)
-        ->assertOk()
-        ->assertSee('https://example.com/avatar.jpg')
-        ->assertSee('alt="'.e($User->name).'"', false);
-});
-
-test('the page falls back to initials when the user picture cannot load', function (): void {
-    $User = adminUser();
-    $User->update([Users::name->value => 'Ada Lovelace']);
-
-    $this->actingAs($User)
-        ->get(Admin::users->value)
-        ->assertOk()
-        ->assertSee('avatar-placeholder', false)
-        ->assertSee("classList.add('bg-neutral')", false)
-        ->assertSee('<span class="hidden text-xs" title="AL">AL</span>', false)
-        ->assertSee('AL');
-});
-
-test('every column the table lists gets a heading linking to its own ordering', function (): void {
+test('every column gets a heading linking to its own ordering, and the current one flips direction', function (): void {
     $TestResponse = $this->actingAs(adminUser())
         ->get(Admin::users->value)
         ->assertOk();
@@ -143,9 +113,7 @@ test('every column the table lists gets a heading linking to its own ordering', 
         $TestResponse->assertSee(Str::headline($Column->name))
             ->assertSee(UsersRequest::sort.'='.$Column->value, false);
     }
-});
 
-test('the heading already ordered links to the opposite direction', function (): void {
     $this->actingAs(adminUser())
         ->get(usersUrl([
             UsersRequest::sort => Users::email->value,
@@ -155,20 +123,21 @@ test('the heading already ordered links to the opposite direction', function ():
         ->assertSee(UsersRequest::direction.'='.SortDirection::desc->value, false);
 });
 
-test('the search box filters by name', function (): void {
-    $Match = User::factory()->createOne([Users::name->value => 'Ada Lovelace']);
-    $Other = User::factory()->createOne([Users::name->value => 'Grace Hopper']);
+test('the search box filters by name and email, keeps the term, and says when nothing matches', function (): void {
+    $Match = User::factory()->createOne([
+        Users::name->value => 'Ada Lovelace',
+        Users::email->value => 'ada@example.com',
+    ]);
+    $Other = User::factory()->createOne([
+        Users::name->value => 'Grace Hopper',
+        Users::email->value => 'grace@example.com',
+    ]);
 
     $this->actingAs(adminUser())
         ->get(usersUrl([UsersRequest::search => 'Ada Lovelace']))
         ->assertOk()
         ->assertSee($Match->name)
         ->assertDontSee($Other->name);
-});
-
-test('the search box filters by email and keeps the term', function (): void {
-    $Match = User::factory()->createOne([Users::email->value => 'ada@example.com']);
-    $Other = User::factory()->createOne([Users::email->value => 'grace@example.com']);
 
     $this->actingAs(adminUser())
         ->get(usersUrl([UsersRequest::search => 'ada@example.com']))
@@ -176,16 +145,16 @@ test('the search box filters by email and keeps the term', function (): void {
         ->assertSee($Match->email)
         ->assertDontSee($Other->email)
         ->assertSee('value="ada@example.com"', false);
-});
 
-test('a search matching nothing says so', function (): void {
     $this->actingAs(adminUser())
         ->get(usersUrl([UsersRequest::search => 'nobody-by-that-name']))
         ->assertOk()
         ->assertSee('data-users-empty', false);
 });
 
-test('an unrecognised ordering falls back rather than reaching the database', function (): void {
+test('an unrecognised ordering falls back, and the one asked for is the one the query runs', function (): void {
+    User::factory()->count(3)->create();
+
     $this->actingAs(adminUser())
         ->get(usersUrl([
             UsersRequest::sort => Users::password->value,
@@ -193,17 +162,13 @@ test('an unrecognised ordering falls back rather than reaching the database', fu
         ]))
         ->assertOk();
 
-    $UsersRequest = UsersRequest::of(Request::create(usersUrl([
+    $Fallback = UsersRequest::of(Request::create(usersUrl([
         UsersRequest::sort => Users::password->value,
         UsersRequest::direction => 'sideways',
     ])));
 
-    expect($UsersRequest->sort)->toBe(UsersTable::columns()[0])
-        ->and($UsersRequest->direction)->toBe(SortDirection::asc);
-});
-
-test('the ordering the request asks for is the ordering the query runs', function (): void {
-    User::factory()->count(3)->create();
+    expect($Fallback->sort)->toBe(UsersTable::columns()[0])
+        ->and($Fallback->direction)->toBe(SortDirection::asc);
 
     $UsersRequest = UsersRequest::of(Request::create(usersUrl([
         UsersRequest::sort => Users::email->value,

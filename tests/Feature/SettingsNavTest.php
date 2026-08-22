@@ -8,29 +8,12 @@ use App\View\DataModels\SettingsNav;
 use App\View\ViewDirectory;
 use Illuminate\Http\Request;
 
-test('the first entry is the profile page', function (): void {
+test('every case describes one named navigation item, and every settings section is listed with an icon', function (): void {
     $items = SettingsNav::items();
 
     expect($items[0]->label)->toBe('Profile')
-        ->and($items[0]->route)->toBe(Auth::settingsProfile);
-});
-
-test('every case describes one navigation item', function (): void {
-    foreach (SettingsNav::cases() as $SettingsNav) {
-        expect($SettingsNav->item())->toBeInstanceOf(NavItem::class);
-    }
-});
-
-test('a settings navigation case must describe an item with named attributes', function (mixed $item, string $message): void {
-    expect(static fn (): mixed => new ReflectionMethod(SettingsNav::class, 'attributes')->invoke(null, $item))
-        ->toThrow(LogicException::class, $message);
-})->with([
-    'missing item' => [null, 'Settings navigation cases must describe a navigation item.'],
-    'positional attribute' => [[Auth::settingsProfile], 'Settings navigation attributes must be named.'],
-]);
-
-test('every settings section is listed', function (): void {
-    expect(collect(SettingsNav::items())->pluck('route')->all())
+        ->and($items[0]->route)->toBe(Auth::settingsProfile)
+        ->and(collect($items)->pluck('route')->all())
         ->toBe([
             Auth::settingsProfile,
             Auth::settingsAppearance,
@@ -38,58 +21,58 @@ test('every settings section is listed', function (): void {
             Auth::settingsCredentials,
             Auth::settingsSessions,
         ]);
-});
 
-test('every entry names an icon that exists', function (): void {
-    foreach (SettingsNav::items() as $NavItem) {
+    foreach (SettingsNav::cases() as $SettingsNav) {
+        expect($SettingsNav->item())->toBeInstanceOf(NavItem::class);
+    }
+
+    foreach ($items as $NavItem) {
         expect(ViewDirectory::svg->has($NavItem->icon))->toBeTrue();
+    }
+
+    foreach ([
+        [null, 'Settings navigation cases must describe a navigation item.'],
+        [[Auth::settingsProfile], 'Settings navigation attributes must be named.'],
+    ] as [$item, $message]) {
+        expect(static fn (): mixed => new ReflectionMethod(SettingsNav::class, 'attributes')->invoke(null, $item))
+            ->toThrow(LogicException::class, $message);
     }
 });
 
-test('the rail is shown on a settings page', function (): void {
-    $this->actingAs(User::factory()->createOne())
+test('the rail is shown on a settings page, marking the section, and is absent everywhere else', function (): void {
+    $User = User::factory()->createOne();
+
+    $this->actingAs($User)
         ->get(Auth::settingsProfile->value)
         ->assertOk()
         ->assertSee('lg:pl-56')
         ->assertSee('aria-label="Settings"', false);
-});
 
-test('the rail is absent everywhere else', function (): void {
-    $this->actingAs(User::factory()->createOne())
+    $this->actingAs($User)
+        ->get(Auth::settingsAppearance->value)
+        ->assertOk()
+        ->assertSee('menu-active');
+
+    $this->actingAs($User)
         ->get(Web::home->value)
         ->assertOk()
         ->assertDontSee('aria-label="Settings"', false);
 });
 
-test('the credentials section stays active below its own path', function (): void {
-    app()->instance('request', Request::create(Auth::settingsCredential->url([Auth::credentialParameter => 'abc'])));
+test('a section stays active below its own path', function (): void {
+    foreach ([
+        'Credentials' => Auth::settingsCredential->url([Auth::credentialParameter => 'abc']),
+        'Sessions' => Auth::settingsSession->url([Auth::sessionParameter => 'abc']),
+    ] as $label => $url) {
+        app()->instance('request', Request::create($url));
 
-    $active = [];
+        $active = [];
 
-    foreach (SettingsNav::items() as $NavItem) {
-        $active[$NavItem->label] = $NavItem->active();
+        foreach (SettingsNav::items() as $NavItem) {
+            $active[$NavItem->label] = $NavItem->active();
+        }
+
+        expect($active[$label])->toBeTrue()
+            ->and($active['Profile'])->toBeFalse();
     }
-
-    expect($active['Credentials'])->toBeTrue()
-        ->and($active['Profile'])->toBeFalse();
-});
-
-test('the sessions section stays active below its own path', function (): void {
-    app()->instance('request', Request::create(Auth::settingsSession->url([Auth::sessionParameter => 'abc'])));
-
-    $active = [];
-
-    foreach (SettingsNav::items() as $NavItem) {
-        $active[$NavItem->label] = $NavItem->active();
-    }
-
-    expect($active['Sessions'])->toBeTrue()
-        ->and($active['Profile'])->toBeFalse();
-});
-
-test('the section is marked active on its own path', function (): void {
-    $this->actingAs(User::factory()->createOne())
-        ->get(Auth::settingsAppearance->value)
-        ->assertOk()
-        ->assertSee('menu-active');
 });

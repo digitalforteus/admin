@@ -22,61 +22,38 @@ function credentialsTable(array $overrides = []): CredentialsTable
     ]);
 }
 
-test('the listing is required', function (): void {
-    CredentialsTable::from();
-})->throws(PropertyRequiredException::class);
+test('the table requires a listing, and heads only real columns readable off a row', function (): void {
+    expect(static fn () => CredentialsTable::from())->toThrow(PropertyRequiredException::class);
 
-test('every column it lists is a real column of the table', function (): void {
-    foreach (CredentialsTable::columns() as $Column) {
-        expect(PersonalAccessTokens::tryFrom($Column->value))->toBe($Column);
-    }
-});
-
-test('every column it lists is readable off a row', function (): void {
     $properties = array_keys(get_class_vars(CredentialRow::class));
 
     foreach (CredentialsTable::columns() as $Column) {
-        expect($properties)->toContain($Column->value);
+        expect(PersonalAccessTokens::tryFrom($Column->value))->toBe($Column)
+            ->and($properties)->toContain($Column->value);
     }
-});
 
-test('the secret is never one of the columns', function (): void {
     expect(CredentialsTable::columns())->not->toContain(PersonalAccessTokens::token);
-});
 
-test('a heading carries the column comment as its title', function (): void {
     $headers = credentialsTable()->headers();
 
     expect($headers)->toHaveSameSize(CredentialsTable::columns())
-        ->and($headers['Name'])->toBe(PersonalAccessTokens::name->comment());
+        ->and($headers['Name'])->toBe(PersonalAccessTokens::name->comment())
+        // A timestamp is headed without the suffix its column name carries.
+        ->and(array_keys($headers))->toContain('Last Used', 'Expires', 'Created')
+        ->and($headers['Expires'])->toBe(PersonalAccessTokens::expires_at->comment())
+        // The empty row spans the headings and the revoke column.
+        ->and(credentialsTable()->span())->toBe(count(CredentialsTable::columns()) + 1);
 });
 
-test('a timestamp is headed without the suffix its column name carries', function (): void {
-    $headers = credentialsTable()->headers();
+test('the form posts to the page it is on, with the inputs it declares and an expiry a month out', function (): void {
+    expect(credentialsTable()->action())->toBe(Auth::settingsCredentials->value)
+        ->and(credentialsTable()->nameInput()[TextInput::name])->toBe(TokenForm::name)
+        ->and(credentialsTable()->expiresAtInput()[TextInput::name])->toBe(TokenForm::expires_at)
+        ->and(credentialsTable()->expiresAtInput()[TextInput::value])
+        ->toBe(now()->addDays(CredentialsTable::expiryDays)->toDateString())
+        ->and(TextInput::from(credentialsTable()->nameInput())->icon)->toBe(SvgName::command_line)
+        ->and(ViewDirectory::svg->has(SvgName::command_line))->toBeTrue();
 
-    expect(array_keys($headers))->toContain('Last Used', 'Expires', 'Created')
-        ->and($headers['Expires'])->toBe(PersonalAccessTokens::expires_at->comment());
-});
-
-test('the empty row spans the headings and the revoke column', function (): void {
-    expect(credentialsTable()->span())->toBe(count(CredentialsTable::columns()) + 1);
-});
-
-test('the form posts to the page it is rendered on', function (): void {
-    expect(credentialsTable()->action())->toBe(Auth::settingsCredentials->value);
-});
-
-test('the inputs are the ones the form declares', function (): void {
-    expect(credentialsTable()->nameInput()[TextInput::name])->toBe(TokenForm::name)
-        ->and(credentialsTable()->expiresAtInput()[TextInput::name])->toBe(TokenForm::expires_at);
-});
-
-test('the expiry defaults to a month out', function (): void {
-    expect(credentialsTable()->expiresAtInput()[TextInput::value])
-        ->toBe(now()->addDays(CredentialsTable::expiryDays)->toDateString());
-});
-
-test('a submitted expiry outlives the default', function (): void {
     $Store = new Store('test', new ArraySessionHandler(1));
     $Store->put('_old_input', [TokenForm::expires_at => '2030-01-01']);
     request()->setLaravelSession($Store);
@@ -84,22 +61,13 @@ test('a submitted expiry outlives the default', function (): void {
     expect(credentialsTable()->expiresAtInput()[TextInput::value])->toBe('2030-01-01');
 });
 
-test('an icon an input asks for exists', function (): void {
-    expect(TextInput::from(credentialsTable()->nameInput())->icon)->toBe(SvgName::command_line)
-        ->and(ViewDirectory::svg->has(SvgName::command_line))->toBeTrue();
-});
-
-test('no secret is shown when none was flashed', function (): void {
+test('a secret is shown once it is flashed, and a row is built for every token given', function (): void {
     expect(credentialsTable()->issued)->toBeNull();
-});
 
-test('a flashed secret is shown once', function (): void {
     session()->put(CredentialsTable::sessionKey, 'plain-text-token');
 
     expect(credentialsTable()->issued)->toBe('plain-text-token');
-});
 
-test('a row is built for every token it was given, in the order it was given them', function (): void {
     $User = User::factory()->createOne();
     $tokens = [
         issuedToken($User, $User->createToken('newer'))->toArray(),

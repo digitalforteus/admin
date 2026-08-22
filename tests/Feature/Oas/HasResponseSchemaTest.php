@@ -7,7 +7,7 @@ use Tests\Fixtures\OasResponseStub;
 use ZeroToProd\SchemaValidator\Property;
 use ZeroToProd\SchemaValidator\Schema;
 
-test('the envelope carries the model as data', function (): void {
+test('the envelope carries the model as data, mapping every property and tracking the basename', function (): void {
     expect(UserShowResponse::schema())->toBe([
         Schema::type => Schema::object,
         Schema::required => [ApiResponse::success, ApiResponse::message, ApiResponse::data, ApiResponse::type],
@@ -66,9 +66,7 @@ test('the envelope carries the model as data', function (): void {
             ],
         ],
     ]);
-});
 
-test('a model with no properties contributes no data key', function (): void {
     // Api::respond() strips the empty array, so publishing `data` would
     // describe a key the response never carries.
     expect(AuthenticatedResponse::schema())->toBe([
@@ -83,9 +81,7 @@ test('a model with no properties contributes no data key', function (): void {
             ],
         ],
     ]);
-});
 
-test('property types map to their openapi equivalents, nullables are required and nullable, and type tracks the basename', function (): void {
     // The `type` enum has to stay whatever Api::resolveType() would publish,
     // which is the payload's class basename.
     expect(OasResponseStub::schema())->toBe([

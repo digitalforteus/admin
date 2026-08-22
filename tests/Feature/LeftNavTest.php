@@ -6,46 +6,39 @@ use App\Routes\Web;
 use App\View\DataModels\LeftNav;
 use App\View\DataModels\NavItem;
 
-test('the rail links to home', function (): void {
+test('every case describes one named navigation item, leading with home and listing contact', function (): void {
     expect(LeftNav::items())->toHaveCount(2)
-        ->and(LeftNav::items()[0]->route)->toBe(Web::home);
-});
+        ->and(LeftNav::items()[0]->route)->toBe(Web::home)
+        ->and(collect(LeftNav::items())->pluck('route')->all())->toContain(Web::contact);
 
-test('the contact page is listed', function (): void {
-    expect(collect(LeftNav::items())->pluck('route')->all())->toContain(Web::contact);
-});
-
-test('every case describes one navigation item', function (): void {
     foreach (LeftNav::cases() as $LeftNav) {
         expect($LeftNav->item())->toBeInstanceOf(NavItem::class);
     }
+
+    foreach ([
+        [null, 'Left navigation cases must describe a navigation item.'],
+        [[Web::home], 'Left navigation attributes must be named.'],
+    ] as [$item, $message]) {
+        expect(static fn (): mixed => new ReflectionMethod(LeftNav::class, 'attributes')->invoke(null, $item))
+            ->toThrow(LogicException::class, $message);
+    }
 });
 
-test('a left navigation case must describe an item with named attributes', function (mixed $item, string $message): void {
-    expect(static fn (): mixed => new ReflectionMethod(LeftNav::class, 'attributes')->invoke(null, $item))
-        ->toThrow(LogicException::class, $message);
-})->with([
-    'missing item' => [null, 'Left navigation cases must describe a navigation item.'],
-    'positional attribute' => [[Web::home], 'Left navigation attributes must be named.'],
-]);
+test('the rail is hidden from a guest, marks the root path, and stands down on the settings pages', function (): void {
+    $this->get(Web::home->value)
+        ->assertOk()
+        ->assertDontSee('lg:pl-56');
 
-test('the settings pages carry their own rail instead', function (): void {
-    $this->actingAs(User::factory()->createOne())
+    $User = User::factory()->createOne();
+
+    $this->actingAs($User)
+        ->get(Web::home->value)
+        ->assertOk()
+        ->assertSee('menu-active');
+
+    $this->actingAs($User)
         ->get(Auth::settingsProfile->value)
         ->assertOk()
         ->assertDontSee('aria-label="Primary"', false)
         ->assertSee('aria-label="Settings"', false);
-});
-
-test('the rail is hidden from a guest', function (): void {
-    $this->get(Web::home->value)
-        ->assertOk()
-        ->assertDontSee('lg:pl-56');
-});
-
-test('the home case is marked active on the root path', function (): void {
-    $this->actingAs(User::factory()->createOne())
-        ->get(Web::home->value)
-        ->assertOk()
-        ->assertSee('menu-active');
 });

@@ -8,7 +8,7 @@ use App\View\DataModels\Svg;
 use Illuminate\Http\Request;
 use Zerotoprod\DataModel\PropertyRequiredException;
 
-test('an entry carries its label, icon and route case', function (): void {
+test('an entry carries its label, icon and route case, requires every one, and projects its icon', function (): void {
     $NavItem = NavItem::from([
         NavItem::label => 'Home',
         NavItem::icon => SvgName::home,
@@ -18,25 +18,17 @@ test('an entry carries its label, icon and route case', function (): void {
     expect($NavItem->label)->toBe('Home')
         ->and($NavItem->icon)->toBe(SvgName::home)
         ->and($NavItem->route)->toBe(Web::home)
-        ->and($NavItem->url())->toBe(Web::home->url());
-});
+        ->and($NavItem->url())->toBe(Web::home->url())
+        ->and(static fn () => NavItem::from([NavItem::label => 'Home', NavItem::icon => SvgName::home]))
+        ->toThrow(PropertyRequiredException::class);
 
-test('every property is required', function (): void {
-    NavItem::from([NavItem::label => 'Home', NavItem::icon => SvgName::home]);
-})->throws(PropertyRequiredException::class);
-
-test('an entry projects its icon props', function (): void {
-    $Svg = Svg::from(NavItem::from([
-        NavItem::label => 'Home',
-        NavItem::icon => SvgName::home,
-        NavItem::route => Web::home,
-    ])->svg());
+    $Svg = Svg::from($NavItem->svg());
 
     expect($Svg->name)->toBe(SvgName::home)
         ->and($Svg->classname)->toBe('h-4 w-4 opacity-70');
 });
 
-test('an entry is active only on its own path', function (): void {
+test('an entry is active on its own path, and a nested one stays active below it', function (): void {
     $NavItem = NavItem::from([
         NavItem::label => 'Home',
         NavItem::icon => SvgName::home,
@@ -51,10 +43,8 @@ test('an entry is active only on its own path', function (): void {
     $this->get(Web::contact->value)->assertOk();
 
     expect($NavItem->active())->toBeFalse();
-});
 
-test('a nested entry stays active below its own path', function (): void {
-    $NavItem = NavItem::from([
+    $Nested = NavItem::from([
         NavItem::label => 'Credentials',
         NavItem::icon => SvgName::command_line,
         NavItem::route => Auth::settingsCredentials,
@@ -63,9 +53,9 @@ test('a nested entry stays active below its own path', function (): void {
 
     app()->instance('request', Request::create(Auth::settingsCredential->url([Auth::credentialParameter => 'abc'])));
 
-    expect($NavItem->active())->toBeTrue();
+    expect($Nested->active())->toBeTrue();
 
     app()->instance('request', Request::create(Auth::settingsProfile->value));
 
-    expect($NavItem->active())->toBeFalse();
+    expect($Nested->active())->toBeFalse();
 });

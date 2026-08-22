@@ -27,26 +27,25 @@ function taggedOrders(): array
     return $orders;
 }
 
-test('the attribute tags a case', function (): void {
+test('the attribute tags a case, and the documents an admin reads are listed', function (): void {
     $attributes = new ReflectionClass(AdminLink::class)->getAttributes(Attribute::class);
 
-    expect($attributes[0]->newInstance()->flags)->toBe(Attribute::TARGET_CLASS_CONSTANT);
-});
-
-test('the documents an admin reads are listed', function (): void {
-    expect(array_column(AdminLink::routes(), AdminLink::url))->toContain(
-        Web::robots->value,
-        Web::llms->value,
-        Web::sitemap->value,
-        Web::openapi->value,
-        ApiRoute::readme->value,
-        Admin::openapi->value,
-    );
+    expect($attributes[0]->newInstance()->flags)->toBe(Attribute::TARGET_CLASS_CONSTANT)
+        ->and(array_column(AdminLink::routes(), AdminLink::url))->toContain(
+            Web::robots->value,
+            Web::llms->value,
+            Web::sitemap->value,
+            Web::openapi->value,
+            ApiRoute::readme->value,
+            Admin::openapi->value,
+        );
 });
 
 // Every tagged case is listed once, wherever it was tagged, and an order is what moves it
-// up the page: the sequence of orders the page renders never descends.
-test('every tagged case is listed once, and the orders ascend', function (): void {
+// up the page: the sequence of orders the page renders never descends. The argument is
+// optional, and an absent order is not a first one: the case that gives none sorts behind
+// every case that does.
+test('every tagged case is listed once, the orders ascend, and one giving none sorts last', function (): void {
     $orders = taggedOrders();
     $listed = array_column(AdminLink::routes(), AdminLink::url);
 
@@ -56,13 +55,8 @@ test('every tagged case is listed once, and the orders ascend', function (): voi
 
     expect($listed)->toEqualCanonicalizing(array_keys($orders))
         ->and($listed)->toHaveSameSize($orders)
-        ->and($sequence)->toBe($ascending);
-});
-
-// The argument is optional, and an absent order is not a first one: the case that gives
-// none sorts behind every case that does.
-test('a case that gives no order sorts last', function (): void {
-    expect(new AdminLink()->order)->toBeNull()
+        ->and($sequence)->toBe($ascending)
+        ->and(new AdminLink()->order)->toBeNull()
         ->and(AdminLink::links(RouteIndexStub::class))->toBe([[
             AdminLink::order => PHP_INT_MAX,
             AdminLink::name => RouteIndexStub::bare->name,
@@ -70,9 +64,10 @@ test('a case that gives no order sorts last', function (): void {
         ]]);
 });
 
-// An enum reports what it holds, in the order it declares it. Sorting is the job of
-// AdminLink::routes(), which is the only place every index's links meet.
-test('an enum reports its own tagged cases, and one holding none reports none', function (): void {
+// An enum reports what it holds, in the order it declares it. Sorting is the job of the
+// query where every index's links meet. A case tagged in an enum the registry does not
+// name is not the application's routing, so the page does not display it.
+test('an enum reports its own tagged cases, and one tagged outside the indexes is not listed', function (): void {
     $tagged = array_column(AdminLink::links(Web::class), AdminLink::name);
 
     $declared = array_values(array_filter(
@@ -82,13 +77,8 @@ test('an enum reports its own tagged cases, and one holding none reports none', 
 
     expect($tagged)->not->toBeEmpty()
         ->and($tagged)->toBe($declared)
-        ->and(AdminLink::links(Auth::class))->toBeEmpty();
-});
-
-// A case tagged in an enum RouteIndex does not name is not the application's routing,
-// so the page does not display it.
-test('a case tagged outside the indexes is not listed', function (): void {
-    expect(AdminLink::links(RouteIndexStub::class))->not->toBeEmpty()
+        ->and(AdminLink::links(Auth::class))->toBeEmpty()
+        ->and(AdminLink::links(RouteIndexStub::class))->not->toBeEmpty()
         ->and(array_column(AdminLink::routes(), AdminLink::url))
         ->not->toContain(RouteIndexStub::bare->value);
 });

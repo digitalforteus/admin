@@ -5,7 +5,7 @@ use Illuminate\Session\ArraySessionHandler;
 use Illuminate\Session\Store;
 use Zerotoprod\DataModel\PropertyRequiredException;
 
-test('defaults are resolved from the props array', function (): void {
+test('a name is required, the rest defaults from the props array, and props override the defaults', function (): void {
     $TextInput = TextInput::from([TextInput::name => 'email']);
 
     expect($TextInput->name)->toBe('email')
@@ -19,11 +19,10 @@ test('defaults are resolved from the props array', function (): void {
         ->and($TextInput->icon)->toBeNull()
         ->and($TextInput->title)->toBeNull()
         ->and($TextInput->placeholder)->toBeNull()
-        ->and($TextInput->autocomplete)->toBeNull();
-});
+        ->and($TextInput->autocomplete)->toBeNull()
+        ->and(static fn () => TextInput::from([]))->toThrow(PropertyRequiredException::class);
 
-test('props override defaults', function (): void {
-    $TextInput = TextInput::from([
+    $Overridden = TextInput::from([
         TextInput::name => 'email',
         TextInput::error => 'custom',
         TextInput::type => 'email',
@@ -32,16 +31,12 @@ test('props override defaults', function (): void {
         TextInput::required => true,
     ]);
 
-    expect($TextInput->error)->toBe('custom')
-        ->and($TextInput->type)->toBe('email')
-        ->and($TextInput->bag)->toBe('register_form')
-        ->and($TextInput->value)->toBe('explicit')
-        ->and($TextInput->required)->toBeTrue();
+    expect($Overridden->error)->toBe('custom')
+        ->and($Overridden->type)->toBe('email')
+        ->and($Overridden->bag)->toBe('register_form')
+        ->and($Overridden->value)->toBe('explicit')
+        ->and($Overridden->required)->toBeTrue();
 });
-
-test('a name is required', function (): void {
-    TextInput::from([]);
-})->throws(PropertyRequiredException::class);
 
 test('value falls back to old input, except for passwords', function (): void {
     $Store = new Store('test', new ArraySessionHandler(1));

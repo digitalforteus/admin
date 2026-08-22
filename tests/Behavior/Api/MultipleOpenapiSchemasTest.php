@@ -13,52 +13,41 @@ beforeEach(function (): void {
     Route::get('/admin/schema-test', AdminSchemaController::class);
 });
 
-test('admin operations are isolated from the public document', function (): void {
+test('the admin document is served apart from the public one, to credentials of every kind', function (): void {
+    $uri = Config::string('openapi.schemas.admin.route.uri');
+
     $this->getJson(Config::string('openapi.schemas.public.route.uri'))
         ->assertOk()
         ->assertJsonMissingPath('paths./admin~1schema-test');
-});
 
-test('the admin document is readable without credentials for openapi clients', function (): void {
-    $uri = Config::string('openapi.schemas.admin.route.uri');
-
+    // Openapi clients read the document before they hold anything to read it with.
     $this->getJson($uri)
         ->assertOk()
         ->assertHeader('content-type', 'application/json')
         ->assertJsonPath('info.title', Config::string('app.name').' Admin API')
         ->assertJsonPath('paths./admin/schema-test.get.operationId', 'adminSchemaTest');
-});
 
-test('an administrator bearer token can retrieve the admin document', function (): void {
-    $User = adminUser();
-    $token = $User->createToken('openapi-mcp')->plainTextToken;
-
-    $this->withToken($token)
-        ->getJson(Config::string('openapi.schemas.admin.route.uri'))
+    $this->withToken(adminUser()->createToken('openapi-mcp')->plainTextToken)
+        ->getJson($uri)
         ->assertOk()
         ->assertHeader('content-type', 'application/json')
         ->assertJsonPath('info.title', Config::string('app.name').' Admin API');
-});
 
-test('a non administrator bearer token may read the document but not its protected operations', function (): void {
-    $User = User::factory()->createOne();
-    $token = $User->createToken('openapi-mcp')->plainTextToken;
-
-    $this->withToken($token)
-        ->getJson(Config::string('openapi.schemas.admin.route.uri'))
+    // Reading the document is not reaching the operations it describes.
+    $this->withToken(User::factory()->createOne()->createToken('openapi-mcp')->plainTextToken)
+        ->getJson($uri)
         ->assertOk()
         ->assertHeader('content-type', 'application/json');
 });
 
-test('an absent or invalid schema configuration is rejected', function (?string $attribute): void {
-    Config::set('openapi.schemas.invalid', $attribute === null ? [] : ['attribute' => $attribute]);
+test('an absent or invalid schema configuration is rejected', function (): void {
+    foreach ([null, stdClass::class] as $attribute) {
+        Config::set('openapi.schemas.invalid', $attribute === null ? [] : ['attribute' => $attribute]);
 
-    expect(fn () => app(SchemaController::class)('invalid', app(Router::class)))
-        ->toThrow(RuntimeException::class, 'OpenAPI schema [invalid] is not configured.');
-})->with([
-    'absent attribute' => null,
-    'invalid attribute' => stdClass::class,
-]);
+        expect(fn () => app(SchemaController::class)('invalid', app(Router::class)))
+            ->toThrow(RuntimeException::class, 'OpenAPI schema [invalid] is not configured.');
+    }
+});
 
 test('a route whose controller action does not exist is skipped', function (): void {
     Route::get('/missing-schema-action', AdminSchemaController::class.'@missing');

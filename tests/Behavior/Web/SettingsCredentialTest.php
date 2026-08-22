@@ -18,19 +18,23 @@ function credentialUrl(User $User, string $name = 'Ability Grid'): string
     ]);
 }
 
-test('guests are redirected to login', function (): void {
-    $url = credentialUrl(User::factory()->createOne());
+test('guests and non owners are refused the page and the form', function (): void {
+    $Owner = User::factory()->createOne();
+    $url = credentialUrl($Owner);
 
     $this->get($url)->assertRedirect(Web::login->value);
     $this->post($url)->assertRedirect(Web::login->value);
+
+    $this->actingAs(User::factory()->createOne())->get($url)->assertNotFound();
+    $this->actingAs(User::factory()->createOne())->post($url)->assertNotFound();
 });
 
-test('the page lists every endpoint a token can be granted, and every verb', function (): void {
+test('the grid lists every endpoint and verb, with a toggle wherever one is bound', function (): void {
     $User = User::factory()->createOne();
 
-    $response = $this->actingAs($User)->get(credentialUrl($User))->assertOk();
+    $TestResponse = $this->actingAs($User)->get(credentialUrl($User))->assertOk();
 
-    $response->assertSee('data-api-group="public"', false)
+    $TestResponse->assertSee('data-api-group="public"', false)
         ->assertDontSee('data-api-group="admin"', false)
         ->assertSee('data-mcp-connection', false)
         ->assertSee(url(Config::string('openapi.schemas.public.route.uri')))
@@ -39,19 +43,14 @@ test('the page lists every endpoint a token can be granted, and every verb', fun
         ->assertSee('href="'.url(Web::llms->value).'"', false)
         ->assertDontSee('npx -y @ivotoby/openapi-mcp-server')
         ->assertSee('data-endpoint-column', false)
-        ->assertSee(ApiRoute::user->value);
+        ->assertSee(ApiRoute::user->value)
+        // A token the ui issues starts out holding everything, and says so.
+        ->assertSee('data-every-ability', false)
+        ->assertSee(HttpVerb::get->ability(ApiRoute::user->value))
+        ->assertDontSee(HttpVerb::put->ability(ApiRoute::user->value));
 
     foreach (HttpVerb::cases() as $HttpVerb) {
-        $response->assertSee($HttpVerb->value);
-    }
-});
-
-test('each verb heading toggles its whole ability column', function (): void {
-    $User = User::factory()->createOne();
-    $response = $this->actingAs($User)->get(credentialUrl($User))->assertOk();
-
-    foreach (HttpVerb::cases() as $HttpVerb) {
-        $response
+        $TestResponse->assertSee($HttpVerb->value)
             ->assertSee('data-ability-column="'.$HttpVerb->value.'"', false)
             ->assertSee('aria-label="Toggle all '.$HttpVerb->value.' abilities"', false);
     }
@@ -68,34 +67,7 @@ test('the page offers admin api abilities to an administrator', function (): voi
         ->assertSee(HttpVerb::get->ability(Admin::api_users->value));
 });
 
-test('a toggle is offered only where a verb is bound to the path', function (): void {
-    $User = User::factory()->createOne();
-
-    $this->actingAs($User)
-        ->get(credentialUrl($User))
-        ->assertOk()
-        ->assertSee(HttpVerb::get->ability(ApiRoute::user->value))
-        ->assertDontSee(HttpVerb::put->ability(ApiRoute::user->value));
-});
-
-test('a page reached without a token of your own is not found', function (): void {
-    $Owner = User::factory()->createOne();
-    $url = credentialUrl($Owner, 'Theirs');
-
-    $this->actingAs(User::factory()->createOne())->get($url)->assertNotFound();
-    $this->actingAs(User::factory()->createOne())->post($url)->assertNotFound();
-});
-
-test('a token issued from the ui holds every ability, and says so', function (): void {
-    $User = User::factory()->createOne();
-
-    $this->actingAs($User)
-        ->get(credentialUrl($User))
-        ->assertOk()
-        ->assertSee('data-every-ability', false);
-});
-
-test('the verbs ticked are the abilities the token is left holding', function (): void {
+test('the verbs ticked are the abilities the token is left holding, and are ticked when read back', function (): void {
     $User = User::factory()->createOne();
     $url = credentialUrl($User);
     $granted = [HttpVerb::get->ability(ApiRoute::user->value)];
@@ -107,14 +79,6 @@ test('the verbs ticked are the abilities the token is left holding', function ()
         ->assertSessionHas('status', 'Abilities updated.');
 
     expect($User->tokens()->sole()->abilities)->toBe($granted);
-});
-
-test('a granted verb is ticked when the page is read back', function (): void {
-    $User = User::factory()->createOne();
-    $url = credentialUrl($User);
-
-    $this->actingAs($User)
-        ->post($url, [TokenUpdateRequest::abilities => [HttpVerb::get->ability(ApiRoute::user->value)]]);
 
     $this->actingAs($User)
         ->get($url)
@@ -123,33 +87,20 @@ test('a granted verb is ticked when the page is read back', function (): void {
         ->assertSee(AbilityTable::field);
 });
 
-test('ticking nothing closes the token to the whole api', function (): void {
+test('ticking nothing, or anything the grid never offered, closes the token to the whole api', function (): void {
     $User = User::factory()->createOne();
     $url = credentialUrl($User);
 
     $this->actingAs($User)->post($url)->assertSessionHasNoErrors();
 
     expect($User->tokens()->sole()->abilities)->toBe([]);
-});
 
-test('an ability the grid never offered is not stored', function (): void {
-    $User = User::factory()->createOne();
-    $url = credentialUrl($User);
+    foreach ([
+        [HttpVerb::every, 'DELETE'.HttpVerb::separator.'/api/nowhere'],
+        [HttpVerb::get->ability(Admin::api_users->value)],
+    ] as $abilities) {
+        $this->actingAs($User)->post($url, [TokenUpdateRequest::abilities => $abilities]);
 
-    $this->actingAs($User)->post($url, [
-        TokenUpdateRequest::abilities => [HttpVerb::every, 'DELETE'.HttpVerb::separator.'/api/nowhere'],
-    ]);
-
-    expect($User->tokens()->sole()->abilities)->toBe([]);
-});
-
-test('a non administrator cannot store an admin api ability', function (): void {
-    $User = User::factory()->createOne();
-    $url = credentialUrl($User);
-
-    $this->actingAs($User)->post($url, [
-        TokenUpdateRequest::abilities => [HttpVerb::get->ability(Admin::api_users->value)],
-    ]);
-
-    expect($User->tokens()->sole()->abilities)->toBe([]);
+        expect($User->tokens()->sole()->abilities)->toBe([]);
+    }
 });

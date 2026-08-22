@@ -6,13 +6,22 @@ use App\Modules\Api\Admin\User\UserParameter;
 use App\Modules\Api\Support\ApiResponse;
 use App\Routes\Admin;
 
-test('delete a user', function (): void {
+test('a user is deleted, and only by an administrator who names one that exists', function (): void {
+    $this->assertMatchesSchema(
+        $this->deleteJson(Admin::api_user->url([UserParameter::name => 'example']))
+    )->assertStatus(401);
+
     $User = adminUser();
+
+    $this->assertMatchesSchema(
+        $this->actingAs($User)->deleteJson(Admin::api_user->url([UserParameter::name => 'missing']))
+    )->assertStatus(404);
+
     $ManagedUser = User::factory()->createOne();
 
-    $Response = $this->actingAs($User)->deleteJson(Admin::api_user->url([UserParameter::name => $ManagedUser->id]));
-
-    $this->assertMatchesSchema($Response)
+    $this->assertMatchesSchema(
+        $this->actingAs($User)->deleteJson(Admin::api_user->url([UserParameter::name => $ManagedUser->id]))
+    )
         ->assertStatus(200)
         ->assertJson([
             ApiResponse::success => true,
@@ -21,18 +30,4 @@ test('delete a user', function (): void {
         ->assertJsonPath('data.id', $ManagedUser->id);
 
     $this->assertDatabaseMissing('users', ['id' => $ManagedUser->id]);
-});
-
-test('an unauthenticated request is rejected', function (): void {
-    $Response = $this->deleteJson(Admin::api_user->url([UserParameter::name => 'example']));
-
-    $this->assertMatchesSchema($Response)->assertStatus(401);
-});
-
-test('the endpoint answers 404', function (): void {
-    $User = adminUser();
-
-    $Response = $this->actingAs($User)->deleteJson(Admin::api_user->url([UserParameter::name => 'missing']));
-
-    $this->assertMatchesSchema($Response)->assertStatus(404);
 });

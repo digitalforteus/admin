@@ -7,46 +7,43 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use ZeroToProd\SchemaValidator\Property;
 use ZeroToProd\SchemaValidator\Schema;
 
-test('the object reports the page it carries and how many there are in total', function (): void {
+test('the object reports the page it carries, publishing every counter as a required integer', function (): void {
     $PaginationResponse = PaginationResponse::of(new LengthAwarePaginator([1, 2], 5, 2, 2));
 
     expect($PaginationResponse->page)->toBe(2)
         ->and($PaginationResponse->per_page)->toBe(2)
         ->and($PaginationResponse->total)->toBe(5)
-        ->and($PaginationResponse->last_page)->toBe(3);
+        ->and($PaginationResponse->last_page)->toBe(3)
+        ->and(PaginationResponse::data())->toBe([
+            Schema::type => Schema::object,
+            Schema::required => [
+                PaginationResponse::page,
+                PaginationResponse::per_page,
+                PaginationResponse::total,
+                PaginationResponse::last_page,
+            ],
+            Schema::properties => [
+                PaginationResponse::page => [
+                    Property::type => Property::integer,
+                    Property::description => 'The page this body carries, counting from 1.',
+                ],
+                PaginationResponse::per_page => [
+                    Property::type => Property::integer,
+                    Property::description => 'How many entries a full page carries.',
+                ],
+                PaginationResponse::total => [
+                    Property::type => Property::integer,
+                    Property::description => 'How many entries there are across every page.',
+                ],
+                PaginationResponse::last_page => [
+                    Property::type => Property::integer,
+                    Property::description => 'The highest page that carries anything. 1 when there is nothing at all.',
+                ],
+            ],
+        ]);
 });
 
-test('every counter is published as a required integer', function (): void {
-    expect(PaginationResponse::data())->toBe([
-        Schema::type => Schema::object,
-        Schema::required => [
-            PaginationResponse::page,
-            PaginationResponse::per_page,
-            PaginationResponse::total,
-            PaginationResponse::last_page,
-        ],
-        Schema::properties => [
-            PaginationResponse::page => [
-                Property::type => Property::integer,
-                Property::description => 'The page this body carries, counting from 1.',
-            ],
-            PaginationResponse::per_page => [
-                Property::type => Property::integer,
-                Property::description => 'How many entries a full page carries.',
-            ],
-            PaginationResponse::total => [
-                Property::type => Property::integer,
-                Property::description => 'How many entries there are across every page.',
-            ],
-            PaginationResponse::last_page => [
-                Property::type => Property::integer,
-                Property::description => 'The highest page that carries anything. 1 when there is nothing at all.',
-            ],
-        ],
-    ]);
-});
-
-test('the query parameters are optional, and the ceiling is the one the clamp applies', function (): void {
+test('the query parameters are optional, and a page size is clamped rather than trusted', function (): void {
     expect(PaginationParameters::schema())->toBe([
         [
             'name' => PaginationParameters::page,
@@ -71,11 +68,8 @@ test('the query parameters are optional, and the ceiling is the one the clamp ap
                 Property::default => PaginationParameters::default_per_page,
             ],
         ],
-    ]);
-});
-
-test('a page size is clamped rather than trusted, and an absent one is the default', function (): void {
-    expect(PaginationParameters::perPage(new Request))->toBe(PaginationParameters::default_per_page)
+    ])
+        ->and(PaginationParameters::perPage(new Request))->toBe(PaginationParameters::default_per_page)
         ->and(PaginationParameters::perPage(new Request([PaginationParameters::per_page => 5])))->toBe(5)
         ->and(PaginationParameters::perPage(new Request([PaginationParameters::per_page => 1000])))
         ->toBe(PaginationParameters::max_per_page)

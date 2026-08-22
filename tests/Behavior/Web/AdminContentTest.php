@@ -19,7 +19,7 @@ afterEach(function (): void {
     }
 });
 
-test('only admins can open the site content editor', function (): void {
+test('only admins open the editor, where the resource files are the default content', function (): void {
     $this->get(Admin::content->value)->assertRedirect(Web::login->value);
 
     $this->actingAs(adminUser())
@@ -28,16 +28,22 @@ test('only admins can open the site content editor', function (): void {
         ->assertSee(CacheKey::robots->value)
         ->assertSee(CacheKey::llms->value)
         ->assertSee(CacheKey::api_readme->value);
-});
 
-test('the resource files are the default content', function (): void {
     $this->get(Web::robots->value)->assertSee((string) file_get_contents(resource_path(CacheKey::robots->value)), false);
     $this->get(Web::llms->value)->assertSee((string) file_get_contents(resource_path(CacheKey::llms->value)), false);
     $this->getJson(ApiRoute::readme->value)
         ->assertJsonPath('data.content', (string) file_get_contents(resource_path(CacheKey::api_readme->value)));
 });
 
-test('an admin can save all site content in cache', function (): void {
+test('an admin saves every site content field, and none of them may be left out', function (): void {
+    $this->actingAs(adminUser())
+        ->post(Admin::content->value)
+        ->assertSessionHasErrors([
+            ContentUpdateRequest::robots,
+            ContentUpdateRequest::llms,
+            ContentUpdateRequest::api_readme,
+        ]);
+
     $content = [
         ContentUpdateRequest::robots => 'User-agent: *\nDisallow: /private',
         ContentUpdateRequest::llms => '# Custom agent guide',
@@ -56,14 +62,4 @@ test('an admin can save all site content in cache', function (): void {
     $this->get(Web::robots->value)->assertSee($content[ContentUpdateRequest::robots], false);
     $this->get(Web::llms->value)->assertSee($content[ContentUpdateRequest::llms], false);
     $this->getJson(ApiRoute::readme->value)->assertJsonPath('data.content', $content[ContentUpdateRequest::api_readme]);
-});
-
-test('all site content fields are required', function (): void {
-    $this->actingAs(adminUser())
-        ->post(Admin::content->value)
-        ->assertSessionHasErrors([
-            ContentUpdateRequest::robots,
-            ContentUpdateRequest::llms,
-            ContentUpdateRequest::api_readme,
-        ]);
 });

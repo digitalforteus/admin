@@ -20,18 +20,15 @@ function passwordForm(string $current = 'password', string $new = 'new-password-
     ];
 }
 
-test('guests are redirected to login', function (): void {
-    $this->get(Auth::settingsSecurity->value)
-        ->assertRedirect(Web::login->value);
+test('guests cannot view or update the security page', function (): void {
+    $this->get(Auth::settingsSecurity->value)->assertRedirect(Web::login->value);
+    $this->post(Auth::settingsSecurity->value, passwordForm())->assertRedirect(Web::login->value);
 });
 
-test('guests cannot update a password', function (): void {
-    $this->post(Auth::settingsSecurity->value, passwordForm())
-        ->assertRedirect(Web::login->value);
-});
+test('the page renders the password form, then the providers and passkeys once they exist', function (): void {
+    $User = User::factory()->createOne();
 
-test('the page renders the password form', function (): void {
-    $this->actingAs(User::factory()->createOne())
+    $this->actingAs($User)
         ->get(Auth::settingsSecurity->value)
         ->assertOk()
         ->assertSee('data-password-settings', false)
@@ -41,26 +38,42 @@ test('the page renders the password form', function (): void {
         ->assertSee('data-passkey-settings', false)
         ->assertSee('data-passkey-confirm-password', false)
         ->assertSee(Auth::settingsProfile->value);
-});
 
-test('passkeys can be managed after password confirmation', function (): void {
-    $User = User::factory()->createOne();
+    $User->oauthProviders()->create([
+        OauthProviders::provider_id->value => OauthProviderId::google->value,
+        OauthProviders::sub->value => '123456789',
+        OauthProviders::name->value => 'Google User',
+        OauthProviders::given_name->value => 'Google',
+        OauthProviders::family_name->value => 'User',
+        OauthProviders::picture->value => 'https://example.com/avatar.jpg',
+        OauthProviders::email->value => 'google@example.com',
+        OauthProviders::email_verified->value => true,
+        OauthProviders::hd->value => 'example.com',
+        OauthProviders::id->value => '123456789',
+        OauthProviders::verified_email->value => true,
+    ]);
+
     $Passkey = $User->passkeys()->create([
         'name' => 'MacBook Pro',
         'credential_id' => 'credential-id',
         'credential' => [],
     ]);
 
-    $this->actingAs($User)
+    $this->actingAs($User->refresh())
         ->withSession(['auth.password_confirmed_at' => time()])
         ->get(Auth::settingsSecurity->value)
         ->assertOk()
+        ->assertSee('data-oauth-provider', false)
+        ->assertSee('google@example.com')
+        ->assertSee('example.com')
+        ->assertSee('https://example.com/avatar.jpg')
+        ->assertSee('Verified')
         ->assertSee('data-passkey', false)
         ->assertSee('data-passkey-register', escape: false)
         ->assertSee(route('passkey.destroy', $Passkey));
 });
 
-test('two-factor authentication setup can be started', function (): void {
+test('two-factor setup is started, then displayed with its recovery codes', function (): void {
     $User = User::factory()->createOne();
 
     $this->actingAs($User)
@@ -80,46 +93,17 @@ test('two-factor authentication setup can be started', function (): void {
         ->get(Auth::settingsSecurity->value)
         ->assertOk()
         ->assertSee('data-two-factor-setup', false);
-});
 
-test('enabled two-factor authentication and recovery codes are displayed', function (): void {
-    $User = User::factory()->createOne();
-    app(EnableTwoFactorAuthentication::class)($User);
-    $User->forceFill([Users::two_factor_confirmed_at->value => now()])->save();
+    $Confirmed = User::factory()->createOne();
+    app(EnableTwoFactorAuthentication::class)($Confirmed);
+    $Confirmed->forceFill([Users::two_factor_confirmed_at->value => now()])->save();
 
-    $this->actingAs($User->refresh())
+    $this->actingAs($Confirmed->refresh())
         ->get(Auth::settingsSecurity->value)
         ->assertOk()
         ->assertSee('data-two-factor-enabled', false)
         ->assertSee('data-recovery-codes', false)
-        ->assertSee($User->recoveryCodes()[0])
-        ->assertSee('data-recovery-codes', false);
-});
-
-test('the page lists the users sign in providers', function (): void {
-    $User = User::factory()->createOne();
-    $User->oauthProviders()->create([
-        OauthProviders::provider_id->value => OauthProviderId::google->value,
-        OauthProviders::sub->value => '123456789',
-        OauthProviders::name->value => 'Google User',
-        OauthProviders::given_name->value => 'Google',
-        OauthProviders::family_name->value => 'User',
-        OauthProviders::picture->value => 'https://example.com/avatar.jpg',
-        OauthProviders::email->value => 'google@example.com',
-        OauthProviders::email_verified->value => true,
-        OauthProviders::hd->value => 'example.com',
-        OauthProviders::id->value => '123456789',
-        OauthProviders::verified_email->value => true,
-    ]);
-
-    $this->actingAs($User)
-        ->get(Auth::settingsSecurity->value)
-        ->assertOk()
-        ->assertSee('data-oauth-provider', false)
-        ->assertSee('google@example.com')
-        ->assertSee('example.com')
-        ->assertSee('https://example.com/avatar.jpg')
-        ->assertSee('Verified');
+        ->assertSee($Confirmed->recoveryCodes()[0]);
 });
 
 test('a password is updated', function (): void {
@@ -136,7 +120,7 @@ test('a password is updated', function (): void {
     expect(Hash::check('new-password-1234', $User->refresh()->password))->toBeTrue();
 });
 
-test('validation fails with an incorrect current password', function (): void {
+test('a wrong, mismatched or missing password is refused, and the new one is never flashed back', function (): void {
     $User = User::factory()->createOne([
         Users::password->value => Hash::make('current-password'),
     ]);
@@ -144,15 +128,8 @@ test('validation fails with an incorrect current password', function (): void {
     $this->actingAs($User)
         ->from(Auth::settingsSecurity->value)
         ->post(Auth::settingsSecurity->value, passwordForm('wrong-password'))
-        ->assertSessionHasErrors(PasswordForm::current_password);
-
-    expect(Hash::check('current-password', $User->refresh()->password))->toBeTrue();
-});
-
-test('validation fails with a mismatched confirmation', function (): void {
-    $User = User::factory()->createOne([
-        Users::password->value => Hash::make('current-password'),
-    ]);
+        ->assertSessionHasErrors(PasswordForm::current_password)
+        ->assertSessionMissing(PasswordForm::password);
 
     $this->actingAs($User)
         ->from(Auth::settingsSecurity->value)
@@ -162,23 +139,15 @@ test('validation fails with a mismatched confirmation', function (): void {
         ])
         ->assertSessionHasErrors(PasswordForm::password);
 
-    expect(Hash::check('current-password', $User->refresh()->password))->toBeTrue();
-});
-
-test('validation fails with missing required fields', function (): void {
-    $this->actingAs(User::factory()->createOne())
+    $this->actingAs($User)
         ->from(Auth::settingsSecurity->value)
         ->post(Auth::settingsSecurity->value)
         ->assertSessionHasErrors([
             PasswordForm::current_password,
             PasswordForm::password,
         ]);
-});
 
-test('validation errors are displayed on the form', function (): void {
-    $User = User::factory()->createOne([
-        Users::password->value => Hash::make('current-password'),
-    ]);
+    expect(Hash::check('current-password', $User->refresh()->password))->toBeTrue();
 
     $this->actingAs($User)
         ->from(Auth::settingsSecurity->value)
@@ -186,11 +155,4 @@ test('validation errors are displayed on the form', function (): void {
         ->post(Auth::settingsSecurity->value, passwordForm('wrong-password'))
         ->assertOk()
         ->assertSee('The password is incorrect.');
-});
-
-test('the new password is never flashed back to the form', function (): void {
-    $this->actingAs(User::factory()->createOne())
-        ->from(Auth::settingsSecurity->value)
-        ->post(Auth::settingsSecurity->value, passwordForm('wrong-password'))
-        ->assertSessionMissing(PasswordForm::password);
 });

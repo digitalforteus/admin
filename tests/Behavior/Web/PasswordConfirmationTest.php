@@ -9,19 +9,15 @@ use App\Sources\Db\App\Users;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 
-test('guests cannot access or submit password confirmation', function (): void {
+test('guests are refused, and the page renders for a signed in user', function (): void {
     $this->get(Auth::confirmPassword->value)
         ->assertRedirect(Web::login->value);
 
     $this->post(Auth::confirmPassword->value, [
         PasswordConfirmationForm::password => 'password',
     ])->assertRedirect(Web::login->value);
-});
 
-test('the password confirmation page renders', function (): void {
-    $User = User::factory()->createOne();
-
-    $this->actingAs($User)
+    $this->actingAs(User::factory()->createOne())
         ->get(Auth::confirmPassword->value)
         ->assertOk()
         ->assertSee('data-password-confirmation-form', false)
@@ -31,30 +27,20 @@ test('the password confirmation page renders', function (): void {
     expect(route('password.confirm'))->toContain(Auth::confirmPassword->value);
 });
 
-test('password confirmation middleware redirects until the password is verified', function (): void {
+test('a guarded page is withheld until the password is confirmed, then the intended one is served', function (): void {
     Route::get('/password-confirmation-protected', static fn () => response('protected'))
         ->middleware([
             MiddlewareTag::web->value,
             MiddlewareTag::auth->value,
             MiddlewareTag::passwordConfirm->value,
         ]);
-    $User = User::factory()->createOne();
+    $User = User::factory()->createOne([
+        Users::password->value => Hash::make('current-password'),
+    ]);
 
     $this->actingAs($User)
         ->get('/password-confirmation-protected')
         ->assertRedirect(route('password.confirm'));
-
-    $this->actingAs($User)
-        ->withSession(['auth.password_confirmed_at' => time()])
-        ->get('/password-confirmation-protected')
-        ->assertOk()
-        ->assertSee('protected');
-});
-
-test('a user can confirm their password and return to the intended page', function (): void {
-    $User = User::factory()->createOne([
-        Users::password->value => Hash::make('current-password'),
-    ]);
 
     $this->actingAs($User)
         ->withSession(['url.intended' => Auth::settingsCredentials->value])
@@ -62,13 +48,14 @@ test('a user can confirm their password and return to the intended page', functi
             PasswordConfirmationForm::password => 'current-password',
         ])->assertRedirect(Auth::settingsCredentials->value)
         ->assertSessionHas('auth.password_confirmed_at');
-});
 
-test('password confirmation falls back to home without an intended page', function (): void {
-    $User = User::factory()->createOne([
-        Users::password->value => Hash::make('current-password'),
-    ]);
+    $this->actingAs($User)
+        ->withSession(['auth.password_confirmed_at' => time()])
+        ->get('/password-confirmation-protected')
+        ->assertOk()
+        ->assertSee('protected');
 
+    // With nothing intended, home is where a confirmation lands.
     $this->actingAs($User)
         ->post(Auth::confirmPassword->value, [
             PasswordConfirmationForm::password => 'current-password',
@@ -76,7 +63,7 @@ test('password confirmation falls back to home without an intended page', functi
         ->assertSessionHas('auth.password_confirmed_at');
 });
 
-test('an incorrect password is rejected', function (): void {
+test('an incorrect or missing password is rejected', function (): void {
     $User = User::factory()->createOne([
         Users::password->value => Hash::make('current-password'),
     ]);
@@ -88,10 +75,6 @@ test('an incorrect password is rejected', function (): void {
         ])->assertRedirect(Auth::confirmPassword->value)
         ->assertSessionHasErrors(PasswordConfirmationForm::password)
         ->assertSessionMissing('auth.password_confirmed_at');
-});
-
-test('a missing password is rejected', function (): void {
-    $User = User::factory()->createOne();
 
     $this->actingAs($User)
         ->from(Auth::confirmPassword->value)

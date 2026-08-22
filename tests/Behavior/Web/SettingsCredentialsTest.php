@@ -10,60 +10,55 @@ use App\Routes\Web;
 use App\Sources\Db\App\PersonalAccessTokens;
 use App\View\DataModels\CredentialsTable;
 
-test('guests are redirected to login', function (): void {
-    $this->get(Auth::settingsCredentials->value)
-        ->assertRedirect(Web::login->value);
-});
+test('guests cannot list, create or revoke tokens', function (): void {
+    $Owner = User::factory()->createOne();
+    $Token = issuedToken($Owner, $Owner->createToken('Laptop CLI'));
 
-test('guests cannot create a token', function (): void {
-    $this->post(Auth::settingsCredentials->value, [TokenForm::name => 'Laptop CLI'])
+    $this->get(Auth::settingsCredentials->value)->assertRedirect(Web::login->value);
+
+    $this->post(Auth::settingsCredentials->value, [TokenForm::name => 'Guest CLI'])
+        ->assertRedirect(Web::login->value);
+
+    $this->delete(Auth::settingsCredential->url([Auth::credentialParameter => $Token->id]))
         ->assertRedirect(Web::login->value);
 
     $this->assertDatabaseMissing(PersonalAccessTokens::table(), [
-        PersonalAccessTokens::name->value => 'Laptop CLI',
+        PersonalAccessTokens::name->value => 'Guest CLI',
     ]);
+    expect($Owner->tokens()->count())->toBe(1);
 });
 
-test('the page renders the nav and the empty state', function (): void {
-    $this->actingAs(User::factory()->createOne())
+test('the page renders the empty state, then the owners tokens and when they were last used', function (): void {
+    $User = User::factory()->createOne();
+
+    $this->actingAs($User)
         ->get(Auth::settingsCredentials->value)
         ->assertOk()
         ->assertSee('data-page-header', false)
         ->assertSee(Auth::settingsCredentials->value)
         ->assertSee('data-credentials-empty', false);
-});
 
-test('the page lists the tokens of the authenticated user only', function (): void {
-    $User = User::factory()->createOne();
-    $User->createToken('Mine');
+    $lastUsedAt = now()->subDay();
+    $Token = issuedToken($User, $User->createToken('Mine'));
+    $Token->forceFill([PersonalAccessTokens::last_used_at->value => $lastUsedAt])->save();
     User::factory()->createOne()->createToken('Theirs');
 
     $this->actingAs($User)
         ->get(Auth::settingsCredentials->value)
         ->assertOk()
+        ->assertDontSee('data-credentials-empty', false)
         ->assertSee('Mine')
-        ->assertDontSee('Theirs');
-});
-
-test('the page shows when a token was last used', function (): void {
-    $User = User::factory()->createOne();
-    $lastUsedAt = now()->subDay();
-    $Token = issuedToken($User, $User->createToken('Laptop CLI'));
-    $Token->forceFill([PersonalAccessTokens::last_used_at->value => $lastUsedAt])->save();
-
-    $this->actingAs($User)
-        ->get(Auth::settingsCredentials->value)
-        ->assertOk()
+        ->assertDontSee('Theirs')
         ->assertSee('Last Used')
         ->assertSee($lastUsedAt->toFormattedDateString());
 });
 
-test('a token is created with only public GET abilities and no expiry', function (): void {
+test('a token is created with public GET abilities, a squished name and an optional expiry', function (): void {
     $User = User::factory()->createOne();
 
     $this->actingAs($User)
         ->from(Auth::settingsCredentials->value)
-        ->post(Auth::settingsCredentials->value, [TokenForm::name => 'Laptop CLI'])
+        ->post(Auth::settingsCredentials->value, [TokenForm::name => '  Laptop   CLI  '])
         ->assertRedirect(Auth::settingsCredentials->value)
         ->assertSessionHas('status', 'Token created.')
         ->assertSessionHas(CredentialsTable::sessionKey);
@@ -73,6 +68,34 @@ test('a token is created with only public GET abilities and no expiry', function
     expect($Token->name)->toBe('Laptop CLI')
         ->and($Token->abilities)->toBe([HttpVerb::get->ability(ApiRoute::user->value)])
         ->and($Token->expires_at)->toBeNull();
+
+    // The plain text secret is the token id, a separator, then the part that is only
+    // ever hashed — so the id and separator are enough to find it on the page.
+    $secret = $Token->id.'|';
+
+    $this->get(Auth::settingsCredentials->value)
+        ->assertOk()
+        ->assertSee('data-token-issued', false)
+        ->assertSee('data-token-dialog', false)
+        ->assertSee('data-copy-link-trigger', false)
+        ->assertSee($secret);
+
+    $this->get(Auth::settingsCredentials->value)
+        ->assertOk()
+        ->assertDontSee($secret);
+
+    $expiry = now()->addMonth()->toDateString();
+
+    $this->actingAs($User)
+        ->from(Auth::settingsCredentials->value)
+        ->post(Auth::settingsCredentials->value, [
+            TokenForm::name => 'Expiring CLI',
+            TokenForm::expires_at => $expiry,
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($User->tokens()->where(PersonalAccessTokens::name->value, 'Expiring CLI')->sole()->expires_at?->toDateString())
+        ->toBe($expiry);
 });
 
 test('an administrator token is created with only GET abilities across every api', function (): void {
@@ -90,57 +113,7 @@ test('an administrator token is created with only GET abilities across every api
         ->and(array_filter($abilities, static fn (string $ability): bool => str_starts_with($ability, HttpVerb::get->value.HttpVerb::separator)))->toBe($abilities);
 });
 
-test('the secret is rendered on the redirect it was flashed to, and never again', function (): void {
-    $User = User::factory()->createOne();
-
-    $this->actingAs($User)
-        ->from(Auth::settingsCredentials->value)
-        ->post(Auth::settingsCredentials->value, [TokenForm::name => 'Laptop CLI'])
-        ->assertRedirect(Auth::settingsCredentials->value)
-        ->assertSessionHas(CredentialsTable::sessionKey);
-
-    // The plain text secret is the token id, a separator, then the part that is only
-    // ever hashed — so the id and separator are enough to find it on the page.
-    $secret = $User->tokens()->sole()->id.'|';
-
-    $this->get(Auth::settingsCredentials->value)
-        ->assertOk()
-        ->assertSee('data-token-issued', false)
-        ->assertSee('data-token-dialog', false)
-        ->assertSee('data-copy-link-trigger', false)
-        ->assertSee($secret);
-
-    $this->get(Auth::settingsCredentials->value)
-        ->assertOk()
-        ->assertDontSee($secret);
-});
-
-test('a name is squished before it is stored', function (): void {
-    $User = User::factory()->createOne();
-
-    $this->actingAs($User)
-        ->from(Auth::settingsCredentials->value)
-        ->post(Auth::settingsCredentials->value, [TokenForm::name => '  Laptop   CLI  ']);
-
-    expect($User->tokens()->sole()->name)->toBe('Laptop CLI');
-});
-
-test('an expiry is stored when one is given', function (): void {
-    $User = User::factory()->createOne();
-    $expiry = now()->addMonth()->toDateString();
-
-    $this->actingAs($User)
-        ->from(Auth::settingsCredentials->value)
-        ->post(Auth::settingsCredentials->value, [
-            TokenForm::name => 'Laptop CLI',
-            TokenForm::expires_at => $expiry,
-        ])
-        ->assertSessionHasNoErrors();
-
-    expect($User->tokens()->sole()->expires_at?->toDateString())->toBe($expiry);
-});
-
-test('validation fails with a missing name', function (): void {
+test('validation refuses a missing name or a past expiry and keeps the old input', function (): void {
     $User = User::factory()->createOne();
 
     $this->actingAs($User)
@@ -148,12 +121,6 @@ test('validation fails with a missing name', function (): void {
         ->post(Auth::settingsCredentials->value)
         ->assertRedirect(Auth::settingsCredentials->value)
         ->assertSessionHasErrors(TokenForm::name);
-
-    expect($User->tokens()->count())->toBe(0);
-});
-
-test('validation fails with an expiry that has passed', function (): void {
-    $User = User::factory()->createOne();
 
     $this->actingAs($User)
         ->from(Auth::settingsCredentials->value)
@@ -163,29 +130,27 @@ test('validation fails with an expiry that has passed', function (): void {
         ])
         ->assertSessionHasErrors(TokenForm::expires_at);
 
-    expect($User->tokens()->count())->toBe(0);
-});
+    $this->actingAs($User)
+        ->from(Auth::settingsCredentials->value)
+        ->post(Auth::settingsCredentials->value, [TokenForm::name => str_repeat('a', 256)])
+        ->assertSessionHasErrors(TokenForm::name)
+        ->assertSessionHasInput(TokenForm::name, str_repeat('a', 256));
 
-test('validation errors are displayed on the form', function (): void {
-    $this->actingAs(User::factory()->createOne())
+    $this->actingAs($User)
         ->from(Auth::settingsCredentials->value)
         ->followingRedirects()
         ->post(Auth::settingsCredentials->value, [TokenForm::name => ''])
         ->assertOk()
         ->assertSee('The name field is required.');
+
+    expect($User->tokens()->count())->toBe(0);
 });
 
-test('old input is preserved on validation failure', function (): void {
-    $this->actingAs(User::factory()->createOne())
-        ->from(Auth::settingsCredentials->value)
-        ->post(Auth::settingsCredentials->value, [TokenForm::name => str_repeat('a', 256)])
-        ->assertSessionHasErrors(TokenForm::name)
-        ->assertSessionHasInput(TokenForm::name, str_repeat('a', 256));
-});
-
-test('a token is revoked', function (): void {
+test('a token is revoked, and one belonging to somebody else is not found', function (): void {
     $User = User::factory()->createOne();
     $Token = issuedToken($User, $User->createToken('Laptop CLI'));
+    $Owner = User::factory()->createOne();
+    $Theirs = issuedToken($Owner, $Owner->createToken('Theirs'));
 
     $this->actingAs($User)
         ->from(Auth::settingsCredentials->value)
@@ -194,26 +159,11 @@ test('a token is revoked', function (): void {
         ->assertSessionHas('status', 'Token revoked.');
 
     expect($User->tokens()->count())->toBe(0);
-});
 
-test('a token belonging to somebody else is not found', function (): void {
-    $Owner = User::factory()->createOne();
-    $Token = issuedToken($Owner, $Owner->createToken('Theirs'));
-
-    $this->actingAs(User::factory()->createOne())
+    $this->actingAs($User)
         ->from(Auth::settingsCredentials->value)
-        ->delete(Auth::settingsCredential->url([Auth::credentialParameter => $Token->id]))
+        ->delete(Auth::settingsCredential->url([Auth::credentialParameter => $Theirs->id]))
         ->assertNotFound();
-
-    expect($Owner->tokens()->count())->toBe(1);
-});
-
-test('guests cannot revoke a token', function (): void {
-    $Owner = User::factory()->createOne();
-    $Token = issuedToken($Owner, $Owner->createToken('Laptop CLI'));
-
-    $this->delete(Auth::settingsCredential->url([Auth::credentialParameter => $Token->id]))
-        ->assertRedirect(Web::login->value);
 
     expect($Owner->tokens()->count())->toBe(1);
 });

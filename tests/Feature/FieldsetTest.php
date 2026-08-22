@@ -3,7 +3,7 @@
 use App\View\DataModels\Fieldset;
 use App\View\DataModels\TextInput;
 
-test('defaults are resolved from the props array', function (): void {
+test('props override the defaults, and a text input projects its fieldset props against the error key', function (): void {
     $Fieldset = Fieldset::from([]);
 
     expect($Fieldset->bag)->toBe('default')
@@ -11,10 +11,8 @@ test('defaults are resolved from the props array', function (): void {
         ->and($Fieldset->legend)->toBeNull()
         ->and($Fieldset->name)->toBeNull()
         ->and($Fieldset->title)->toBeNull();
-});
 
-test('props override defaults', function (): void {
-    $Fieldset = Fieldset::from([
+    $Overridden = Fieldset::from([
         Fieldset::legend => 'Email',
         Fieldset::name => 'email',
         Fieldset::bag => 'register_form',
@@ -22,15 +20,13 @@ test('props override defaults', function (): void {
         Fieldset::title => 'User email address',
     ]);
 
-    expect($Fieldset->legend)->toBe('Email')
-        ->and($Fieldset->name)->toBe('email')
-        ->and($Fieldset->bag)->toBe('register_form')
-        ->and($Fieldset->required)->toBeTrue()
-        ->and($Fieldset->title)->toBe('User email address');
-});
+    expect($Overridden->legend)->toBe('Email')
+        ->and($Overridden->name)->toBe('email')
+        ->and($Overridden->bag)->toBe('register_form')
+        ->and($Overridden->required)->toBeTrue()
+        ->and($Overridden->title)->toBe('User email address');
 
-test('a text input projects its fieldset props, reporting errors against the error key', function (): void {
-    $Fieldset = Fieldset::from(
+    $Projected = Fieldset::from(
         TextInput::from([
             TextInput::name => 'email',
             TextInput::error => 'custom',
@@ -39,8 +35,8 @@ test('a text input projects its fieldset props, reporting errors against the err
         ])->fieldset()
     );
 
-    expect($Fieldset->name)->toBe('custom')
-        ->and($Fieldset->legend)->toBe('Email')
-        ->and($Fieldset->required)->toBeTrue()
-        ->and($Fieldset->bag)->toBe('default');
+    expect($Projected->name)->toBe('custom')
+        ->and($Projected->legend)->toBe('Email')
+        ->and($Projected->required)->toBeTrue()
+        ->and($Projected->bag)->toBe('default');
 });

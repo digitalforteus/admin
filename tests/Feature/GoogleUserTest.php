@@ -2,7 +2,7 @@
 
 use App\Modules\Login\GoogleUser;
 
-test('google user maps the socialite payload', function (): void {
+test('the google user maps the socialite payload, accepting an absent hosted domain and link', function (): void {
     $GoogleUser = GoogleUser::from([
         GoogleUser::sub => '115454882825190401401',
         GoogleUser::name => 'Digital Forte',
@@ -17,21 +17,7 @@ test('google user maps the socialite payload', function (): void {
         GoogleUser::link => null,
     ]);
 
-    expect($GoogleUser->sub)->toBe('115454882825190401401')
-        ->and($GoogleUser->name)->toBe('Digital Forte')
-        ->and($GoogleUser->given_name)->toBe('Digital')
-        ->and($GoogleUser->family_name)->toBe('Forte')
-        ->and($GoogleUser->picture)->toBe('https://example.com/avatar.jpg')
-        ->and($GoogleUser->email)->toBe('admin@digitalforte.us')
-        ->and($GoogleUser->email_verified)->toBeTrue()
-        ->and($GoogleUser->hd)->toBe('digitalforte.us')
-        ->and($GoogleUser->id)->toBe('115454882825190401401')
-        ->and($GoogleUser->verified_email)->toBeTrue()
-        ->and($GoogleUser->link)->toBeNull();
-});
-
-test('google user accepts an absent hosted domain and link', function (): void {
-    $GoogleUser = GoogleUser::from([
+    $Bare = GoogleUser::from([
         GoogleUser::sub => '123',
         GoogleUser::name => 'Google User',
         GoogleUser::given_name => 'Google',
@@ -43,6 +29,17 @@ test('google user accepts an absent hosted domain and link', function (): void {
         GoogleUser::verified_email => true,
     ]);
 
-    expect($GoogleUser->hd)->toBeNull()
-        ->and($GoogleUser->link)->toBeNull();
+    expect($GoogleUser->sub)->toBe('115454882825190401401')
+        ->and($GoogleUser->name)->toBe('Digital Forte')
+        ->and($GoogleUser->given_name)->toBe('Digital')
+        ->and($GoogleUser->family_name)->toBe('Forte')
+        ->and($GoogleUser->picture)->toBe('https://example.com/avatar.jpg')
+        ->and($GoogleUser->email)->toBe('admin@digitalforte.us')
+        ->and($GoogleUser->email_verified)->toBeTrue()
+        ->and($GoogleUser->hd)->toBe('digitalforte.us')
+        ->and($GoogleUser->id)->toBe('115454882825190401401')
+        ->and($GoogleUser->verified_email)->toBeTrue()
+        ->and($GoogleUser->link)->toBeNull()
+        ->and($Bare->hd)->toBeNull()
+        ->and($Bare->link)->toBeNull();
 });

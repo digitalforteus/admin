@@ -11,31 +11,24 @@ use App\View\DataModels\UserMenu;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 
-test('initials are taken from the first and last word of the name', function (string $name, string $initials): void {
-    expect(UserMenu::from([UserMenu::name => $name])->initials())->toBe($initials);
-})->with([
-    'first and last' => ['John Doe', 'JD'],
-    'a middle name is skipped' => ['John Quincy Doe', 'JD'],
-    'a single word' => ['Prince', 'P'],
-    'extra whitespace' => ['  john   doe  ', 'JD'],
-    'no name' => ['', '?'],
-    'only whitespace' => ['   ', '?'],
-]);
+test('initials are taken from the first and last word of the name', function (): void {
+    foreach ([
+        ['John Doe', 'JD'],
+        ['John Quincy Doe', 'JD'],
+        ['Prince', 'P'],
+        ['  john   doe  ', 'JD'],
+        ['', '?'],
+        ['   ', '?'],
+    ] as [$name, $initials]) {
+        expect(UserMenu::from([UserMenu::name => $name])->initials())->toBe($initials);
+    }
+});
 
-test('the menu links to settings and logout', function (): void {
+test('the menu links to settings and logout, and an administrator to the admin pages', function (): void {
     expect(UserMenu::items())->toHaveCount(2)
         ->and(UserMenu::items()[0]->route)->toBe(Auth::settingsProfile)
         ->and(UserMenu::items()[1]->route)->toBe(Web::logout);
-});
 
-test('the menu links an admin to the admin pages', function (): void {
-    $this->actingAs(User::factory()->createOne()->assignRole(Role::admin->value));
-
-    expect(UserMenu::items())->toHaveCount(3)
-        ->and(UserMenu::items()[0]->route)->toBe(Admin::index);
-});
-
-test('the dropdown shows the admin link only to an admin', function (): void {
     $User = User::factory()->createOne();
 
     $this->actingAs($User)
@@ -44,6 +37,10 @@ test('the dropdown shows the admin link only to an admin', function (): void {
         ->assertDontSee(Admin::index->value);
 
     $User->assignRole(Role::admin->value);
+    $this->actingAs($User);
+
+    expect(UserMenu::items())->toHaveCount(3)
+        ->and(UserMenu::items()[0]->route)->toBe(Admin::index);
 
     $this->actingAs($User)
         ->get(Web::home->value)
@@ -51,7 +48,7 @@ test('the dropdown shows the admin link only to an admin', function (): void {
         ->assertSee(Admin::index->value);
 });
 
-test('the topnav shows the account dropdown to an authenticated user', function (): void {
+test('the topnav shows the account dropdown, preferring a cached provider picture', function (): void {
     $User = User::factory()->createOne([
         Users::name->value => 'John Doe',
         Users::email->value => 'john@example.com',
@@ -65,6 +62,13 @@ test('the topnav shows the account dropdown to an authenticated user', function 
         ->assertSee('john@example.com')
         ->assertSee(Auth::settingsProfile->value)
         ->assertSee(Web::logout->value);
+
+    $this->actingAs($User)
+        ->withSession([SessionKey::user_picture->value => 'https://example.com/avatar.jpg'])
+        ->get(Web::home->value)
+        ->assertOk()
+        ->assertSee('https://example.com/avatar.jpg')
+        ->assertDontSee('JD');
 });
 
 test('gravatar is fetched once and cached for the authentication session', function (): void {
@@ -80,20 +84,7 @@ test('gravatar is fetched once and cached for the authentication session', funct
     expect(session(SessionKey::user_picture->value))->toBe('data:image/jpeg;base64,'.base64_encode('gravatar'));
 });
 
-test('the topnav uses the cached oauth provider picture as the avatar', function (): void {
-    $User = User::factory()->createOne([
-        Users::name->value => 'John Doe',
-    ]);
-
-    $this->actingAs($User)
-        ->withSession([SessionKey::user_picture->value => 'https://example.com/avatar.jpg'])
-        ->get(Web::home->value)
-        ->assertOk()
-        ->assertSee('https://example.com/avatar.jpg')
-        ->assertDontSee('JD');
-});
-
-test('the topnav enables google one tap for a guest', function (): void {
+test('the topnav offers google one tap to a guest only', function (): void {
     Config::set('services.google.client_id', 'client-id.apps.googleusercontent.com');
 
     $this->get(Web::home->value)
@@ -103,10 +94,6 @@ test('the topnav enables google one tap for a guest', function (): void {
         ->assertSee('data-google-one-tap', false)
         ->assertSee('client-id.apps.googleusercontent.com')
         ->assertDontSee(Web::logout->value);
-});
-
-test('the topnav does not show the google login prompt to an authenticated user', function (): void {
-    Config::set('services.google.client_id', 'client-id.apps.googleusercontent.com');
 
     $this->actingAs(User::factory()->createOne())
         ->get(Web::home->value)

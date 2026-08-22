@@ -7,8 +7,10 @@ use App\Routes\Auth;
 use App\Routes\Web;
 use Illuminate\Support\Facades\Config;
 
-test('the layout renders the site defaults', function (): void {
+test('the layout renders the site defaults, a colour per theme, and the site verification', function (): void {
     $name = Config::string('app.name');
+
+    Config::set('microsoft.content_id', 'CONTENT-ID');
 
     $this->get(Web::home->value)
         ->assertOk()
@@ -16,35 +18,11 @@ test('the layout renders the site defaults', function (): void {
         ->assertSee('<meta name="robots" content="all">', false)
         ->assertSee("<meta property=\"og:site_name\" content=\"$name\">", false)
         ->assertSee('<meta name="twitter:card" content="summary">', false)
-        ->assertSee('<link rel="canonical"', false);
-});
-
-test('the layout renders a theme color for each declared theme', function (): void {
-    $this->get(Web::home->value)
-        ->assertOk()
+        ->assertSee('<link rel="canonical"', false)
         ->assertSee('content="'.Theme::light->color().'" media="(prefers-color-scheme: light)"', false)
-        ->assertSee('content="'.Theme::dark->color().'" media="(prefers-color-scheme: dark)"', false);
-});
-
-test('the google tag sends a sign up event', function (string $method): void {
-    Config::set('google.tag_id', 'G-TEST');
-    session()->flash(SessionKey::sign_up_method->value, $method);
-
-    $this->get(Web::home->value)
-        ->assertOk()
-        ->assertSee("gtag('event', 'sign_up', {", false)
-        ->assertSee("method: '$method'", false);
-})->with(['Email', 'Google']);
-
-test('the layout verifies the site with Microsoft when a content id is configured', function (): void {
-    Config::set('microsoft.content_id', 'CONTENT-ID');
-
-    $this->get(Web::home->value)
-        ->assertOk()
+        ->assertSee('content="'.Theme::dark->color().'" media="(prefers-color-scheme: dark)"', false)
         ->assertSee('<meta name="msvalidate.01" content="CONTENT-ID">', false);
-});
 
-test('the layout carries no Microsoft verification when none is configured', function (): void {
     Config::set('microsoft.content_id', null);
 
     $this->get(Web::home->value)
@@ -52,37 +30,19 @@ test('the layout carries no Microsoft verification when none is configured', fun
         ->assertDontSee('msvalidate.01');
 });
 
-test('a page title is suffixed with the application name', function (): void {
+test('a title and description are page specific, fill the open graph tags, and hide settings from robots', function (): void {
     $name = Config::string('app.name');
 
     $this->get(Web::login->value)
         ->assertOk()
-        ->assertSee("<title>Login - $name</title>", false);
-});
-
-test('the login page is indexable for search sitelinks', function (): void {
-    $this->get(Web::login->value)
-        ->assertOk()
-        ->assertSee('<meta name="description" content="Sign in to your '.Config::string('app.name').' client account.">', false);
-});
-
-test('a page description replaces the default', function (): void {
-    $this->get(Web::register->value)
-        ->assertOk()
-        ->assertSee('<meta name="description" content="Create your account.">', false);
-});
-
-test('the document title and description fill the open graph tags', function (): void {
-    $name = Config::string('app.name');
+        ->assertSee("<title>Login - $name</title>", false)
+        ->assertSee('<meta name="description" content="Sign in to your '.$name.' client account.">', false);
 
     $this->get(Web::register->value)
         ->assertOk()
+        ->assertSee('<meta name="description" content="Create your account.">', false)
         ->assertSee("<meta property=\"og:title\" content=\"Register - $name\">", false)
         ->assertSee('<meta property="og:description" content="Create your account.">', false);
-});
-
-test('the settings pages are hidden from robots', function (): void {
-    $name = Config::string('app.name');
 
     $this->actingAs(User::factory()->createOne())
         ->get(Auth::settingsAppearance->value)
@@ -91,18 +51,33 @@ test('the settings pages are hidden from robots', function (): void {
         ->assertSee('<meta name="robots" content="none">', false);
 });
 
-test('pages in sitemap carry their own page as canonical and open graph url', function (string $route): void {
-    $content = (string) $this->get($route)->assertOk()->getContent();
+test('the google tag sends a sign up event', function (): void {
+    Config::set('google.tag_id', 'G-TEST');
 
-    preg_match('/<link rel="canonical" href="([^"]+)"/', $content, $canonical);
-    preg_match('/<meta property="og:url" content="([^"]+)"/', $content, $og);
+    foreach (['Email', 'Google'] as $method) {
+        session()->flash(SessionKey::sign_up_method->value, $method);
 
-    $expected = str_replace('http://', 'https://', rtrim(Config::string('app.url'), '/')).$route;
+        $this->get(Web::home->value)
+            ->assertOk()
+            ->assertSee("gtag('event', 'sign_up', {", false)
+            ->assertSee("method: '$method'", false);
+    }
+});
 
-    expect($canonical[1] ?? null)->toBe($expected)
-        ->and($og[1] ?? null)->toBe($canonical[1] ?? null);
-})->with([
-    Web::termsOfService->value,
-    Web::privacyPolicy->value,
-    Web::contact->value,
-]);
+test('a page in the sitemap carries its own page as canonical and open graph url', function (): void {
+    foreach ([
+        Web::termsOfService->value,
+        Web::privacyPolicy->value,
+        Web::contact->value,
+    ] as $route) {
+        $content = (string) $this->get($route)->assertOk()->getContent();
+
+        preg_match('/<link rel="canonical" href="([^"]+)"/', $content, $canonical);
+        preg_match('/<meta property="og:url" content="([^"]+)"/', $content, $og);
+
+        $expected = str_replace('http://', 'https://', rtrim(Config::string('app.url'), '/')).$route;
+
+        expect($canonical[1] ?? null)->toBe($expected)
+            ->and($og[1] ?? null)->toBe($canonical[1] ?? null);
+    }
+});

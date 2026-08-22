@@ -5,20 +5,14 @@ use App\Routes\Auth;
 use App\Routes\Web;
 use Illuminate\Http\Request;
 
-test('a route is active for itself and its descendants', function (): void {
-    expect(Web::login->isActive(Request::create(Web::login->value)))->toBeTrue()
-        ->and(Web::login->isActive(Request::create(Web::login->value.'/callback')))->toBeTrue()
-        ->and(Web::login->isActive(Request::create(Web::register->value)))->toBeFalse();
-});
-
-test('a route is exact only for itself', function (): void {
-    expect(ApiRoute::user->isExact(Request::create(ApiRoute::user->value)))->toBeTrue()
-        ->and(ApiRoute::user->isExact(Request::create(ApiRoute::user->value.'/callback')))->toBeFalse();
-});
-
-test('route parameters are substituted before matching', function (): void {
+test('a route is active for itself and its descendants, exact only for itself, parameters substituted', function (): void {
     $route = ['id' => '1', 'hash' => 'abc'];
 
-    expect(Auth::verificationVerify->isExact(Request::create('/email/verify/1/abc'), $route))->toBeTrue()
+    expect(Web::login->isActive(Request::create(Web::login->value)))->toBeTrue()
+        ->and(Web::login->isActive(Request::create(Web::login->value.'/callback')))->toBeTrue()
+        ->and(Web::login->isActive(Request::create(Web::register->value)))->toBeFalse()
+        ->and(ApiRoute::user->isExact(Request::create(ApiRoute::user->value)))->toBeTrue()
+        ->and(ApiRoute::user->isExact(Request::create(ApiRoute::user->value.'/callback')))->toBeFalse()
+        ->and(Auth::verificationVerify->isExact(Request::create('/email/verify/1/abc'), $route))->toBeTrue()
         ->and(Auth::verificationVerify->isActive(Request::create('/email/verify/1/abc'), $route))->toBeTrue();
 });

@@ -22,7 +22,7 @@ function scaffoldArguments(): array
     ];
 }
 
-test('it renders the six artifacts without writing them', function (): void {
+test('it renders the six artifacts of an authenticated index without writing them', function (): void {
     $Response = AppServer::tool(ScaffoldEndpoint::class, scaffoldArguments());
 
     $Response->assertOk()
@@ -33,26 +33,18 @@ test('it renders the six artifacts without writing them', function (): void {
         ->assertSee('app/Modules/Api/Widget/Index/WidgetIndexController.php')
         ->assertSee('tests/Behavior/Api/WidgetIndexTest.php')
         ->assertSee('app/Routes/ApiRoute.php')
-        ->assertSee('routes/api_auth.php');
+        ->assertSee('routes/api_auth.php')
+        // A nullable response field carries the class level Describe.
+        ->assertSee('#[Describe([Describe::nullable => true])]')
+        ->assertSee('public ?string $label;')
+        // Authentication is a declared 401, not an undocumented one.
+        ->assertSee('SharedSchema::middleware_error_description')
+        ->assertSee("case widgets = self::prefix.'/widgets';");
 
     expect(file_exists(base_path('app/Modules/Api/Widget')))->toBeFalse();
 });
 
-test('a nullable response field carries the class level Describe', function (): void {
-    AppServer::tool(ScaffoldEndpoint::class, scaffoldArguments())
-        ->assertOk()
-        ->assertSee('#[Describe([Describe::nullable => true])]')
-        ->assertSee('public ?string $label;');
-});
-
-test('an authenticated endpoint declares the middleware 401', function (): void {
-    AppServer::tool(ScaffoldEndpoint::class, scaffoldArguments())
-        ->assertOk()
-        ->assertSee('SharedSchema::middleware_error_description')
-        ->assertSee("case widgets = self::prefix.'/widgets';");
-});
-
-test('a body adds the request DTO and the 422', function (): void {
+test('a body adds the request DTO and the 422, and an endpoint without one is public', function (): void {
     AppServer::tool(ScaffoldEndpoint::class, [
         ...scaffoldArguments(),
         'module' => 'Widget/Store',
@@ -66,9 +58,7 @@ test('a body adds the request DTO and the 422', function (): void {
         ->assertSee('SharedSchema::api_validation_error')
         ->assertSee('a blank label is rejected')
         ->assertSee('api_response()->created(');
-});
 
-test('an endpoint with no body and no auth is public and declares no 401', function (): void {
     AppServer::tool(ScaffoldEndpoint::class, [
         ...scaffoldArguments(),
         'authenticated' => false,
@@ -78,7 +68,7 @@ test('an endpoint with no body and no auth is public and declares no 401', funct
         ->assertDontSee('SharedSchema::middleware_error');
 });
 
-test('a templated path writes the shared parameter class beside the modules', function (): void {
+test('a templated path writes or reuses a parameter class, and a paginated index declares its parameters', function (): void {
     AppServer::tool(ScaffoldEndpoint::class, [
         ...scaffoldArguments(),
         'module' => 'Widget/Show',
@@ -92,9 +82,7 @@ test('a templated path writes the shared parameter class beside the modules', fu
         ->assertSee("'parameters' => [WidgetParameter::schema()],")
         ->assertSee('public function __invoke(Request $Request, string $widget): JsonResponse')
         ->assertSee("ApiRoute::widget->url([WidgetParameter::name => 'example'])");
-});
 
-test('a templated path handed a parameter class of its own writes none', function (): void {
     AppServer::tool(ScaffoldEndpoint::class, [
         ...scaffoldArguments(),
         'module' => 'Widget/Show',
@@ -106,9 +94,7 @@ test('a templated path handed a parameter class of its own writes none', functio
     ])->assertOk()
         ->assertSee('use App\Modules\Api\Shared\WidgetParameter;')
         ->assertDontSee('app/Modules/Api/Widget/WidgetParameter.php');
-});
 
-test('a paginated index declares the query parameters and a pagination object', function (): void {
     AppServer::tool(ScaffoldEndpoint::class, [
         ...scaffoldArguments(),
         'paginated' => true,
@@ -121,24 +107,6 @@ test('a paginated index declares the query parameters and a pagination object', 
         ->assertSee('Schema::items => UserShowResponse::data(),')
         ->assertSee('return PaginationResponse::data();')
         ->assertSee('public array $pagination;');
-});
-
-test('a templated segment with no parameter is refused', function (): void {
-    AppServer::tool(ScaffoldEndpoint::class, [
-        ...scaffoldArguments(),
-        'path' => '/api/widgets/{widget}',
-    ])->assertHasErrors()
-        ->assertSee('Every templated segment needs one entry');
-});
-
-test('a module that is already there is not overwritten', function (): void {
-    AppServer::tool(ScaffoldEndpoint::class, [
-        ...scaffoldArguments(),
-        'module' => 'Public/User/Show',
-        'class_prefix' => 'UserShow',
-        'dry_run' => false,
-    ])->assertHasErrors()
-        ->assertSee('app/Modules/Api/Public/User/Show/UserShowResponse.php');
 });
 
 test('an admin endpoint uses the admin route index schema and session authentication', function (): void {
@@ -160,7 +128,21 @@ test('an admin endpoint uses the admin route index schema and session authentica
         ->assertDontSee('withToken(');
 });
 
-test('an endpoint path must belong to the selected api', function (): void {
+test('a templated segment with no parameter, a module already there, or a foreign path is refused', function (): void {
+    AppServer::tool(ScaffoldEndpoint::class, [
+        ...scaffoldArguments(),
+        'path' => '/api/widgets/{widget}',
+    ])->assertHasErrors()
+        ->assertSee('Every templated segment needs one entry');
+
+    AppServer::tool(ScaffoldEndpoint::class, [
+        ...scaffoldArguments(),
+        'module' => 'Public/User/Show',
+        'class_prefix' => 'UserShow',
+        'dry_run' => false,
+    ])->assertHasErrors()
+        ->assertSee('app/Modules/Api/Public/User/Show/UserShowResponse.php');
+
     AppServer::tool(ScaffoldEndpoint::class, [
         ...scaffoldArguments(),
         'api' => 'admin',

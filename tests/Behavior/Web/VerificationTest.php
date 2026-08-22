@@ -12,45 +12,20 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
 
-test('guests are redirected to login when visiting the notice', function (): void {
+test('the notice is for unverified users only', function (): void {
     $this->get(Auth::verificationNotice->value)
         ->assertRedirect(Web::login->value);
-});
 
-test('an unverified user can view the notice', function (): void {
-    $User = User::factory()->unverified()->createOne();
-
-    $this->actingAs($User)
+    $this->actingAs(User::factory()->unverified()->createOne())
         ->get(Auth::verificationNotice->value)
         ->assertOk();
-});
 
-test('a verified user visiting the notice is redirected home', function (): void {
-    $User = User::factory()->createOne();
-
-    $this->actingAs($User)
+    $this->actingAs(User::factory()->createOne())
         ->get(Auth::verificationNotice->value)
         ->assertRedirect(Web::home->value);
 });
 
-test('a verified user reaches a protected route in production', function (): void {
-    config(['app.env' => 'production']);
-    $User = User::factory()->createOne();
-
-    $this->actingAs($User)
-        ->get(Auth::dashboard->value)
-        ->assertNoContent();
-});
-
-test('an unverified user is redirected from a protected route in every environment', function (): void {
-    $User = User::factory()->unverified()->createOne();
-
-    $this->actingAs($User)
-        ->get(Auth::dashboard->value)
-        ->assertRedirect(Auth::verificationNotice->value);
-});
-
-test('an unverified user is blocked from every authenticated application route', function (): void {
+test('an unverified user is blocked from every authenticated route, in every environment and over htmx', function (): void {
     $User = User::factory()->unverified()->createOne();
     $credential = str_repeat('0', 26);
     $credentialUrl = Auth::settingsCredential->url([
@@ -88,38 +63,38 @@ test('an unverified user is blocked from every authenticated application route',
     $this->actingAs($User)
         ->delete($credentialUrl)
         ->assertRedirect(Auth::verificationNotice->value);
-});
 
-test('an unverified user is redirected to the notice from a protected route in production', function (): void {
     config(['app.env' => 'production']);
-    $User = User::factory()->unverified()->createOne();
 
     $this->actingAs($User)
         ->get(Auth::dashboard->value)
         ->assertRedirect(Auth::verificationNotice->value);
-});
 
-test('an unverified htmx request to a protected route returns a no content response with an hx redirect header', function (): void {
-    $User = User::factory()->unverified()->createOne();
+    $this->actingAs(User::factory()->createOne())
+        ->get(Auth::dashboard->value)
+        ->assertNoContent();
 
+    // The header stays on every later request, so htmx is asserted last.
     $this->actingAs($User)
         ->withHeader(HttpHeader::HxRequest->value, 'true')
         ->get(Auth::dashboard->value)
         ->assertNoContent(403)
         ->assertHeader(HttpHeader::HxRedirect->value, Auth::verificationNotice->value);
+
 });
 
-test('a valid signed link marks the user as verified', function (): void {
+test('a valid signed link verifies the user whoever is signed in', function (): void {
     Event::fake([Verified::class]);
-    $User = User::factory()->unverified()->createOne();
 
-    $url = URL::temporarySignedRoute('verification.verify', now()->addMinutes(60), [
+    $signedFor = static fn (User $User): string => URL::temporarySignedRoute('verification.verify', now()->addMinutes(60), [
         'id' => $User->getKey(),
         'hash' => sha1($User->getEmailForVerification()),
     ]);
 
-    $this->actingAs($User)
-        ->get($url)
+    $Self = User::factory()->unverified()->createOne();
+
+    $this->actingAs($Self)
+        ->get($signedFor($Self))
         ->assertRedirect(Web::home->value)
         ->assertSessionHas('status', 'Email verified successfully.');
 
@@ -127,72 +102,48 @@ test('a valid signed link marks the user as verified', function (): void {
         ->assertOk()
         ->assertSee('Email verified successfully.');
 
-    expect($User->refresh()->hasVerifiedEmail())->toBeTrue();
+    expect($Self->refresh()->hasVerifiedEmail())->toBeTrue();
     Event::assertDispatched(Verified::class);
-});
 
-test('a valid signed link verifies and authenticates a guest', function (): void {
-    $User = User::factory()->unverified()->createOne();
+    $Guest = User::factory()->unverified()->createOne();
 
-    $url = URL::temporarySignedRoute('verification.verify', now()->addMinutes(60), [
-        'id' => $User->getKey(),
-        'hash' => sha1($User->getEmailForVerification()),
-    ]);
+    $this->get(Web::logout->value);
+    $this->get($signedFor($Guest))->assertRedirect(Web::home->value);
 
-    $this->get($url)->assertRedirect(Web::home->value);
+    $this->assertAuthenticatedAs($Guest);
+    expect($Guest->refresh()->hasVerifiedEmail())->toBeTrue();
 
-    $this->assertAuthenticatedAs($User);
-    expect($User->refresh()->hasVerifiedEmail())->toBeTrue();
-});
+    $Switched = User::factory()->unverified()->createOne();
 
-test('a valid signed link switches from another user to the verified user', function (): void {
-    $OtherUser = User::factory()->createOne();
-    $User = User::factory()->unverified()->createOne();
-
-    $url = URL::temporarySignedRoute('verification.verify', now()->addMinutes(60), [
-        'id' => $User->getKey(),
-        'hash' => sha1($User->getEmailForVerification()),
-    ]);
-
-    $this->actingAs($OtherUser)
-        ->get($url)
+    $this->actingAs(User::factory()->createOne())
+        ->get($signedFor($Switched))
         ->assertRedirect(Web::home->value);
 
-    $this->assertAuthenticatedAs($User);
-    expect($User->refresh()->hasVerifiedEmail())->toBeTrue();
+    $this->assertAuthenticatedAs($Switched);
+    expect($Switched->refresh()->hasVerifiedEmail())->toBeTrue();
 });
 
-test('an invalid hash is rejected and leaves the user unverified', function (): void {
+test('an invalid hash or an unsigned link is rejected', function (): void {
     $User = User::factory()->unverified()->createOne();
 
-    $url = URL::temporarySignedRoute('verification.verify', now()->addMinutes(60), [
-        'id' => $User->getKey(),
-        'hash' => sha1('not-the-right-email'),
-    ]);
+    $this->actingAs($User)
+        ->get(URL::temporarySignedRoute('verification.verify', now()->addMinutes(60), [
+            'id' => $User->getKey(),
+            'hash' => sha1('not-the-right-email'),
+        ]))
+        ->assertForbidden();
 
     $this->actingAs($User)
-        ->get($url)
+        ->get(route('verification.verify', [
+            'id' => $User->getKey(),
+            'hash' => sha1($User->getEmailForVerification()),
+        ]))
         ->assertForbidden();
 
     expect($User->refresh()->hasVerifiedEmail())->toBeFalse();
 });
 
-test('an unsigned link is rejected', function (): void {
-    $User = User::factory()->unverified()->createOne();
-
-    $url = route('verification.verify', [
-        'id' => $User->getKey(),
-        'hash' => sha1($User->getEmailForVerification()),
-    ]);
-
-    $this->actingAs($User)
-        ->get($url)
-        ->assertForbidden();
-
-    expect($User->refresh()->hasVerifiedEmail())->toBeFalse();
-});
-
-test('resending the notification dispatches a new verification email', function (): void {
+test('a verification notification is sent on request and on registration', function (): void {
     Notification::fake();
     $User = User::factory()->unverified()->createOne();
 
@@ -202,17 +153,16 @@ test('resending the notification dispatches a new verification email', function 
         ->assertSessionHas('status', 'Verification link sent!');
 
     Notification::assertSentTo($User, VerifyEmail::class);
-});
 
-test('registering sends an email verification notification', function (): void {
-    Notification::fake();
+    $this->get(Web::logout->value);
+
     $RegisterForm = RegisterFormFactory::factory()->make();
 
     $this->post(Web::register->value, $RegisterForm->toArray())
         ->assertRedirect(Auth::verificationNotice->value);
 
-    $User = User::query()->where(Users::email->value, $RegisterForm->email)->firstOrFail();
+    $Registered = User::query()->where(Users::email->value, $RegisterForm->email)->firstOrFail();
 
-    Notification::assertSentTo($User, VerifyEmail::class);
-    expect($User->hasVerifiedEmail())->toBeFalse();
+    Notification::assertSentTo($Registered, VerifyEmail::class);
+    expect($Registered->hasVerifiedEmail())->toBeFalse();
 });

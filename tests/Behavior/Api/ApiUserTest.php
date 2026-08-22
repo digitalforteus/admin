@@ -4,15 +4,20 @@ use App\Models\User;
 use App\Modules\Api\Public\User\Show\UserShowResponse;
 use App\Modules\Api\Support\ApiResponse;
 use App\Routes\ApiRoute;
+use Illuminate\Support\Facades\Auth;
 
-test('authenticated user can retrieve their details', function (): void {
+test('a token retrieves its owners details, publishes an unverified address as null, and hides the secrets', function (): void {
+    $this->assertMatchesSchema(
+        $this->withToken('invalid-token')->getJson(ApiRoute::user->value)
+    )->assertStatus(401);
+
+    Auth::forgetGuards();
     $User = User::factory()->createOne();
 
-    $response = $this->assertMatchesSchema(
+    $this->assertMatchesSchema(
         $this->withToken($User->createToken('test-device')->plainTextToken)->getJson(ApiRoute::user->value)
-    );
-
-    $response->assertOk()
+    )
+        ->assertOk()
         ->assertJson([
             ApiResponse::success => true,
             ApiResponse::type => class_basename(UserShowResponse::class),
@@ -26,33 +31,18 @@ test('authenticated user can retrieve their details', function (): void {
                 UserShowResponse::created_at => $User->toArray()[UserShowResponse::created_at],
                 UserShowResponse::updated_at => $User->toArray()[UserShowResponse::updated_at],
             ],
-        ]);
-});
-
-test('the password is never exposed', function (): void {
-    $User = User::factory()->createOne();
-
-    $this->withToken($User->createToken('test-device')->plainTextToken)
-        ->getJson(ApiRoute::user->value)
-        ->assertOk()
+        ])
         ->assertJsonMissingPath('data.password')
         ->assertJsonMissingPath('data.remember_token');
-});
 
-test('an unverified email is published as null', function (): void {
-    $User = User::factory()->unverified()->createOne();
+    Auth::forgetGuards();
+    $Unverified = User::factory()->unverified()->createOne();
 
     $this->assertMatchesSchema(
-        $this->withToken($User->createToken('test-device')->plainTextToken)->getJson(ApiRoute::user->value)
+        $this->withToken($Unverified->createToken('test-device')->plainTextToken)->getJson(ApiRoute::user->value)
     )->assertOk()
         // Present and null, not absent. `assertJsonPath` reads a missing key as
         // null too, so the structure assertion is the half that means anything.
         ->assertJsonStructure([ApiResponse::data => [UserShowResponse::email_verified_at]])
         ->assertJsonPath('data.email_verified_at', null);
-});
-
-test('unauthenticated user cannot retrieve user details', function (): void {
-    $this->assertMatchesSchema(
-        $this->withToken('invalid-token')->getJson(ApiRoute::user->value)
-    )->assertStatus(401);
 });

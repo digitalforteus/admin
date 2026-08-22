@@ -3,46 +3,24 @@
 use App\Models\User;
 use App\Routes\Web;
 
-test('route is accessible', function (): void {
-    $this->get(Web::logout->value)->assertRedirect(Web::home->value);
-});
-
-test('authenticated user can logout', function (): void {
-    $user = User::factory()->createOne();
-    $this->actingAs($user);
-
-    $this->get(Web::logout->value)
-        ->assertRedirect(Web::home->value);
-
-    $this->assertGuest();
-});
-
-test('session is invalidated after logout', function (): void {
-    $user = User::factory()->createOne();
-    $this->actingAs($user);
+test('a logout ends the session and regenerates its id and token', function (): void {
+    $User = User::factory()->createOne();
+    $this->actingAs($User);
 
     $sessionId = session()->getId();
+    $token = session()->token();
 
-    $this->get(Web::logout->value);
-
-    $this->assertGuest();
-    expect(session()->getId())->not->toBe($sessionId);
-});
-
-test('guest user is redirected to home', function (): void {
     $this->get(Web::logout->value)
         ->assertRedirect(Web::home->value);
 
     $this->assertGuest();
+    expect(session()->getId())->not->toBe($sessionId)
+        ->and(session()->token())->not->toBe($token);
 });
 
-test('session token is regenerated after logout', function (): void {
-    $user = User::factory()->createOne();
-    $this->actingAs($user);
+test('a guest asking to log out is sent home', function (): void {
+    $this->get(Web::logout->value)
+        ->assertRedirect(Web::home->value);
 
-    $oldToken = session()->token();
-
-    $this->get(Web::logout->value);
-
-    expect(session()->token())->not->toBe($oldToken);
+    $this->assertGuest();
 });

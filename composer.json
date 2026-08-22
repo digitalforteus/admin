@@ -91,7 +91,7 @@
         "test": "pest --tia",
         "coverage": [
             "@php artisan openapi:coverage --reset",
-            "pest --tia --fresh --coverage --min=100",
+            "pest --fresh --coverage --min=100",
             "@php artisan openapi:coverage"
         ],
         "analyse": "phpstan analyse",

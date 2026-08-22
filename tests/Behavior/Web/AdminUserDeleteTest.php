@@ -42,7 +42,7 @@ function providerFor(User $User): OauthProvider
     ]);
 }
 
-test('the page shows every provider detail and its remove action', function (): void {
+test('the page shows every provider detail, and the admin removes it', function (): void {
     $User = User::factory()->createOne();
     $OauthProvider = providerFor($User);
 
@@ -55,6 +55,15 @@ test('the page shows every provider detail and its remove action', function (): 
         ->assertSee('https://example.com/avatar.jpg')
         ->assertSee('https://example.com/profile')
         ->assertSee(providerDeleteUrl($User, $OauthProvider->sub));
+
+    $this->actingAs(adminUser())
+        ->from(userDeleteUrl($User->id))
+        ->delete(providerDeleteUrl($User, $OauthProvider->sub))
+        ->assertRedirect(userDeleteUrl($User->id))
+        ->assertSessionHas('status', 'Sign-in provider removed.');
+
+    expect($OauthProvider->fresh())->toBeNull()
+        ->and($User->fresh())->not->toBeNull();
 });
 
 test('guests and non admins cannot delete a user or provider', function (): void {
@@ -69,35 +78,17 @@ test('guests and non admins cannot delete a user or provider', function (): void
     $this->actingAs($RegularUser)->delete(providerDeleteUrl($User, $OauthProvider->sub))->assertForbidden();
 });
 
-test('an admin can remove one provider belonging to the user', function (): void {
-    $User = User::factory()->createOne();
-    $OauthProvider = providerFor($User);
-
-    $this->actingAs(adminUser())
-        ->from(userDeleteUrl($User->id))
-        ->delete(providerDeleteUrl($User, $OauthProvider->sub))
-        ->assertRedirect(userDeleteUrl($User->id))
-        ->assertSessionHas('status', 'Sign-in provider removed.');
-
-    expect($OauthProvider->fresh())->toBeNull()
-        ->and($User->fresh())->not->toBeNull();
-});
-
-test('a provider cannot be removed through another user', function (): void {
+test('a provider reached through another user, and any unknown target, is not found', function (): void {
     $User = User::factory()->createOne();
     $Other = User::factory()->createOne();
     $OauthProvider = providerFor($User);
+    $Admin = adminUser();
 
-    $this->actingAs(adminUser())
+    $this->actingAs($Admin)
         ->delete(providerDeleteUrl($Other, $OauthProvider->sub))
         ->assertNotFound();
 
     expect($OauthProvider->fresh())->not->toBeNull();
-});
-
-test('unknown deletion targets are not found', function (): void {
-    $User = User::factory()->createOne();
-    $Admin = adminUser();
 
     $this->actingAs($Admin)->delete(userDeleteUrl('nobody'))->assertNotFound();
     $this->actingAs($Admin)->delete(providerDeleteUrl($User, 'nobody'))->assertNotFound();
@@ -107,19 +98,7 @@ test('unknown deletion targets are not found', function (): void {
     ]))->assertNotFound();
 });
 
-test('an admin cannot delete their own account', function (): void {
-    $Admin = adminUser();
-
-    $this->actingAs($Admin)
-        ->from(userDeleteUrl($Admin->id))
-        ->delete(userDeleteUrl($Admin->id))
-        ->assertRedirect(userDeleteUrl($Admin->id))
-        ->assertSessionHasErrors('delete');
-
-    expect($Admin->fresh())->not->toBeNull();
-});
-
-test('the exact confirmation word is required to delete a user', function (): void {
+test('the exact confirmation word is required, and never enough for the requesting account', function (): void {
     $User = User::factory()->createOne();
 
     $this->actingAs(adminUser())
@@ -129,6 +108,16 @@ test('the exact confirmation word is required to delete a user', function (): vo
         ->assertSessionHasErrors('delete');
 
     expect($User->fresh())->not->toBeNull();
+
+    $Admin = adminUser();
+
+    $this->actingAs($Admin)
+        ->from(userDeleteUrl($Admin->id))
+        ->delete(userDeleteUrl($Admin->id), [UserDeleteController::confirmation => 'delete'])
+        ->assertRedirect(userDeleteUrl($Admin->id))
+        ->assertSessionHasErrors('delete');
+
+    expect($Admin->fresh())->not->toBeNull();
 });
 
 test('deleting a user cascades every related record', function (): void {

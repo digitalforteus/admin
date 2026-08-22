@@ -12,36 +12,33 @@ beforeEach(function (): void {
     Cache::forget('google.identity.jwks');
 });
 
-test('google credentials require a configured client id', function (): void {
+test('google credentials require a configured client id and signing keys that load', function (): void {
     Config::set('services.google.client_id');
 
     expect(fn () => app(GoogleCredential::class)->user('credential'))
         ->toThrow(InvalidArgumentException::class, 'Google sign-in is not configured.');
-});
 
-test('google credentials reject an unexpected signing key response', function (): void {
-    Http::shouldReceive('get')
-        ->once()
-        ->andReturn(mock(PromiseInterface::class));
+    Config::set('services.google.client_id', 'client-id.apps.googleusercontent.com');
+    Cache::put('google.identity.jwks', 'not-an-array');
 
     expect(fn () => app(GoogleCredential::class)->user('credential'))
-        ->toThrow(RuntimeException::class, 'Google signing keys could not be loaded.');
-});
+        ->toThrow(RuntimeException::class, 'Cached Google signing keys are invalid.');
 
-test('google credentials reject malformed signing keys', function (): void {
+    Cache::forget('google.identity.jwks');
     Http::fake([
         'www.googleapis.com/oauth2/v3/certs' => Http::response('not-json', 200, ['Content-Type' => 'application/json']),
     ]);
 
     expect(fn () => app(GoogleCredential::class)->user('credential'))
         ->toThrow(RuntimeException::class, 'Google signing keys are invalid.');
-});
 
-test('google credentials reject malformed cached signing keys', function (): void {
-    Cache::put('google.identity.jwks', 'not-an-array');
+    Cache::forget('google.identity.jwks');
+    Http::shouldReceive('get')
+        ->once()
+        ->andReturn(mock(PromiseInterface::class));
 
     expect(fn () => app(GoogleCredential::class)->user('credential'))
-        ->toThrow(RuntimeException::class, 'Cached Google signing keys are invalid.');
+        ->toThrow(RuntimeException::class, 'Google signing keys could not be loaded.');
 });
 
 test('google credentials require a valid signature, issuer, and audience', function (): void {

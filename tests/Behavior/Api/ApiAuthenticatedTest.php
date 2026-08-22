@@ -4,36 +4,22 @@ use App\Models\User;
 use App\Modules\Api\Public\Authenticated\AuthenticatedResponse;
 use App\Modules\Api\Support\ApiResponse;
 use App\Routes\ApiRoute;
+use Illuminate\Support\Facades\Auth;
 use Laravel\Sanctum\Sanctum;
 
-test('authenticated user can access endpoint', function (): void {
-    $User = User::factory()->createOne();
-    Sanctum::actingAs($User);
-
-    $response = $this->assertMatchesSchema(
-        $this->withToken('any-value')->getJson(ApiRoute::authenticated->value)
-    );
-
-    $response->assertOk()
-        ->assertJson([
-            ApiResponse::success => true,
-            ApiResponse::message => class_basename(AuthenticatedResponse::class),
-            ApiResponse::type => class_basename(AuthenticatedResponse::class),
-        ]);
-});
-
-test('unauthenticated user cannot access endpoint', function (): void {
-    $response = $this->getJson(ApiRoute::authenticated->value);
-
-    $response->assertStatus(401)
+test('no token, an invalid one, or an expired one is refused', function (): void {
+    $this->getJson(ApiRoute::authenticated->value)
+        ->assertStatus(401)
         ->assertJson([
             ApiResponse::success => false,
             ApiResponse::message => 'unauthorized',
             ApiResponse::type => 'error',
         ]);
-});
 
-test('expired token cannot access endpoint', function (): void {
+    $this->assertMatchesSchema(
+        $this->withToken('invalid-token')->getJson(ApiRoute::authenticated->value)
+    )->assertStatus(401);
+
     $User = User::factory()->createOne();
     $token = $User->createToken('test-token');
     $token->accessToken->forceFill(['expires_at' => now()->subDay()])->save();
@@ -43,33 +29,28 @@ test('expired token cannot access endpoint', function (): void {
         ->assertStatus(401);
 });
 
-test('invalid token cannot access endpoint', function (): void {
-    $this->assertMatchesSchema(
-        $this->withToken('invalid-token')->getJson(ApiRoute::authenticated->value)
-    )->assertStatus(401);
-});
-
-test('multiple tokens work independently', function (): void {
+test('every live token of a user reaches the endpoint, which answers in the envelope', function (): void {
     $User = User::factory()->createOne();
 
-    $token1 = $User->createToken('device-1')->plainTextToken;
-    $token2 = $User->createToken('device-2')->plainTextToken;
+    foreach (['device-1', 'device-2'] as $device) {
+        Auth::forgetGuards();
+        $this->withToken($User->createToken($device)->plainTextToken)
+            ->getJson(ApiRoute::authenticated->value)
+            ->assertOk();
+    }
 
-    $this->withToken($token1)
-        ->getJson(ApiRoute::authenticated->value)
-        ->assertOk();
-
-    $this->withToken($token2)
-        ->getJson(ApiRoute::authenticated->value)
-        ->assertOk();
-});
-
-test('response structure is correct', function (): void {
-    $User = User::factory()->createOne();
+    Auth::forgetGuards();
     Sanctum::actingAs($User);
 
-    $this->getJson(ApiRoute::authenticated->value)
+    $this->assertMatchesSchema(
+        $this->withToken('any-value')->getJson(ApiRoute::authenticated->value)
+    )
         ->assertOk()
+        ->assertJson([
+            ApiResponse::success => true,
+            ApiResponse::message => class_basename(AuthenticatedResponse::class),
+            ApiResponse::type => class_basename(AuthenticatedResponse::class),
+        ])
         ->assertJsonStructure([
             'success',
             'message',

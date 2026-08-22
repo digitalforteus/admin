@@ -6,37 +6,36 @@ use App\Modules\Api\Support\AbilityQuery;
 use App\Modules\Api\Support\ApiResponse;
 use App\Modules\Api\Support\ErrorCode;
 use App\Routes\ApiRoute;
+use Illuminate\Support\Facades\Auth;
 
-test('a token granted nothing is refused every method of every endpoint it can be granted', function (): void {
+test('a token reaches exactly the verb of the path it was granted, and nothing else', function (): void {
     $User = User::factory()->createOne();
-    $token = $User->createToken('test-device', [])->plainTextToken;
+
+    // An endpoint no token was sent to is not gated by an ability at all.
+    $this->assertMatchesSchema($this->getJson(ApiRoute::readme->value))->assertOk();
+
+    Auth::forgetGuards();
+    $granted = $User->createToken('test-device', [HttpVerb::get->ability(ApiRoute::user->value)])->plainTextToken;
+
+    $this->assertMatchesSchema($this->withToken($granted)->getJson(ApiRoute::user->value))->assertOk();
+
+    // The same path granted for another verb leaves this one closed.
+    Auth::forgetGuards();
+    $other = $User->createToken('test-device', [HttpVerb::delete->ability(ApiRoute::user->value)])->plainTextToken;
+
+    $this->assertMatchesSchema($this->withToken($other)->getJson(ApiRoute::user->value))->assertForbidden();
+
+    Auth::forgetGuards();
+    $none = $User->createToken('test-device', [])->plainTextToken;
 
     foreach (AbilityQuery::get() as $path => $verbs) {
         foreach ($verbs as $HttpVerb) {
             $url = (string) preg_replace('/\{[^}]+}/', 'missing', $path);
 
-            $this->assertMatchesSchema($this->withToken($token)->json($HttpVerb->value, $url))
+            $this->assertMatchesSchema($this->withToken($none)->json($HttpVerb->value, $url))
                 ->assertForbidden()
                 ->assertJsonPath(ApiResponse::message, ErrorCode::missing_ability->value)
                 ->assertJsonPath(ApiResponse::type, 'error');
         }
     }
-});
-
-test('a token granted one verb of one path reaches that', function (): void {
-    $User = User::factory()->createOne();
-    $token = $User->createToken('test-device', [HttpVerb::get->ability(ApiRoute::user->value)])->plainTextToken;
-
-    $this->assertMatchesSchema($this->withToken($token)->getJson(ApiRoute::user->value))->assertOk();
-});
-
-test('an ability granted for another verb of the same path does not open this one', function (): void {
-    $User = User::factory()->createOne();
-    $token = $User->createToken('test-device', [HttpVerb::delete->ability(ApiRoute::user->value)])->plainTextToken;
-
-    $this->assertMatchesSchema($this->withToken($token)->getJson(ApiRoute::user->value))->assertForbidden();
-});
-
-test('an endpoint reached without a token is not gated by an ability', function (): void {
-    $this->assertMatchesSchema($this->getJson(ApiRoute::readme->value))->assertOk();
 });

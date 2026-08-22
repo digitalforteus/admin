@@ -7,17 +7,13 @@ use App\Routes\Auth;
 use App\Routes\Web;
 use App\Sources\Db\App\Users;
 
-test('guests are redirected to login', function (): void {
-    $this->get(Auth::settingsAppearance->value)
-        ->assertRedirect(Web::login->value);
-});
-
-test('guests cannot update a theme', function (): void {
+test('guests cannot view or change the theme', function (): void {
+    $this->get(Auth::settingsAppearance->value)->assertRedirect(Web::login->value);
     $this->post(Auth::settingsAppearance->value, [AppearanceRequest::theme => Theme::dark->value])
         ->assertRedirect(Web::login->value);
 });
 
-test('the page lists every theme', function (): void {
+test('the page lists every theme, checks the selected one, and toasts after a change', function (): void {
     $this->actingAs(User::factory()->createOne())
         ->get(Auth::settingsAppearance->value)
         ->assertOk()
@@ -27,30 +23,16 @@ test('the page lists every theme', function (): void {
         ->assertSee('data-theme-option="auto"', false)
         ->assertSee('onchange="this.form.requestSubmit()"', false)
         ->assertDontSee('>Save</button>', false);
-});
 
-test('a new user starts on the auto theme', function (): void {
-    expect(User::factory()->createOne()->theme)->toBe(Theme::auto);
-});
+    $selected = (string) $this->actingAs(User::factory()->createOne([Users::theme->value => Theme::dark]))
+        ->get(Auth::settingsAppearance->value)
+        ->assertOk()
+        ->getContent();
 
-test('a theme is selected', function (Theme $Theme): void {
-    $User = User::factory()->createOne();
+    expect($selected)->toMatch('/value="dark"[^>]*checked/')
+        ->and($selected)->not->toMatch('/value="light"[^>]*checked/');
 
-    $this->actingAs($User)
-        ->from(Auth::settingsAppearance->value)
-        ->post(Auth::settingsAppearance->value, [AppearanceRequest::theme => $Theme->value])
-        ->assertRedirect(Auth::settingsAppearance->value)
-        ->assertSessionHas('status', 'Appearance updated.');
-
-    expect($User->refresh()->theme)->toBe($Theme);
-})->with([
-    'light' => [Theme::light],
-    'dark' => [Theme::dark],
-    'auto' => [Theme::auto],
-]);
-
-test('the status toast carries a dismiss control', function (): void {
-    $content = (string) $this->actingAs(User::factory()->createOne())
+    $toast = (string) $this->actingAs(User::factory()->createOne())
         ->from(Auth::settingsAppearance->value)
         ->followingRedirects()
         ->post(Auth::settingsAppearance->value, [AppearanceRequest::theme => Theme::dark->value])
@@ -58,23 +40,29 @@ test('the status toast carries a dismiss control', function (): void {
         ->assertSee('Appearance updated.')
         ->getContent();
 
-    expect($content)->toContain('data-toast')
-        ->and($content)->toContain('data-autodismiss="5000"')
-        ->and($content)->toContain('data-dismiss-toast')
-        ->and($content)->toContain('aria-label="Dismiss"');
+    expect($toast)->toContain('data-toast')
+        ->and($toast)->toContain('data-autodismiss="5000"')
+        ->and($toast)->toContain('data-dismiss-toast')
+        ->and($toast)->toContain('aria-label="Dismiss"');
 });
 
-test('the selected theme is the checked radio when the page is shown again', function (): void {
-    $content = (string) $this->actingAs(User::factory()->createOne([Users::theme->value => Theme::dark]))
-        ->get(Auth::settingsAppearance->value)
-        ->assertOk()
-        ->getContent();
+test('a new account starts on auto and every theme can be selected', function (): void {
+    $User = User::factory()->createOne();
 
-    expect($content)->toMatch('/value="dark"[^>]*checked/')
-        ->and($content)->not->toMatch('/value="light"[^>]*checked/');
+    expect($User->theme)->toBe(Theme::auto);
+
+    foreach (Theme::cases() as $Theme) {
+        $this->actingAs($User)
+            ->from(Auth::settingsAppearance->value)
+            ->post(Auth::settingsAppearance->value, [AppearanceRequest::theme => $Theme->value])
+            ->assertRedirect(Auth::settingsAppearance->value)
+            ->assertSessionHas('status', 'Appearance updated.');
+
+        expect($User->refresh()->theme)->toBe($Theme);
+    }
 });
 
-test('validation fails with an unknown theme', function (): void {
+test('an unknown or missing theme is refused', function (): void {
     $User = User::factory()->createOne([Users::theme->value => Theme::light]);
 
     $this->actingAs($User)
@@ -82,38 +70,30 @@ test('validation fails with an unknown theme', function (): void {
         ->post(Auth::settingsAppearance->value, [AppearanceRequest::theme => 'solarized'])
         ->assertSessionHasErrors(AppearanceRequest::theme);
 
-    expect($User->refresh()->theme)->toBe(Theme::light);
-});
-
-test('validation fails with a missing theme', function (): void {
-    $this->actingAs(User::factory()->createOne())
+    $this->actingAs($User)
         ->from(Auth::settingsAppearance->value)
         ->post(Auth::settingsAppearance->value)
         ->assertSessionHasErrors(AppearanceRequest::theme);
+
+    expect($User->refresh()->theme)->toBe(Theme::light);
 });
 
-test('an explicit theme is rendered on the document', function (Theme $Theme, string $expected): void {
-    $User = User::factory()->createOne([Users::theme->value => $Theme]);
+test('an explicit theme is rendered on the document, and auto leaves the device to decide', function (): void {
+    foreach ([
+        [Theme::light, '<html lang="en" data-theme="light"'],
+        [Theme::dark, '<html lang="en" data-theme="dark"'],
+    ] as [$Theme, $expected]) {
+        $this->actingAs(User::factory()->createOne([Users::theme->value => $Theme]))
+            ->get(Web::home->value)
+            ->assertOk()
+            ->assertSee($expected, false);
+    }
 
-    $this->actingAs($User)
-        ->get(Web::home->value)
-        ->assertOk()
-        ->assertSee($expected, false);
-})->with([
-    'light' => [Theme::light, '<html lang="en" data-theme="light"'],
-    'dark' => [Theme::dark, '<html lang="en" data-theme="dark"'],
-]);
-
-test('the auto theme leaves the attribute off so the device decides', function (): void {
-    $User = User::factory()->createOne([Users::theme->value => Theme::auto]);
-
-    $this->actingAs($User)
+    $this->actingAs(User::factory()->createOne([Users::theme->value => Theme::auto]))
         ->get(Web::home->value)
         ->assertOk()
         ->assertDontSee('data-theme', false);
-});
 
-test('a guest is served the auto theme', function (): void {
     $this->get(Web::home->value)
         ->assertOk()
         ->assertDontSee('data-theme', false);

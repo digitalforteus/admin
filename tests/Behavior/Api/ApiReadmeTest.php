@@ -6,7 +6,9 @@ use App\Modules\Api\Support\ApiResponse;
 use App\Routes\ApiRoute;
 use App\Routes\Web;
 
-test('readme is served without a token', function (): void {
+test('the readme is served without a token, pointing to the current API contract', function (): void {
+    $readme = (string) file_get_contents(resource_path(CacheKey::api_readme->value));
+
     $this->assertMatchesSchema($this->getJson(ApiRoute::readme->value))
         ->assertOk()
         ->assertJson([
@@ -14,14 +16,7 @@ test('readme is served without a token', function (): void {
             ApiResponse::message => class_basename(ReadmeResponse::class),
             ApiResponse::type => class_basename(ReadmeResponse::class),
         ])
-        ->assertJsonPath(
-            ApiResponse::data.'.'.ReadmeResponse::content,
-            (string) file_get_contents(resource_path(CacheKey::api_readme->value))
-        );
-});
-
-test('the readme points to the current API contract', function (): void {
-    $readme = (string) file_get_contents(resource_path(CacheKey::api_readme->value));
+        ->assertJsonPath(ApiResponse::data.'.'.ReadmeResponse::content, $readme);
 
     expect($readme)->toContain(Web::openapi->value);
 });

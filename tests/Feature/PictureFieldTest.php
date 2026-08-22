@@ -15,20 +15,11 @@ function pictureField(array $overrides = []): PictureField
     ]);
 }
 
-test('the field falls back to the initials of what it stands for', function (): void {
-    expect(pictureField([PictureField::label => 'John Doe'])->initials())->toBe('JD');
-});
-
-test('the field accepts the extensions an image may be sent as', function (): void {
-    expect(pictureField()->accept)->toBe(Extension::imageFilter())
-        ->and(pictureField()->uploads)->toBe(Disk::retains());
-});
-
-test('the form that removes a picture is named after the field it belongs to', function (): void {
-    expect(pictureField()->remove())->toBe('picture-remove');
-});
-
-test('a field carries no picture until one is given', function (): void {
-    expect(pictureField()->picture)->toBeNull()
+test('the field falls back to initials, accepts what an image may be sent as, and names its own remove form', function (): void {
+    expect(pictureField([PictureField::label => 'John Doe'])->initials())->toBe('JD')
+        ->and(pictureField()->accept)->toBe(Extension::imageFilter())
+        ->and(pictureField()->uploads)->toBe(Disk::retains())
+        ->and(pictureField()->remove())->toBe('picture-remove')
+        ->and(pictureField()->picture)->toBeNull()
         ->and(pictureField([PictureField::picture => '/storage/a.png'])->picture)->toBe('/storage/a.png');
 });

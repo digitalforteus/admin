@@ -9,17 +9,16 @@ use App\Routes\Web;
 use App\Sources\Db\App\Users;
 use Illuminate\Support\Facades\Hash;
 
-test('route is accessible', function (): void {
+test('the page renders and a registration signs the user in with a hashed password', function (): void {
     $this->get(Web::register->value)->assertOk();
-});
 
-test('registration', function (): void {
     $RegisterForm = RegisterFormFactory::factory()->make();
 
-    $this->post(
-        Web::register->value,
-        $RegisterForm->toArray()
-    )->assertRedirect(Auth::verificationNotice->value);
+    // The address still has to be confirmed, so the notice outranks any intended url.
+    session(['url.intended' => Web::home->value]);
+
+    $this->post(Web::register->value, $RegisterForm->toArray())
+        ->assertRedirect(Auth::verificationNotice->value);
 
     $this->assertAuthenticated();
     expect(session(SessionKey::sign_up_method->value))->toBe('Email');
@@ -29,67 +28,14 @@ test('registration', function (): void {
         Users::phone->value => $RegisterForm->phone,
         Users::email_verified_at->value => null,
     ]);
-});
-
-test('validation fails with invalid name', function (): void {
-    $this->post(
-        Web::register->value,
-        RegisterFormFactory::factory()->set([RegisterForm::name => ''])->context()
-    )->assertSessionHasErrors(RegisterForm::name);
-
-    $this->assertGuest();
-});
-
-test('validation fails with invalid email', function (): void {
-    $this->post(
-        Web::register->value,
-        RegisterFormFactory::factory()->set([RegisterForm::email => ''])->context()
-    )->assertSessionHasErrors(RegisterForm::email);
-
-    $this->assertGuest();
-});
-
-test('validation fails with missing phone number', function (): void {
-    $this->post(
-        Web::register->value,
-        RegisterFormFactory::factory()->set([RegisterForm::phone => ''])->context()
-    )->assertSessionHasErrors(RegisterForm::phone);
-
-    $this->assertGuest();
-});
-
-test('validation fails with duplicate email', function (): void {
-    $RegisterForm = RegisterFormFactory::factory()->make();
-    User::factory()->createOne([Users::email->value => $RegisterForm->email]);
-
-    $this->post(
-        Web::register->value,
-        $RegisterForm->toArray()
-    )->assertSessionHasErrors(RegisterForm::email);
-
-    $this->assertGuest();
-});
-
-test('validation fails with mismatched passwords', function (): void {
-    $this->post(
-        Web::register->value,
-        RegisterFormFactory::factory()->set([RegisterForm::password_confirmation => 'mismatch'])->context()
-    )->assertSessionHasErrors(RegisterForm::password);
-
-    $this->assertGuest();
-});
-
-test('password is hashed after registration', function (): void {
-    $RegisterForm = RegisterFormFactory::factory()->make();
-
-    $this->post(Web::register->value, $RegisterForm->toArray());
 
     $User = User::query()->where(Users::email->value, $RegisterForm->email)->firstOrFail();
+
     expect($User->password)->not->toBe($RegisterForm->password)
         ->and(Hash::check($RegisterForm->password, $User->password))->toBeTrue();
 });
 
-test('validation fails with missing required fields', function (): void {
+test('every invalid field is refused, and the password is never flashed back', function (): void {
     $this->post(Web::register->value)
         ->assertSessionHasErrors([
             RegisterForm::name,
@@ -98,10 +44,35 @@ test('validation fails with missing required fields', function (): void {
             RegisterForm::password,
         ]);
 
-    $this->assertGuest();
-});
+    foreach ([
+        RegisterForm::name => [RegisterForm::name => ''],
+        RegisterForm::email => [RegisterForm::email => ''],
+        RegisterForm::phone => [RegisterForm::phone => ''],
+        RegisterForm::password => [RegisterForm::password_confirmation => 'mismatch'],
+    ] as $field => $overrides) {
+        $this->post(
+            Web::register->value,
+            RegisterFormFactory::factory()->set($overrides)->context()
+        )->assertSessionHasErrors($field);
+    }
 
-test('validation errors are displayed on the form', function (): void {
+    User::factory()->createOne([Users::email->value => 'taken@example.com']);
+
+    $this->post(
+        Web::register->value,
+        RegisterFormFactory::factory()->set([RegisterForm::email => 'taken@example.com'])->context()
+    )->assertSessionHasErrors(RegisterForm::email);
+
+    $Invalid = RegisterFormFactory::factory()
+        ->set([RegisterForm::email => 'invalid-email'])
+        ->make();
+
+    $this->post(Web::register->value, $Invalid->toArray())
+        ->assertSessionHasInput($Invalid->name)
+        ->assertSessionMissing($Invalid->password);
+
+    $this->assertGuest();
+
     $this->from(Web::register->value)
         ->followingRedirects()
         ->post(
@@ -110,27 +81,4 @@ test('validation errors are displayed on the form', function (): void {
         )
         ->assertOk()
         ->assertSee('The name field is required.');
-});
-
-test('old input is preserved on validation failure', function (): void {
-    $RegisterForm = RegisterFormFactory::factory()
-        ->set([RegisterForm::email => 'invalid-email'])
-        ->make();
-
-    $this->post(Web::register->value, $RegisterForm->toArray())
-        ->assertSessionHasInput($RegisterForm->name)
-        ->assertSessionMissing($RegisterForm->password);
-
-    $this->assertGuest();
-});
-
-test('the verification notice takes precedence over an intended url after registration', function (): void {
-    session(['url.intended' => Web::home->value]);
-
-    $this->post(
-        Web::register->value,
-        RegisterFormFactory::factory()->make()->toArray()
-    )->assertRedirect(Auth::verificationNotice->value);
-
-    $this->assertAuthenticated();
 });
