@@ -163,9 +163,20 @@ test('every rail, dropdown and head is built from route cases, active on its own
 
     $this->get(Web::home->value)
         ->assertOk()
-        ->assertDontSee('lg:pl-56');
+        ->assertDontSee('lg:pl-56')
+        ->assertDontSee('Open navigation');
 
     $User = User::factory()->createOne();
+
+    foreach ([Web::home, Web::contact, Web::privacyPolicy, Web::termsOfService] as $Web) {
+        $this->actingAs($User)
+            ->get($Web->value)
+            ->assertOk()
+            ->assertDontSee('aria-label="Primary"', false)
+            ->assertDontSee('lg:pl-56')
+            ->assertSee('Open navigation')
+            ->assertSee('href="'.Web::contact->value.'"', false);
+    }
 
     $this->actingAs($User)
         ->get(Web::home->value)
@@ -297,10 +308,20 @@ test('every rail, dropdown and head is built from route cases, active on its own
         ->and(array_column(AdminLink::routes(), AdminLink::url))
         ->not->toContain(RouteIndexStub::bare->value);
 
+    $this->actingAs(User::factory()->createOne());
+    app()->instance('request', Request::create(Web::home->value));
+
     $None = Topnav::from([]);
 
     expect($None->nav)->toBeNull()
-        ->and($None->items())->toBeEmpty();
+        ->and($None->items())->toEqual(LeftNav::items())
+        ->and($None->dropdown())->toBeTrue()
+        ->and(Topnav::from([Topnav::nav => Nav::settings])->dropdown())->toBeTrue();
+
+    $this->forgetCredentials();
+    app()->instance('request', Request::create(Web::home->value));
+
+    expect(Topnav::from([])->dropdown())->toBeFalse();
 
     foreach ([
         [Nav::left, LeftNav::items()],
@@ -371,7 +392,7 @@ test('every rail, dropdown and head is built from route cases, active on its own
     foreach ([
         [Auth::settingsProfile->value, Nav::settings],
         [Web::docsApi->value, Nav::docs],
-        [Web::home->value, Nav::left],
+        [Auth::dashboard->value, Nav::left],
     ] as [$path, $Nav]) {
         app()->instance('request', Request::create($path));
 
@@ -379,11 +400,11 @@ test('every rail, dropdown and head is built from route cases, active on its own
             ->and($Nav->visible())->toBeTrue();
     }
 
-    $this->forgetCredentials();
-
     app()->instance('request', Request::create(Web::home->value));
 
     expect(Nav::active())->toBeNull();
+
+    $this->forgetCredentials();
 
     foreach ([
         ['John Doe', 'JD'],

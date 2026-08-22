@@ -4,6 +4,7 @@ namespace App\View\DataModels;
 
 use App\Helpers\HasNavItems;
 use App\Helpers\SvgName;
+use App\Routes\Auth;
 use App\Routes\Web;
 
 enum LeftNav implements DescribesNav
@@ -23,6 +24,6 @@ enum LeftNav implements DescribesNav
 
     public static function visible(): bool
     {
-        return request()->user() !== null;
+        return Auth::dashboard->isActive(request());
     }
 }

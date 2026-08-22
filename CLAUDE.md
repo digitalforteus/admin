@@ -300,12 +300,14 @@ Every rail and dropdown reads one registry: [Nav](app/View/DataModels/Nav.php). 
 case is the whole of registering a navigation, and where it sits is its precedence:
 the first that reports itself visible answers, so one that must yield to another is
 declared after it and nothing negates a sibling. Two conditions that overlap in the
-wrong order render the wrong rail, silently. The case declared last is the fallback,
-so its condition is the widest and it is the only one that may name no route — every
-other is visible under its own root case, never a path literal.
+wrong order render the wrong rail, silently. Every case is visible under its own root
+route case, never a path literal and never a bare authentication check — so a page no
+case claims carries no rail, which is what the public pages are.
 
-Adding a navigation is an enum and a case, and touches no blade. The test loops the
-registry, so a new case owes it only the order it claims.
+The rail and the topnav dropdown can disagree: the dropdown is the only navigation a
+narrow screen has, so it falls back to the default for a signed-in reader where no
+case claims the page. Adding a navigation is an enum and a case, and touches no
+blade. The test loops the registry, so a new case owes it only the order it claims.
 
 ### Form fields
 
