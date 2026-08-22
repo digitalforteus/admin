@@ -37,6 +37,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(EmailVerificationNotificationSentResponseContract::class, EmailVerificationNotificationSentResponse::class);
         $this->app->bind(VerifyEmailResponseContract::class, VerifyEmailResponse::class);
         View::addLocation(dirname(__DIR__).'/View/Components');
+        View::addLocation(dirname(__DIR__).'/Modules/Connections');
         Model::preventLazyLoading();
         Model::preventAccessingMissingAttributes();
         Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);

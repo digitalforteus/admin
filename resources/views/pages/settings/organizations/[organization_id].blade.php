@@ -16,9 +16,10 @@ Head::title('Organization')
     ->hiddenFromRobots();
 ?>
 @php
+    use App\Models\User;
     use App\Modules\Settings\Organizations\OrganizationQuery;
 
-    $Organization = OrganizationQuery::find($organization_id);
+    $Organization = OrganizationQuery::find(User::authenticated(request()), $organization_id);
 @endphp
 <x-settings-card :settingsCard="[SettingsCard::title => $Organization->name]">
     <x-status-toast/>

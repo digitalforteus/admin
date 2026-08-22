@@ -3,31 +3,41 @@
 namespace App\View\DataModels;
 
 use App\Helpers\DataModel;
+use Zerotoprod\DataModel\Describe;
 
-class Topnav
+readonly class Topnav
 {
     use DataModel;
 
     public const string topnav = 'topnav';
     public const string leftNav = 'leftNav';
 
-    public bool $leftNav = false;
+    #[Describe([Describe::default => false])]
+    public bool $leftNav;
 
     public const string adminNav = 'adminNav';
 
-    public bool $adminNav = false;
+    #[Describe([Describe::default => false])]
+    public bool $adminNav;
 
     public const string settingsNav = 'settingsNav';
 
-    public bool $settingsNav = false;
+    #[Describe([Describe::default => false])]
+    public bool $settingsNav;
 
     public const string docsNav = 'docsNav';
 
-    public bool $docsNav = false;
+    #[Describe([Describe::default => false])]
+    public bool $docsNav;
+
+    public const string organizationNav = 'organizationNav';
+
+    #[Describe([Describe::default => false])]
+    public bool $organizationNav;
 
     public function nav(): bool
     {
-        return $this->leftNav || $this->adminNav || $this->settingsNav || $this->docsNav;
+        return $this->leftNav || $this->adminNav || $this->settingsNav || $this->docsNav || $this->organizationNav;
     }
 
     /** @return list<NavItem> */
@@ -37,6 +47,7 @@ class Topnav
             $this->adminNav => AdminNav::items(),
             $this->settingsNav => SettingsNav::items(),
             $this->docsNav => DocsNav::items(),
+            $this->organizationNav => OrganizationNav::items(),
             default => LeftNav::items(),
         };
     }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\User;
 use App\Modules\Settings\Organizations\OrganizationQuery;
 use App\View\DataModels\SettingsCard;
 use App\View\DataModels\OrganizationsTable;
@@ -10,9 +11,9 @@ Head::title('Organizations')
     ->hiddenFromRobots();
 ?>
 @php
-    $organizations = OrganizationQuery::get();
+    $Organizations = OrganizationQuery::get(User::authenticated(request()));
 @endphp
 <x-settings-card :settingsCard="[SettingsCard::title => 'Organizations']">
     <x-status-toast/>
-    <x-organizations-table :organizationsTable="[OrganizationsTable::organizations => $organizations]"/>
+    <x-organizations-table :organizationsTable="[OrganizationsTable::organizations => $Organizations]"/>
 </x-settings-card>

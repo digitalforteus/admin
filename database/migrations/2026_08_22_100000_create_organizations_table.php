@@ -10,8 +10,18 @@ return new class extends Migration
     {
         Schema::create('organizations', static function (Blueprint $Blueprint): void {
             $Blueprint->ulid('id')->primary()->comment('The unique identifier of the organization');
+            $Blueprint->foreignUlid('enterprise_id')
+                ->constrained()
+                ->restrictOnDelete()
+                ->comment('The enterprise the organization belongs to');
             $Blueprint->string('name')->comment('The organization name');
+            $Blueprint->string('slug')->unique()->comment('The url segment the organization is addressed by');
             $Blueprint->string('icon')->nullable()->comment('The path of the icon the organization uploaded');
+            $Blueprint->foreignUlid('created_by')
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete()
+                ->comment('The user who created the organization, for display only');
             $Blueprint->timestamps();
         });
     }

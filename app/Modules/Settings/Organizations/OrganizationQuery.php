@@ -3,14 +3,15 @@
 namespace App\Modules\Settings\Organizations;
 
 use App\Models\Organization;
+use App\Models\User;
 use App\Sources\Db\App\Organizations;
+use Illuminate\Database\Eloquent\Builder;
 
-class OrganizationQuery
+readonly class OrganizationQuery
 {
-    /** One organization, or nothing at all. */
-    public static function find(string $organization): Organization
+    public static function find(User $User, string $organization): Organization
     {
-        $Organization = Organization::query()->whereKey($organization)->first();
+        $Organization = self::scoped($User)->whereKey($organization)->first();
 
         if (! $Organization instanceof Organization) {
             abort(404);
@@ -19,10 +20,42 @@ class OrganizationQuery
         return $Organization;
     }
 
-    /** @return list<array<string, mixed>> */
-    public static function get(): array
+    public static function bySlug(User $User, string $slug): Organization
     {
-        $Organizations = Organization::query()
+        $Organization = self::scoped($User)
+            ->with('enterprise')
+            ->where(Organizations::slug->value, $slug)
+            ->first();
+
+        if (! $Organization instanceof Organization) {
+            abort(404);
+        }
+
+        return $Organization;
+    }
+
+    /** @return array<string, list<Organization>> */
+    public static function forUser(User $User): array
+    {
+        $Builder = self::scoped($User)->with('enterprise');
+
+        $Builder->orderBy(Organizations::name->value);
+
+        $Organizations = $Builder->get();
+
+        $grouped = [];
+
+        foreach ($Organizations as $Organization) {
+            $grouped[$Organization->enterprise_id][] = $Organization;
+        }
+
+        return $grouped;
+    }
+
+    /** @return list<array<string, mixed>> */
+    public static function get(User $User): array
+    {
+        $Organizations = self::scoped($User)
             ->latest(Organizations::created_at->value)
             ->latest(Organizations::id->value)
             ->get();
@@ -32,5 +65,14 @@ class OrganizationQuery
             static fn (Organization $Organization): array => $Organization->toArray(),
             $Organizations->all(),
         ));
+    }
+
+    /** @return Builder<Organization> */
+    private static function scoped(User $User): Builder
+    {
+        return Organization::query()->whereHas(
+            'users',
+            static fn (Builder $Builder): Builder => $Builder->whereKey($User->id),
+        );
     }
 }

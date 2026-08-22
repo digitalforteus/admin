@@ -12,13 +12,11 @@ use App\Routes\Web;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
-/** The management page of the given organization. */
 function organizationUrl(Organization $Organization): string
 {
     return Auth::settingsOrganization->url([Auth::organizationParameter => $Organization->id]);
 }
 
-/** The icon upload endpoint of the given organization. */
 function organizationIconUrl(Organization $Organization): string
 {
     return Auth::settingsOrganizationIcon->url([Auth::organizationParameter => $Organization->id]);
@@ -32,9 +30,10 @@ test('guests are redirected to login', function (): void {
 });
 
 test('the page renders the organization name and icon control', function (): void {
-    $Organization = Organization::factory()->createOne(['name' => 'Acme Inc.']);
+    $User = User::factory()->createOne();
+    $Organization = memberOrganization($User, attributes: ['name' => 'Acme Inc.']);
 
-    $this->actingAs(User::factory()->createOne())
+    $this->actingAs($User)
         ->get(organizationUrl($Organization))
         ->assertOk()
         ->assertSee('Acme Inc.')
@@ -49,10 +48,17 @@ test('an organization that does not exist is not found', function (): void {
         ->assertNotFound();
 });
 
-test('a name is updated', function (): void {
-    $Organization = Organization::factory()->createOne(['name' => 'Acme Inc.']);
+test('a name is updated, and a stranger cannot see the organization at all', function (): void {
+    $User = User::factory()->createOne();
+    $Organization = memberOrganization($User, attributes: ['name' => 'Acme Inc.']);
 
-    $this->actingAs(User::factory()->createOne())
+    $this->forgetCredentials()
+        ->actingAs(User::factory()->createOne())
+        ->get(organizationUrl($Organization))
+        ->assertNotFound();
+
+    $this->forgetCredentials()
+        ->actingAs($User)
         ->from(organizationUrl($Organization))
         ->post(organizationUrl($Organization), [OrganizationForm::name => 'Globex Corp.'])
         ->assertRedirect(organizationUrl($Organization))
@@ -62,9 +68,10 @@ test('a name is updated', function (): void {
 });
 
 test('validation fails with a missing name', function (): void {
-    $Organization = Organization::factory()->createOne(['name' => 'Acme Inc.']);
+    $User = User::factory()->createOne();
+    $Organization = memberOrganization($User, attributes: ['name' => 'Acme Inc.']);
 
-    $this->actingAs(User::factory()->createOne())
+    $this->actingAs($User)
         ->from(organizationUrl($Organization))
         ->post(organizationUrl($Organization))
         ->assertRedirect(organizationUrl($Organization))
@@ -82,9 +89,10 @@ test('guests cannot upload or remove an organization icon', function (): void {
 
 test('an icon is uploaded', function (): void {
     $Disk = Storage::fake(Disk::public->value);
-    $Organization = Organization::factory()->createOne();
+    $User = User::factory()->createOne();
+    $Organization = memberOrganization($User);
 
-    $this->actingAs(User::factory()->createOne())
+    $this->actingAs($User)
         ->from(organizationUrl($Organization))
         ->post(organizationIconUrl($Organization), [
             OrganizationIconRequest::icon => UploadedFile::fake()->image('icon.jpg'),
@@ -100,16 +108,17 @@ test('an icon is uploaded', function (): void {
 
 test('uploading an icon discards the one it replaces', function (): void {
     $Disk = Storage::fake(Disk::public->value);
-    $Organization = Organization::factory()->createOne();
+    $User = User::factory()->createOne();
+    $Organization = memberOrganization($User);
 
-    $this->actingAs(User::factory()->createOne())
+    $this->actingAs($User)
         ->post(organizationIconUrl($Organization), [
             OrganizationIconRequest::icon => UploadedFile::fake()->image('first.jpg'),
         ]);
 
     $first = (string) $Organization->refresh()->icon;
 
-    $this->actingAs(User::factory()->createOne())
+    $this->actingAs($User)
         ->post(organizationIconUrl($Organization), [
             OrganizationIconRequest::icon => UploadedFile::fake()->image('second.jpg'),
         ]);
@@ -123,16 +132,17 @@ test('uploading an icon discards the one it replaces', function (): void {
 
 test('an icon is removed', function (): void {
     $Disk = Storage::fake(Disk::public->value);
-    $Organization = Organization::factory()->createOne();
+    $User = User::factory()->createOne();
+    $Organization = memberOrganization($User);
 
-    $this->actingAs(User::factory()->createOne())
+    $this->actingAs($User)
         ->post(organizationIconUrl($Organization), [
             OrganizationIconRequest::icon => UploadedFile::fake()->image('icon.jpg'),
         ]);
 
     $path = (string) $Organization->refresh()->icon;
 
-    $this->actingAs(User::factory()->createOne())
+    $this->actingAs($User)
         ->from(organizationUrl($Organization))
         ->delete(organizationIconUrl($Organization))
         ->assertRedirect(organizationUrl($Organization))
@@ -143,10 +153,11 @@ test('an icon is removed', function (): void {
 });
 
 test('a file that is not an image is rejected', function (): void {
-    $Disk = Storage::fake(Disk::public->value);
-    $Organization = Organization::factory()->createOne();
+    Storage::fake(Disk::public->value);
+    $User = User::factory()->createOne();
+    $Organization = memberOrganization($User);
 
-    $this->actingAs(User::factory()->createOne())
+    $this->actingAs($User)
         ->from(organizationUrl($Organization))
         ->post(organizationIconUrl($Organization), [
             OrganizationIconRequest::icon => UploadedFile::fake()->create('resume.pdf', 16, 'application/pdf'),
@@ -159,9 +170,10 @@ test('a file that is not an image is rejected', function (): void {
 
 test('an image larger than the limit is rejected', function (): void {
     Storage::fake(Disk::public->value);
-    $Organization = Organization::factory()->createOne();
+    $User = User::factory()->createOne();
+    $Organization = memberOrganization($User);
 
-    $this->actingAs(User::factory()->createOne())
+    $this->actingAs($User)
         ->from(organizationUrl($Organization))
         ->post(organizationIconUrl($Organization), [
             OrganizationIconRequest::icon => UploadedFile::fake()->image('huge.jpg')->size(Picture::kilobytes + 1),

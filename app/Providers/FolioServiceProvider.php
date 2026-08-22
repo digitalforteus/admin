@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Helpers\Role;
+use App\Http\Middleware\ResolveConnection;
+use App\Http\Middleware\ResolveOrganization;
 use App\Routes\MiddlewareTag;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Folio\Folio;
@@ -17,6 +19,12 @@ class FolioServiceProvider extends ServiceProvider
             'confirm-password' => [MiddlewareTag::auth->value, MiddlewareTag::verified->value],
             'confirm-password/*' => [MiddlewareTag::auth->value, MiddlewareTag::verified->value],
             'email/verify/*' => [MiddlewareTag::auth->value],
+            'o/*' => [
+                MiddlewareTag::auth->value,
+                MiddlewareTag::verified->value,
+                ResolveOrganization::class,
+                ResolveConnection::class,
+            ],
             'settings' => [MiddlewareTag::auth->value, MiddlewareTag::verified->value],
             'settings/*' => [MiddlewareTag::auth->value, MiddlewareTag::verified->value],
             '*' => [

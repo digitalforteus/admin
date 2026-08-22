@@ -23,6 +23,14 @@ use ZeroToProd\DbModel\Table;
     attributes: [
         Table::name => 'organizations',
         Table::collate => 'utf8mb4_unicode_ci',
+        Table::indexes => [
+            'organizations_created_by_foreign' => [
+                self::created_by,
+            ],
+            'organizations_enterprise_id_foreign' => [
+                self::enterprise_id,
+            ],
+        ],
     ])]
 enum Organizations: string
 {
@@ -39,6 +47,14 @@ enum Organizations: string
     case id = 'id';
 
     #[Column([
+        Column::name => self::enterprise_id,
+        Column::type => ColumnType::char->value,
+        Column::length => 26,
+        Column::nullable => false,
+    ])]
+    case enterprise_id = 'enterprise_id';
+
+    #[Column([
         Column::name => self::name,
         Column::comment => 'The organization name',
         Column::type => ColumnType::varchar->value,
@@ -48,6 +64,16 @@ enum Organizations: string
     case name = 'name';
 
     #[Column([
+        Column::name => self::slug,
+        Column::comment => 'The url segment the organization is addressed by',
+        Column::type => ColumnType::varchar->value,
+        Column::length => 255,
+        Column::nullable => false,
+        Column::unique => true,
+    ])]
+    case slug = 'slug';
+
+    #[Column([
         Column::name => self::icon,
         Column::comment => 'The path of the icon the organization uploaded',
         Column::type => ColumnType::varchar->value,
@@ -55,6 +81,14 @@ enum Organizations: string
         Column::nullable => true,
     ])]
     case icon = 'icon';
+
+    #[Column([
+        Column::name => self::created_by,
+        Column::type => ColumnType::char->value,
+        Column::length => 26,
+        Column::nullable => true,
+    ])]
+    case created_by = 'created_by';
 
     #[Column([
         Column::name => self::created_at,

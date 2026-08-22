@@ -69,6 +69,8 @@ enum Web: string
     #[ExcludeFromSitemap]
     case githubCallback = '/auth/github/callback';
     #[ExcludeFromSitemap]
+    case invitation = '/invitations/{token}';
+    #[ExcludeFromSitemap]
     case logout = '/logout';
     case register = '/register';
 

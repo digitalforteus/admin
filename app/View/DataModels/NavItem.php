@@ -6,6 +6,7 @@ use App\Helpers\DataModel;
 use App\Helpers\SvgName;
 use App\Routes\Admin;
 use App\Routes\Auth;
+use App\Routes\OrganizationRoute;
 use App\Routes\Web;
 use Attribute;
 use Zerotoprod\DataModel\Describe;
@@ -36,7 +37,13 @@ readonly class NavItem
     public const string route = 'route';
 
     #[Describe([Describe::required => true])]
-    public Admin|Auth|Web $route;
+    public Admin|Auth|OrganizationRoute|Web $route;
+
+    public const string parameters = 'parameters';
+
+    /** @var array<string, string|int> */
+    #[Describe([Describe::default => []])]
+    public array $parameters;
 
     public const string nested = 'nested';
 
@@ -45,14 +52,14 @@ readonly class NavItem
 
     public function url(): string
     {
-        return $this->route->url();
+        return $this->route->url($this->parameters);
     }
 
     public function active(): bool
     {
         return $this->nested
-            ? $this->route->isActive(request())
-            : $this->route->isExact(request());
+            ? $this->route->isActive(request(), $this->parameters)
+            : $this->route->isExact(request(), $this->parameters);
     }
 
     /** @return array<string, mixed> */

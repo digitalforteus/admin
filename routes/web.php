@@ -12,6 +12,7 @@ use App\Modules\Login\GoogleOneTapController;
 use App\Modules\Login\GoogleRedirectController;
 use App\Modules\Login\LoginController;
 use App\Modules\Logout\LogoutController;
+use App\Modules\Organizations\Invitations\InvitationAcceptController;
 use App\Modules\Passkeys\PasskeyLoginController;
 use App\Modules\Passkeys\PasskeyLoginOptionsController;
 use App\Modules\Register\RegisterController;
@@ -49,6 +50,7 @@ Route::get(Web::googleCallback->value, GoogleCallbackController::class)->middlew
 Route::post(Web::googleOneTap->value, GoogleOneTapController::class)->middleware([MiddlewareTag::guest->value, MiddlewareTag::throttleTenPerMinute->value]);
 Route::get(Web::githubRedirect->value, GitHubRedirectController::class)->middleware([MiddlewareTag::throttleTenPerMinute->value]);
 Route::get(Web::githubCallback->value, GitHubCallbackController::class)->middleware([MiddlewareTag::throttleTenPerMinute->value]);
+Route::get(Web::invitation->value, InvitationAcceptController::class)->middleware([MiddlewareTag::throttleTenPerMinute->value]);
 Route::get(Web::logout->value, LogoutController::class)->middleware([MiddlewareTag::throttleTenPerMinute->value]);
 Route::get(Web::llms->value, LlmsController::class);
 Route::get(Web::robots->value, RobotsController::class);

@@ -2,6 +2,7 @@
 
 namespace App\Modules\Settings\Organizations;
 
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -19,7 +20,7 @@ readonly class OrganizationUpdateController
                 ->withInput($OrganizationRequest->toArray());
         }
 
-        OrganizationQuery::find($organization_id)->update([
+        OrganizationQuery::find(User::authenticated($Request), $organization_id)->update([
             OrganizationRequest::name => $OrganizationRequest->name,
         ]);
 

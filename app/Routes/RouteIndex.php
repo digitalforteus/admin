@@ -19,6 +19,7 @@ enum RouteIndex: string
     case admin = Admin::class;
     case api = ApiRoute::class;
     case auth = Auth::class;
+    case organization = OrganizationRoute::class;
     case web = Web::class;
 
     /** @return class-string<BackedEnum> */

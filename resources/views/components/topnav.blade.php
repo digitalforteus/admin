@@ -4,6 +4,7 @@
     use App\Helpers\ProfilePicture;
     use App\Helpers\SvgName;
     use App\Routes\Web;
+    use App\View\DataModels\ConnectionBreadcrumb;
     use App\View\DataModels\Svg;
     use App\View\DataModels\Topnav;
     use App\View\DataModels\UserMenu;
@@ -52,6 +53,10 @@
         </div>
     </div>
     <div class="gap-2 navbar-center">
+        @php($ConnectionBreadcrumb = ConnectionBreadcrumb::current())
+        @if($ConnectionBreadcrumb !== null)
+            <x-connection-breadcrumb :connectionBreadcrumb="$ConnectionBreadcrumb->props()"/>
+        @endif
     </div>
     <div class="navbar-end">
         @auth

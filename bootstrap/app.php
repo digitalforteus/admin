@@ -7,6 +7,7 @@ use App\Http\Middleware\CanonicalizeUrl;
 use App\Http\Middleware\EnsureEmailIsVerifiedMiddleware;
 use App\Http\Middleware\EnsureTokenAbilityMiddleware;
 use App\Http\Middleware\RateLimitHeaders;
+use App\Http\Middleware\ResolveOrganization;
 use App\Routes\MiddlewareTag;
 use App\Routes\Web;
 use Illuminate\Auth\AuthenticationException;
@@ -27,6 +28,13 @@ return Application::configure(basePath: dirname(__DIR__))
 
             Route::middleware([MiddlewareTag::web->value, MiddlewareTag::auth->value, Role::admin->middleware()])
                 ->group(base_path('routes/web_admin.php'));
+
+            Route::middleware([
+                MiddlewareTag::web->value,
+                MiddlewareTag::auth->value,
+                MiddlewareTag::verified->value,
+                ResolveOrganization::class,
+            ])->group(base_path('routes/web_organization.php'));
 
             Route::middleware(MiddlewareTag::api->value)
                 ->group(base_path('routes/api.php'));

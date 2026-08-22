@@ -56,6 +56,7 @@ enum LeftNav
     {
         return request()->user() !== null
             && ! SettingsNav::visible()
-            && ! AdminNav::visible();
+            && ! AdminNav::visible()
+            && ! OrganizationNav::visible();
     }
 }

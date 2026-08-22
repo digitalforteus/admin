@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "236438d4c32e8fa38b601a0a849feb28",
+    "content-hash": "f7c8453b02e48287a36a89120856f17c",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -8616,21 +8616,22 @@
         },
         {
             "name": "zero-to-prod/data-model-factory",
-            "version": "v71.5.0",
+            "version": "v71.8.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/zero-to-prod/data-model-factory.git",
-                "reference": "4b366ce60d643cc175a62ffb3108700a313d62bf"
+                "reference": "e92511524a0e6203a45f9307714a83e47c9a259e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/zero-to-prod/data-model-factory/zipball/4b366ce60d643cc175a62ffb3108700a313d62bf",
-                "reference": "4b366ce60d643cc175a62ffb3108700a313d62bf",
+                "url": "https://api.github.com/repos/zero-to-prod/data-model-factory/zipball/e92511524a0e6203a45f9307714a83e47c9a259e",
+                "reference": "e92511524a0e6203a45f9307714a83e47c9a259e",
                 "shasum": ""
             },
             "require": {
                 "php": ">=7.1.0",
-                "zero-to-prod/factory": "^0.1.0"
+                "zero-to-prod/factory": "^0.5.0",
+                "zero-to-prod/package-helper": "^1.1.3"
             },
             "require-dev": {
                 "phpunit/phpunit": "<12.0"
@@ -8640,6 +8641,9 @@
                 "zero-to-prod/data-model-helper": "Helpers for a DataModel.",
                 "zero-to-prod/transformable": "Transform a class into different types."
             },
+            "bin": [
+                "bin/zero-to-prod-data-model-factory"
+            ],
             "type": "library",
             "autoload": {
                 "psr-4": {
@@ -8677,7 +8681,7 @@
                     "type": "GitHub"
                 }
             ],
-            "time": "2025-08-26T22:51:47+00:00"
+            "time": "2026-04-21T14:55:44+00:00"
         },
         {
             "name": "zero-to-prod/data-model-helper",
@@ -8813,25 +8817,30 @@
         },
         {
             "name": "zero-to-prod/factory",
-            "version": "v0.1.1",
+            "version": "v0.5.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/zero-to-prod/factory.git",
-                "reference": "10fa956a619f89f4edda676a070bc168bb45ee8e"
+                "reference": "899239f8c52e24efd07809bc82544eeaa8775c84"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/zero-to-prod/factory/zipball/10fa956a619f89f4edda676a070bc168bb45ee8e",
-                "reference": "10fa956a619f89f4edda676a070bc168bb45ee8e",
+                "url": "https://api.github.com/repos/zero-to-prod/factory/zipball/899239f8c52e24efd07809bc82544eeaa8775c84",
+                "reference": "899239f8c52e24efd07809bc82544eeaa8775c84",
                 "shasum": ""
             },
             "require": {
+                "ext-json": "*",
                 "php": ">=7.1",
-                "zero-to-prod/arr": "^1.1"
+                "zero-to-prod/arr": "^1.1",
+                "zero-to-prod/package-helper": "^1.1.3"
             },
             "require-dev": {
                 "phpunit/phpunit": "<12.0"
             },
+            "bin": [
+                "bin/zero-to-prod-factory"
+            ],
             "type": "library",
             "autoload": {
                 "psr-4": {
@@ -8870,6 +8879,70 @@
                 }
             ],
             "time": "2025-02-15T00:00:00+00:00"
+        },
+        {
+            "name": "zero-to-prod/github-sdk",
+            "version": "v0.1.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/zero-to-prod/github-sdk.git",
+                "reference": "fa19bbad6a5bc77d276d30746333a31ba63452bd"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/zero-to-prod/github-sdk/zipball/fa19bbad6a5bc77d276d30746333a31ba63452bd",
+                "reference": "fa19bbad6a5bc77d276d30746333a31ba63452bd",
+                "shasum": ""
+            },
+            "require": {
+                "ext-curl": "*",
+                "ext-json": "*",
+                "php": ">=8.1.0",
+                "zero-to-prod/data-model": "^81.17",
+                "zero-to-prod/data-model-factory": "^71.8.1",
+                "zero-to-prod/data-model-helper": "^82.1"
+            },
+            "require-dev": {
+                "friendsofphp/php-cs-fixer": "^3.75",
+                "guzzlehttp/guzzle": "^7.0",
+                "illuminate/container": "^10.0|^11.0|^12.0",
+                "illuminate/http": "^10.0|^11.0|^12.0",
+                "phpstan/phpstan": "^2.1",
+                "phpunit/phpunit": "^10.5",
+                "rector/rector": "^2.4",
+                "zero-to-prod/data-model-generator": "*"
+            },
+            "suggest": {
+                "illuminate/http": "Required when using the Laravel Http transport",
+                "zero-to-prod/data-model-generator": "Required to regenerate models from an OpenAPI document"
+            },
+            "bin": [
+                "bin/github-sdk"
+            ],
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Zerotoprod\\GitHubSdk\\": "src/",
+                    "Zerotoprod\\GitHubSdk\\Factories\\": "factories/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "david_smith",
+                    "email": "dave0016@gmail.com"
+                }
+            ],
+            "description": "GitHub Sdk",
+            "homepage": "https://github.com/zero-to-prod/github-sdk",
+            "support": {
+                "issues": "https://github.com/zero-to-prod/github-sdk/issues",
+                "source": "https://github.com/zero-to-prod/github-sdk/tree/v0.1.1"
+            },
+            "time": "2026-08-21T19:27:34+00:00"
         },
         {
             "name": "zero-to-prod/laravel-openapi",

@@ -8,14 +8,15 @@ use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Zerotoprod\DataModel\Describe;
 
-class Main
+readonly class Main
 {
     use DataModel;
 
     public const string main = 'main';
     public const string classnames = 'classnames';
 
-    public ?string $classnames = null;
+    #[Describe([Describe::nullable => true])]
+    public ?string $classnames;
 
     public const string adminNav = 'adminNav';
 
@@ -32,6 +33,11 @@ class Main
     #[Describe([Describe::default => [DocsNav::class, 'visible']])]
     public bool $docsNav;
 
+    public const string organizationNav = 'organizationNav';
+
+    #[Describe([Describe::default => [OrganizationNav::class, 'visible']])]
+    public bool $organizationNav;
+
     public const string leftNav = 'leftNav';
 
     #[Describe([Describe::default => [LeftNav::class, 'visible']])]
@@ -44,7 +50,7 @@ class Main
 
     public function nav(): bool
     {
-        return $this->adminNav || $this->settingsNav || $this->docsNav;
+        return $this->adminNav || $this->settingsNav || $this->docsNav || $this->organizationNav;
     }
 
     /** @return array<string, mixed> */
@@ -55,6 +61,7 @@ class Main
             Topnav::adminNav => $this->adminNav,
             Topnav::settingsNav => $this->settingsNav,
             Topnav::docsNav => $this->docsNav,
+            Topnav::organizationNav => $this->organizationNav,
         ];
     }
 

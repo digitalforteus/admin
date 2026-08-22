@@ -31,6 +31,12 @@ enum Rule: string
     case integer = 'integer';
     case date = 'date';
     case after = 'after';
+    case in = 'in';
+
+    public static function in(string ...$values): string
+    {
+        return self::in->value.':'.implode(',', $values);
+    }
 
     public static function after(string $date): string
     {
