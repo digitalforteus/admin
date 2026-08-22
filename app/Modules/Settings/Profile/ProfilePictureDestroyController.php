@@ -11,7 +11,7 @@ readonly class ProfilePictureDestroyController
 {
     public function __invoke(Request $Request): RedirectResponse
     {
-        ProfilePicture::clear(User::authenticated($Request));
+        ProfilePicture::of(User::authenticated($Request))->clear();
 
         return back()->with('status', 'Profile picture removed.');
     }

@@ -3,15 +3,13 @@
 namespace App\View\DataModels;
 
 use App\Helpers\DataModel;
+use App\Helpers\Disk;
 use App\Helpers\Extension;
 use App\Helpers\Initials;
-use App\Helpers\ProfilePicture as Picture;
 use App\Helpers\SvgName;
-use App\Models\User;
-use App\Routes\Auth;
 use Zerotoprod\DataModel\Describe;
 
-class ProfilePicture
+class PictureField
 {
     use DataModel;
 
@@ -20,24 +18,36 @@ class ProfilePicture
     #[Describe([Describe::required => true])]
     public string $field;
 
-    public const string name = 'name';
+    public const string action = 'action';
 
-    #[Describe([Describe::default => [self::class, 'authenticatedName']])]
-    public string $name;
-
-    public const string picture = 'picture';
-
-    #[Describe([Describe::default => [self::class, 'current']])]
-    public ?string $picture;
+    #[Describe([Describe::required => true])]
+    public string $action;
 
     public const string legend = 'legend';
 
-    public string $legend = 'Profile picture';
+    public string $legend = 'Picture';
+
+    public const string label = 'label';
+
+    public string $label = '';
+
+    public const string picture = 'picture';
+
+    public ?string $picture = null;
+
+    public const string size = 'size';
+
+    public string $size = 'w-40';
 
     public const string accept = 'accept';
 
     #[Describe([Describe::default => [Extension::class, 'imageFilter']])]
     public string $accept;
+
+    public const string uploads = 'uploads';
+
+    #[Describe([Describe::default => [Disk::class, 'retains']])]
+    public bool $uploads;
 
     public const string bag = 'bag';
 
@@ -62,25 +72,13 @@ class ProfilePicture
         ];
     }
 
-    public function url(): string
+    public function remove(): string
     {
-        return Auth::settingsProfilePicture->value;
+        return $this->field.'-remove';
     }
 
     public function initials(): string
     {
-        return Initials::from($this->name);
-    }
-
-    public static function current(): ?string
-    {
-        return Picture::current();
-    }
-
-    public static function authenticatedName(): string
-    {
-        $User = auth()->guard()->user();
-
-        return $User instanceof User ? $User->name : '';
+        return Initials::from($this->label);
     }
 }
