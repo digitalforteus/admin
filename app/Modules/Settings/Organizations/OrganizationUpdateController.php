@@ -11,6 +11,7 @@ readonly class OrganizationUpdateController
 {
     public function __invoke(Request $Request, string $organization_id): RedirectResponse
     {
+        $Organization = OrganizationQuery::owned(User::authenticated($Request), $organization_id);
         $OrganizationRequest = OrganizationRequest::from($Request->all());
         $Validator = Validator::make(...$OrganizationRequest->validator());
 
@@ -20,9 +21,7 @@ readonly class OrganizationUpdateController
                 ->withInput($OrganizationRequest->toArray());
         }
 
-        OrganizationQuery::find(User::authenticated($Request), $organization_id)->update([
-            OrganizationRequest::name => $OrganizationRequest->name,
-        ]);
+        $Organization->update([OrganizationRequest::name => $OrganizationRequest->name]);
 
         return back()->with('status', 'Organization updated.');
     }

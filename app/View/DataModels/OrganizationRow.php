@@ -32,6 +32,11 @@ readonly class OrganizationRow
 
     public ?string $created_at;
 
+    public const string owns = 'owns';
+
+    #[Describe([Describe::default => false])]
+    public bool $owns;
+
     public function url(): string
     {
         return Auth::settingsOrganization->url([Auth::organizationParameter => $this->id]);

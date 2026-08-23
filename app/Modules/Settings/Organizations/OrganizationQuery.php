@@ -2,9 +2,12 @@
 
 namespace App\Modules\Settings\Organizations;
 
+use App\Helpers\OrganizationRole;
 use App\Models\Organization;
 use App\Models\User;
+use App\Modules\Organizations\MembershipQuery;
 use App\Sources\Db\App\Organizations;
+use App\View\DataModels\OrganizationRow;
 use Illuminate\Database\Eloquent\Builder;
 
 readonly class OrganizationQuery
@@ -15,6 +18,17 @@ readonly class OrganizationQuery
 
         if (! $Organization instanceof Organization) {
             abort(404);
+        }
+
+        return $Organization;
+    }
+
+    public static function owned(User $User, string $organization): Organization
+    {
+        $Organization = self::find($User, $organization);
+
+        if (MembershipQuery::role($Organization, $User) !== OrganizationRole::owner) {
+            abort(403);
         }
 
         return $Organization;
@@ -62,7 +76,10 @@ readonly class OrganizationQuery
 
         return array_values(array_map(
             /** @return array<string, mixed> */
-            static fn (Organization $Organization): array => $Organization->toArray(),
+            static fn (Organization $Organization): array => [
+                ...$Organization->toArray(),
+                OrganizationRow::owns => MembershipQuery::role($Organization, $User) === OrganizationRole::owner,
+            ],
             $Organizations->all(),
         ));
     }

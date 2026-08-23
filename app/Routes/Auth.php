@@ -34,6 +34,7 @@ enum Auth: string
     case settingsCredential = '/settings/credentials/{'.self::credentialParameter.'}';
     case settingsAppearance = '/settings/appearance';
     case settingsOrganizations = '/settings/organizations';
+    case settingsOrganizationCreate = '/settings/organizations/new';
     case settingsOrganization = '/settings/organizations/{'.self::organizationParameter.'}';
     case settingsOrganizationIcon = '/settings/organizations/{'.self::organizationParameter.'}/icon';
     case verificationNotice = '/email/verify';

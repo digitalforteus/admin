@@ -5,6 +5,7 @@ namespace App\Modules\Settings\Organizations;
 use App\Helpers\Directory;
 use App\Helpers\Picture;
 use App\Models\User;
+use App\Routes\Auth;
 use App\Sources\Db\App\Organizations;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,11 +14,13 @@ readonly class OrganizationDestroyController
 {
     public function __invoke(Request $Request, string $organization_id): RedirectResponse
     {
-        $Organization = OrganizationQuery::find(User::authenticated($Request), $organization_id);
+        $Organization = OrganizationQuery::owned(User::authenticated($Request), $organization_id);
 
         Picture::of($Organization, Organizations::icon, Directory::organization_icons)->clear();
         $Organization->delete();
 
-        return back()->with('status', 'Organization deleted.');
+        return redirect()
+            ->to(Auth::settingsOrganizations->url())
+            ->with('status', 'Organization deleted.');
     }
 }

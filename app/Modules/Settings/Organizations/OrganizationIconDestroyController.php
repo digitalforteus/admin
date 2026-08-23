@@ -13,7 +13,9 @@ readonly class OrganizationIconDestroyController
 {
     public function __invoke(Request $Request, string $organization_id): RedirectResponse
     {
-        Picture::of(OrganizationQuery::find(User::authenticated($Request), $organization_id), Organizations::icon, Directory::organization_icons)->clear();
+        $Organization = OrganizationQuery::owned(User::authenticated($Request), $organization_id);
+
+        Picture::of($Organization, Organizations::icon, Directory::organization_icons)->clear();
 
         return back()->with('status', 'Organization icon removed.');
     }

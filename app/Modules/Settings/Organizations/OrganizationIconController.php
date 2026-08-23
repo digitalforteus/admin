@@ -15,6 +15,8 @@ readonly class OrganizationIconController
 {
     public function __invoke(Request $Request, string $organization_id): RedirectResponse
     {
+        $Organization = OrganizationQuery::owned(User::authenticated($Request), $organization_id);
+
         if (! Disk::retains()) {
             return back()->withErrors([
                 OrganizationIconRequest::icon => 'Uploading an icon needs a storage service that keeps it.',
@@ -27,8 +29,6 @@ readonly class OrganizationIconController
         if ($Validator->fails()) {
             return back()->withErrors($Validator);
         }
-
-        $Organization = OrganizationQuery::find(User::authenticated($Request), $organization_id);
 
         Picture::of($Organization, Organizations::icon, Directory::organization_icons)->put($OrganizationIconRequest->icon);
 

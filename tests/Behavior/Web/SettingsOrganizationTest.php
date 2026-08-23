@@ -2,13 +2,19 @@
 
 use App\Helpers\Directory;
 use App\Helpers\Disk;
+use App\Helpers\OrganizationRole;
 use App\Helpers\Picture;
 use App\Models\Organization;
 use App\Models\User;
+use App\Modules\Connections\ConnectionQuery;
+use App\Modules\Organizations\MembershipQuery;
 use App\Modules\Settings\Organizations\OrganizationForm;
 use App\Modules\Settings\Organizations\OrganizationIconRequest;
 use App\Routes\Auth;
 use App\Routes\Web;
+use App\Sources\Db\App\Connections;
+use App\Sources\Db\App\Organizations;
+use App\Sources\Db\App\OrganizationUser;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
@@ -182,4 +188,65 @@ test('an image larger than the limit is rejected', function (): void {
         ->assertSessionHasErrors(OrganizationIconRequest::icon);
 
     expect($Organization->refresh()->icon)->toBeNull();
+});
+
+test('only an owner may open or write to the page, and what deletion takes is shown before it is pressed', function (): void {
+    $Owner = User::factory()->createOne();
+    $Organization = memberOrganization($Owner, attributes: [Organizations::name->value => 'Acme Inc.']);
+    $Connection = organizationConnection($Organization, attributes: [
+        Connections::name->value => 'Primary Repo',
+        Connections::slug->value => 'primary-repo',
+    ]);
+
+    $Admin = User::factory()->createOne();
+    MembershipQuery::add($Organization, $Admin, OrganizationRole::admin);
+
+    $Member = User::factory()->createOne();
+    MembershipQuery::add($Organization, $Member, OrganizationRole::member);
+
+    // The page that offers the deletion is the page that states its cost.
+    $this->actingAs($Owner)
+        ->get(organizationUrl($Organization))
+        ->assertOk()
+        ->assertSee('data-organization-delete', false)
+        ->assertSee('data-organization-member', false)
+        ->assertSee('data-organization-connection', false)
+        ->assertSee($Owner->name)
+        ->assertSee($Admin->name)
+        ->assertSee($Member->name)
+        ->assertSee('Primary Repo');
+
+    // Holding a membership is not holding the organization: every write is the
+    // owner's, and an administrator of it is refused along with a plain member.
+    foreach ([$Admin, $Member] as $Other) {
+        $this->forgetCredentials()->actingAs($Other);
+
+        $this->get(organizationUrl($Organization))->assertForbidden();
+        $this->post(organizationUrl($Organization), [OrganizationForm::name => 'Theirs'])->assertForbidden();
+        $this->post(organizationIconUrl($Organization))->assertForbidden();
+        $this->delete(organizationIconUrl($Organization))->assertForbidden();
+        $this->delete(organizationUrl($Organization))->assertForbidden();
+    }
+
+    expect($Organization->refresh()->name)->toBe('Acme Inc.');
+
+    // An organization that has switched nothing on says so rather than nothing.
+    ConnectionQuery::disable($Organization, $Connection);
+
+    $this->forgetCredentials()
+        ->actingAs($Owner)
+        ->get(organizationUrl($Organization))
+        ->assertOk()
+        ->assertSee('data-organization-connections-empty', false);
+
+    $this->actingAs($Owner)
+        ->from(organizationUrl($Organization))
+        ->delete(organizationUrl($Organization))
+        ->assertRedirect(Auth::settingsOrganizations->value)
+        ->assertSessionHas('status', 'Organization deleted.');
+
+    $this->assertDatabaseMissing(Organizations::table(), [Organizations::id->value => $Organization->id]);
+    $this->assertDatabaseMissing(OrganizationUser::table(), [
+        OrganizationUser::organization_id->value => $Organization->id,
+    ]);
 });

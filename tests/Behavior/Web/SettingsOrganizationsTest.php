@@ -27,13 +27,48 @@ test('guests cannot create an organization', function (): void {
     ]);
 });
 
-test('the page renders the nav and the empty state', function (): void {
+test('the page renders the nav, the empty state and the way to a new organization', function (): void {
     $this->actingAs(User::factory()->createOne())
         ->get(Auth::settingsOrganizations->value)
         ->assertOk()
         ->assertSee('data-page-header', false)
         ->assertSee(Auth::settingsOrganizations->value)
-        ->assertSee('data-organizations-empty', false);
+        ->assertSee('data-organizations-empty', false)
+        ->assertSee('data-organization-add', false)
+        ->assertSee(Auth::settingsOrganizationCreate->value);
+});
+
+test('the create page carries the form the list no longer holds', function (): void {
+    $this->actingAs(User::factory()->createOne())
+        ->get(Auth::settingsOrganizationCreate->value)
+        ->assertOk()
+        ->assertSee('data-organization-create', false)
+        ->assertSee('Organization Name');
+
+    $this->actingAs(User::factory()->createOne())
+        ->get(Auth::settingsOrganizations->value)
+        ->assertOk()
+        ->assertDontSee('data-organization-create', false);
+});
+
+test('only an owner is offered the way in to manage one', function (): void {
+    $Owner = User::factory()->createOne();
+    $Organization = memberOrganization($Owner, attributes: [Organizations::name->value => 'Acme Inc.']);
+
+    $Member = User::factory()->createOne();
+    MembershipQuery::add($Organization, $Member, OrganizationRole::admin);
+
+    $this->actingAs($Owner)
+        ->get(Auth::settingsOrganizations->value)
+        ->assertOk()
+        ->assertSee('data-organization-manage', false);
+
+    $this->forgetCredentials()
+        ->actingAs($Member)
+        ->get(Auth::settingsOrganizations->value)
+        ->assertOk()
+        ->assertSee('Acme Inc.')
+        ->assertDontSee('data-organization-manage', false);
 });
 
 test('the page lists only the organizations the caller is a member of', function (): void {
@@ -55,12 +90,14 @@ test('creating an organization makes the creator its owner', function (): void {
     $User = User::factory()->createOne();
 
     $this->actingAs($User)
-        ->from(Auth::settingsOrganizations->value)
+        ->from(Auth::settingsOrganizationCreate->value)
         ->post(Auth::settingsOrganizations->value, [OrganizationForm::name => 'Acme Inc.'])
-        ->assertRedirect(Auth::settingsOrganizations->value)
         ->assertSessionHas('status', 'Organization created.');
 
     $Organization = Organization::query()->sole();
+
+    // Supplying the name lands on the row it named, not back on an empty form.
+    $this->assertDatabaseCount(Organizations::table(), 1);
 
     expect($Organization->name)->toBe('Acme Inc.')
         ->and($Organization->slug)->toBe('acme-inc')
@@ -73,12 +110,12 @@ test('creating an organization makes the creator its owner', function (): void {
     // different one rather than failing the write, and a name that reduces to
     // nothing still gets one.
     $this->actingAs($User)
-        ->from(Auth::settingsOrganizations->value)
+        ->from(Auth::settingsOrganizationCreate->value)
         ->post(Auth::settingsOrganizations->value, [OrganizationForm::name => 'Acme Inc.'])
         ->assertSessionHas('status', 'Organization created.');
 
     $this->actingAs($User)
-        ->from(Auth::settingsOrganizations->value)
+        ->from(Auth::settingsOrganizationCreate->value)
         ->post(Auth::settingsOrganizations->value, [OrganizationForm::name => '???'])
         ->assertSessionHas('status', 'Organization created.');
 
@@ -88,7 +125,7 @@ test('creating an organization makes the creator its owner', function (): void {
 
 test('a name is squished before it is stored', function (): void {
     $this->actingAs(User::factory()->createOne())
-        ->from(Auth::settingsOrganizations->value)
+        ->from(Auth::settingsOrganizationCreate->value)
         ->post(Auth::settingsOrganizations->value, [OrganizationForm::name => '  Acme   Inc.  ']);
 
     expect(Organization::query()->sole()->name)->toBe('Acme Inc.');
@@ -96,9 +133,9 @@ test('a name is squished before it is stored', function (): void {
 
 test('validation fails with a missing name', function (): void {
     $this->actingAs(User::factory()->createOne())
-        ->from(Auth::settingsOrganizations->value)
+        ->from(Auth::settingsOrganizationCreate->value)
         ->post(Auth::settingsOrganizations->value)
-        ->assertRedirect(Auth::settingsOrganizations->value)
+        ->assertRedirect(Auth::settingsOrganizationCreate->value)
         ->assertSessionHasErrors(OrganizationForm::name);
 
     expect(Organization::query()->count())->toBe(0);
@@ -106,7 +143,7 @@ test('validation fails with a missing name', function (): void {
 
 test('validation errors are displayed on the form', function (): void {
     $this->actingAs(User::factory()->createOne())
-        ->from(Auth::settingsOrganizations->value)
+        ->from(Auth::settingsOrganizationCreate->value)
         ->followingRedirects()
         ->post(Auth::settingsOrganizations->value, [OrganizationForm::name => ''])
         ->assertOk()
@@ -115,7 +152,7 @@ test('validation errors are displayed on the form', function (): void {
 
 test('old input is preserved on validation failure', function (): void {
     $this->actingAs(User::factory()->createOne())
-        ->from(Auth::settingsOrganizations->value)
+        ->from(Auth::settingsOrganizationCreate->value)
         ->post(Auth::settingsOrganizations->value, [OrganizationForm::name => str_repeat('a', 256)])
         ->assertSessionHasErrors(OrganizationForm::name)
         ->assertSessionHasInput(OrganizationForm::name, str_repeat('a', 256));

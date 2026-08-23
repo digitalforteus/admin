@@ -101,7 +101,7 @@ readonly class ConnectionQuery
     }
 
     /** @return Collection<int, Connection> */
-    private static function enabled(Organization $Organization): Collection
+    public static function enabled(Organization $Organization): Collection
     {
         $Relation = $Organization->connections();
 

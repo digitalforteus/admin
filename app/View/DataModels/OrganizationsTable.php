@@ -3,7 +3,6 @@
 namespace App\View\DataModels;
 
 use App\Helpers\DataModel;
-use App\Modules\Settings\Organizations\OrganizationForm;
 use App\Routes\Auth;
 use Zerotoprod\DataModel\Describe;
 
@@ -17,15 +16,9 @@ readonly class OrganizationsTable
     #[Describe([Describe::required => true])]
     public array $organizations;
 
-    public function action(): string
+    public function createUrl(): string
     {
-        return Auth::settingsOrganizations->url();
-    }
-
-    /** @return array<string, mixed> */
-    public function nameInput(): array
-    {
-        return OrganizationForm::textInput(OrganizationForm::name);
+        return Auth::settingsOrganizationCreate->url();
     }
 
     /** @return list<OrganizationRow> */

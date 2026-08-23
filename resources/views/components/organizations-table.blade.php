@@ -4,13 +4,9 @@
     $OrganizationsTable = OrganizationsTable::from($organizationsTable);
 @endphp
 <div class="mt-6 flex flex-col gap-4">
-    <form method="POST" action="{{ $OrganizationsTable->action() }}" class="flex flex-wrap items-end gap-2">
-        @csrf
-        <div class="w-full max-w-sm">
-            <x-text-input :textInput="$OrganizationsTable->nameInput()"/>
-        </div>
-        <button type="submit" class="btn btn-primary mb-1">Create Organization</button>
-    </form>
+    <div>
+        <a class="btn btn-primary btn-sm" data-organization-add href="{{ $OrganizationsTable->createUrl() }}">Add organization</a>
+    </div>
 
     <div class="overflow-x-auto rounded-box border border-base-300">
         <table class="table table-zebra">
@@ -40,12 +36,9 @@
                     <td class="whitespace-nowrap">{{$OrganizationRow->createdAt()}}</td>
                     <td class="whitespace-nowrap">
                         <div class="flex items-center justify-end gap-2">
-                            <a href="{{ $OrganizationRow->url() }}" class="btn btn-ghost btn-xs">Manage</a>
-                            <form method="POST" action="{{ $OrganizationRow->url() }}">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-ghost btn-xs text-error">Delete</button>
-                            </form>
+                            @if($OrganizationRow->owns)
+                                <a href="{{ $OrganizationRow->url() }}" class="btn btn-ghost btn-xs" data-organization-manage>Manage</a>
+                            @endif
                         </div>
                     </td>
                 </tr>

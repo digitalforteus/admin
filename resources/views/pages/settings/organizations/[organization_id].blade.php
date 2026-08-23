@@ -1,10 +1,10 @@
 <?php
 
+use App\Helpers\Directory;
+use App\Helpers\Picture;
 use App\Modules\Settings\Organizations\OrganizationForm;
 use App\Modules\Settings\Organizations\OrganizationIconRequest;
 use App\Routes\Auth;
-use App\Helpers\Directory;
-use App\Helpers\Picture;
 use App\Sources\Db\App\Organizations;
 use App\View\DataModels\PictureField;
 use App\View\DataModels\SettingsCard;
@@ -17,9 +17,14 @@ Head::title('Organization')
 ?>
 @php
     use App\Models\User;
+    use App\Modules\Connections\ConnectionQuery;
+    use App\Modules\Organizations\MembershipQuery;
     use App\Modules\Settings\Organizations\OrganizationQuery;
 
-    $Organization = OrganizationQuery::find(User::authenticated(request()), $organization_id);
+    $Organization = OrganizationQuery::owned(User::authenticated(request()), $organization_id);
+    $Members = MembershipQuery::members($Organization);
+    $Connections = ConnectionQuery::enabled($Organization);
+    $organization = Auth::settingsOrganization->url([Auth::organizationParameter => $Organization->id]);
 @endphp
 <x-settings-card :settingsCard="[SettingsCard::title => $Organization->name]">
     <x-status-toast/>
@@ -30,7 +35,7 @@ Head::title('Organization')
         PictureField::picture => Picture::of($Organization, Organizations::icon, Directory::organization_icons)->url(),
         PictureField::label => $Organization->name,
     ]"/>
-    <form class="mt-2 space-y-4" method="POST" action="{{Auth::settingsOrganization->url([Auth::organizationParameter => $Organization->id])}}" data-organization-form>
+    <form class="mt-2 space-y-4" method="POST" action="{{$organization}}" data-organization-form>
         @csrf
         <x-text-input :textInput="[
             ...OrganizationForm::textInput(OrganizationForm::name),
@@ -38,4 +43,33 @@ Head::title('Organization')
         ]"/>
         <button class="btn btn-primary">Save</button>
     </form>
+    <form class="mt-4" method="POST" action="{{$organization}}"
+          onsubmit="return confirm('Delete this organization? Every membership and every connection it has switched on goes with it.')">
+        @csrf
+        @method('DELETE')
+        <button type="submit" class="btn btn-sm btn-error" data-organization-delete>Delete</button>
+    </form>
+    <div class="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div class="rounded-box border border-base-300 p-4">
+            <h2 class="text-xs uppercase tracking-wider text-base-content/55">Members who lose access</h2>
+            <ul class="mt-2 space-y-1">
+                @foreach($Members as $Member)
+                    <li data-organization-member>
+                        <span title="{{$Member->name}}">{{$Member->name}}</span>
+                        <span class="opacity-60" title="{{MembershipQuery::held($Member)?->value}}">{{MembershipQuery::held($Member)?->label() ?? '—'}}</span>
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+        <div class="rounded-box border border-base-300 p-4">
+            <h2 class="text-xs uppercase tracking-wider text-base-content/55">Connections it switches off</h2>
+            <ul class="mt-2 space-y-1">
+                @forelse($Connections as $Connection)
+                    <li data-organization-connection title="{{$Connection->name}}">{{$Connection->name}}</li>
+                @empty
+                    <li data-organization-connections-empty class="text-base-content/70">None enabled.</li>
+                @endforelse
+            </ul>
+        </div>
+    </div>
 </x-settings-card>
