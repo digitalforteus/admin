@@ -2,11 +2,15 @@
 
 namespace App\View\DataModels;
 
+use App\Helpers\OrganizationRole;
 use App\Helpers\SvgName;
 use App\Models\Connection;
 use App\Models\Organization;
+use App\Models\User;
 use App\Modules\Connections\ConnectionProvider;
+use App\Modules\Organizations\MembershipQuery;
 use App\Modules\Organizations\OrganizationContext;
+use App\Routes\Auth;
 use App\Routes\OrganizationRoute;
 
 readonly class OrganizationNav implements DescribesNav
@@ -53,7 +57,27 @@ readonly class OrganizationNav implements DescribesNav
                 NavItem::parameters => $parameters,
                 NavItem::nested => true,
             ]),
+            ...self::owned($Organization),
             ...self::plugin($Organization),
+        ];
+    }
+
+    /** @return list<NavItem> */
+    private static function owned(Organization $Organization): array
+    {
+        $User = request()->user();
+
+        if (! $User instanceof User || MembershipQuery::role($Organization, $User) !== OrganizationRole::owner) {
+            return [];
+        }
+
+        return [
+            NavItem::from([
+                NavItem::label => 'Settings',
+                NavItem::icon => SvgName::gear,
+                NavItem::route => Auth::settingsOrganization,
+                NavItem::parameters => [Auth::organizationParameter => $Organization->id],
+            ]),
         ];
     }
 

@@ -1,11 +1,13 @@
 <?php
 
 use App\AppConfig;
+use App\Helpers\OrganizationRole;
 use App\Helpers\Role;
 use App\Helpers\SessionKey;
 use App\Helpers\SvgName;
 use App\Helpers\Theme;
 use App\Models\User;
+use App\Modules\Organizations\MembershipQuery;
 use App\Routes\Admin;
 use App\Routes\AdminLink;
 use App\Routes\ApiRoute;
@@ -17,6 +19,7 @@ use App\Routes\Web;
 use App\Sources\Db\App\Organizations;
 use App\Sources\Db\App\Users;
 use App\View\DataModels\DocsNav;
+use App\View\DataModels\LeftNav;
 use App\View\DataModels\Main;
 use App\View\DataModels\Nav;
 use App\View\DataModels\NavItem;
@@ -225,6 +228,53 @@ test('every rail, dropdown and head is built from route cases, active on its own
         expect($active[$label])->toBeTrue()
             ->and($active['Profile'])->toBeFalse();
     }
+
+    // Every rail offers the areas it is the way in to, and a settings area with a
+    // page of its own is one of them: the entry stays lit across its sub-pages.
+    expect(collect(SettingsNav::items())->pluck('label')->all())
+        ->toContain('Organizations')
+        ->and(collect(LeftNav::items())->pluck('label')->all())
+        ->toContain('Organizations', 'Documentation');
+
+    foreach ([Auth::settingsOrganizations, Auth::settingsOrganizationCreate] as $Auth) {
+        app()->instance('request', Request::create($Auth->value));
+
+        $active = [];
+
+        foreach (SettingsNav::items() as $NavItem) {
+            $active[$NavItem->label] = $NavItem->active();
+        }
+
+        expect($active['Organizations'])->toBeTrue()
+            ->and($active['Profile'])->toBeFalse();
+    }
+
+    $Owner = User::factory()->createOne();
+    $Organization = memberOrganization($Owner, attributes: [Organizations::slug->value => 'acme']);
+    $Other = User::factory()->createOne();
+    MembershipQuery::add($Organization, $Other, OrganizationRole::admin);
+
+    $this->forgetCredentials()
+        ->actingAs($Owner)
+        ->get(OrganizationRoute::index->url([OrganizationRoute::organizationParameter => 'acme']))
+        ->assertOk()
+        ->assertSee('aria-label="Organization"', false)
+        ->assertSee(Auth::settingsOrganization->url([Auth::organizationParameter => $Organization->id]));
+
+    expect(collect(OrganizationNav::items())->pluck('label')->all())
+        ->toBe(['Overview', 'Connections', 'Members', 'Settings']);
+
+    // The rail never offers a page the caller would be refused at.
+    $this->forgetCredentials()
+        ->actingAs($Other)
+        ->get(OrganizationRoute::index->url([OrganizationRoute::organizationParameter => 'acme']))
+        ->assertOk()
+        ->assertDontSee(Auth::settingsOrganization->url([Auth::organizationParameter => $Organization->id]));
+
+    expect(collect(OrganizationNav::items())->pluck('label')->all())
+        ->toBe(['Overview', 'Connections', 'Members']);
+
+    $this->forgetCredentials();
 
     $this->get(Web::docsApi->value)
         ->assertOk()
@@ -465,7 +515,7 @@ test('organization nav and switcher coverage', function (): void {
 
     expect(OrganizationNav::visible())->toBeTrue()
         ->and(OrganizationNav::label())->toBe('Organization')
-        ->and(OrganizationNav::items())->toHaveCount(3);
+        ->and(OrganizationNav::items())->toHaveCount(4);
 
     $Switcher = OrganizationSwitcher::current();
     assert($Switcher instanceof OrganizationSwitcher);
@@ -477,7 +527,10 @@ test('organization nav and switcher coverage', function (): void {
         ->and($Switcher->sections())->toHaveCount(1)
         ->and(OrganizationNav::items()[0]->label)->toBe('Overview')
         ->and(OrganizationNav::items()[1]->label)->toBe('Connections')
-        ->and(OrganizationNav::items()[2]->label)->toBe('Members');
+        ->and(OrganizationNav::items()[2]->label)->toBe('Members')
+        ->and(OrganizationNav::items()[3]->label)->toBe('Settings')
+        ->and(OrganizationNav::items()[3]->url())
+        ->toBe(Auth::settingsOrganization->url([Auth::organizationParameter => $Organization->id]));
 
     app()->instance('request', Request::create(Web::home->value));
 
