@@ -257,7 +257,7 @@ test('the admin pages belong to the one role there is, and list, edit, delete an
         ->assertSee('https://example.com/avatar.jpg')
         ->assertSee('alt="'.e($Admin->name).'"', false)
         ->assertSee('avatar-placeholder', false)
-        ->assertSee("classList.add('bg-neutral')", false)
+        ->assertSee("classList.add('bg-neutral', 'text-neutral-content')", false)
         ->assertSee('<span class="hidden text-xs" title="AL">AL</span>', false)
         ->assertSee('data-last-session-column', false)
         ->assertSee($lastSessionAt->diffForHumans());

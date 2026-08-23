@@ -15,6 +15,7 @@ use App\Routes\RouteIndex;
 use App\Routes\Web;
 use App\Sources\Db\App\Users;
 use App\View\DataModels\AdminNav;
+use App\View\DataModels\Avatar;
 use App\View\DataModels\DescribesNav;
 use App\View\DataModels\DocsNav;
 use App\View\DataModels\LeftNav;
@@ -414,8 +415,12 @@ test('every rail, dropdown and head is built from route cases, active on its own
         ['', '?'],
         ['   ', '?'],
     ] as [$name, $initials]) {
-        expect(UserMenu::from([UserMenu::name => $name])->initials())->toBe($initials);
+        expect(Avatar::from(UserMenu::from([UserMenu::name => $name])->avatar())->initials())->toBe($initials);
     }
+
+    expect(UserMenu::from([UserMenu::name => 'John Doe', UserMenu::picture => 'https://example.com/avatar.jpg'])->avatar())
+        ->toBe([Avatar::name => 'John Doe', Avatar::picture => 'https://example.com/avatar.jpg'])
+        ->and(UserMenu::from([UserMenu::name => 'John Doe'])->avatar()[Avatar::picture])->toBeNull();
 
     // The address is this segment's alone, so every fetch of its avatar is one
     // this segment caused: rendering the topnav twice is allowed exactly one.
@@ -465,7 +470,7 @@ test('every rail, dropdown and head is built from route cases, active on its own
         ->get(Web::home->value)
         ->assertOk()
         ->assertSee('https://example.com/avatar.jpg')
-        ->assertDontSee('JD');
+        ->assertSee('<span class="hidden text-sm" title="JD">JD</span>', false);
 
     Config::set('services.google.client_id', 'client-id.apps.googleusercontent.com');
 

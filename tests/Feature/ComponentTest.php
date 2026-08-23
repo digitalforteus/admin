@@ -8,6 +8,7 @@ use App\Modules\Admin\Users\UsersRequest;
 use App\Routes\Admin;
 use App\Sources\Db\App\Users;
 use App\View\DataModels\AuthCard;
+use App\View\DataModels\Avatar;
 use App\View\DataModels\CopyLink;
 use App\View\DataModels\Fieldset;
 use App\View\DataModels\Main;
@@ -229,11 +230,25 @@ test('every component names a view that exists and reads one props array into ty
     ]);
     $attributes = $User->toArray();
 
-    expect(UserRow::from($attributes)->initials())->toBe('AL')
-        ->and(UserRow::from([...$attributes, Users::name->value => ''])->initials())->toBe('?')
+    expect(Avatar::from(UserRow::from($attributes)->avatar())->initials())->toBe('AL')
+        ->and(Avatar::from(UserRow::from([...$attributes, Users::name->value => ''])->avatar())->initials())->toBe('?')
         ->and(UserRow::from($attributes)->picture())
         ->toBe('https://www.gravatar.com/avatar/84059b07d4be67b806386c0aad8070a23f18836bbaae342275dc0a83414c32ee?s=80&d=404&r=g')
         ->and(static fn () => UsersTable::from([UsersTable::search => '', UsersTable::sort => Users::name]))->toThrow(PropertyRequiredException::class);
+
+    $Avatar = Avatar::from([]);
+
+    expect($Avatar->name)->toBeEmpty()
+        ->and($Avatar->picture)->toBeNull()
+        ->and($Avatar->size)->toBe('w-9')
+        ->and($Avatar->text)->toBe('text-sm')
+        ->and($Avatar->initials())->toBe('?')
+        ->and(Avatar::from(UserRow::from($attributes)->avatar()))
+        ->toHaveProperties([
+            Avatar::picture => UserRow::from($attributes)->picture(),
+            Avatar::size => 'w-8',
+            Avatar::text => 'text-xs',
+        ]);
 
     $properties = array_keys(get_class_vars(UserRow::class));
 

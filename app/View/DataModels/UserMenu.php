@@ -3,33 +3,40 @@
 namespace App\View\DataModels;
 
 use App\Helpers\DataModel;
-use App\Helpers\Initials;
 use App\Helpers\Role;
 use App\Helpers\SvgName;
 use App\Models\User;
 use App\Routes\Admin;
 use App\Routes\Auth;
 use App\Routes\Web;
+use Zerotoprod\DataModel\Describe;
 
-class UserMenu
+readonly class UserMenu
 {
     use DataModel;
 
     public const string name = 'name';
 
-    public string $name = '';
+    #[Describe([Describe::default => ''])]
+    public string $name;
 
     public const string email = 'email';
 
-    public string $email = '';
+    #[Describe([Describe::default => ''])]
+    public string $email;
 
     public const string picture = 'picture';
 
-    public ?string $picture = null;
+    #[Describe([Describe::nullable => true])]
+    public ?string $picture;
 
-    public function picture(): ?string
+    /** @return array<string, mixed> */
+    public function avatar(): array
     {
-        return $this->picture;
+        return [
+            Avatar::name => $this->name,
+            Avatar::picture => $this->picture,
+        ];
     }
 
     /** @return list<NavItem> */
@@ -49,10 +56,5 @@ class UserMenu
         $User = auth()->guard()->user();
 
         return $User instanceof User && $User->hasRole(Role::admin->value);
-    }
-
-    public function initials(): string
-    {
-        return Initials::from($this->name);
     }
 }

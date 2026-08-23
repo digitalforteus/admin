@@ -2,7 +2,6 @@
 
 use App\Helpers\Gravatar;
 use App\Helpers\ProfilePicture;
-use App\Helpers\Initials;
 use App\Helpers\Role;
 use App\Helpers\SvgName;
 use App\Helpers\Theme;
@@ -12,6 +11,7 @@ use App\Modules\Admin\Users\Delete\UserDeleteController;
 use App\Modules\Admin\Users\Update\UsersUpdateForm;
 use App\Modules\Admin\Users\Update\UsersUpdateRequest;
 use App\Routes\Admin;
+use App\View\DataModels\Avatar;
 use App\View\DataModels\Svg;
 use App\View\DataModels\TextInput;
 use Illuminate\Support\Str;
@@ -43,14 +43,7 @@ Head::title('User')
 
         <header class="mt-4 flex flex-col gap-2 border-b border-base-300 pb-5 lg:flex-row lg:items-end lg:justify-between">
             <div class="flex items-center gap-3">
-                <div class="avatar avatar-placeholder">
-                    <div class="relative w-12 rounded-full text-neutral-content">
-                        <span class="hidden text-sm" title="{{Initials::from($user->name)}}">{{Initials::from($user->name)}}</span>
-                        <img class="absolute inset-0" src="{{$picture}}" alt="{{$user->name}}"
-                             referrerpolicy="no-referrer"
-                             onerror="this.previousElementSibling.classList.remove('hidden'); this.parentElement.classList.add('bg-neutral'); this.remove()">
-                    </div>
-                </div>
+                <x-avatar :avatar="[Avatar::name => $user->name, Avatar::picture => $picture, Avatar::size => 'w-12']"/>
                 <div>
                     <p class="text-xs font-semibold uppercase tracking-wider text-base-content/55">User account</p>
                     <h1 class="mt-1 text-2xl font-semibold" title="{{$user->name}}">{{$user->name}}</h1>
@@ -157,7 +150,7 @@ Head::title('User')
                         <div class="card-body gap-4">
                             <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                                 <div class="flex min-w-0 items-center gap-3">
-                                    <div class="avatar"><div class="w-12 rounded-full"><img src="{{$OauthProvider->picture}}" alt="{{$OauthProvider->name}}" referrerpolicy="no-referrer"></div></div>
+                                    <x-avatar :avatar="[Avatar::name => $OauthProvider->name, Avatar::picture => $OauthProvider->picture, Avatar::size => 'w-12']"/>
                                     <div class="min-w-0">
                                         <div class="flex flex-wrap items-center gap-2">
                                             <h3 class="font-semibold" title="{{Str::headline($OauthProvider->provider_id->value)}}">{{Str::headline($OauthProvider->provider_id->value)}}</h3>
