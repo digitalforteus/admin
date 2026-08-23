@@ -1,6 +1,7 @@
 <?php
 
 use App\AppConfig;
+use App\Helpers\BrandLink;
 use App\Helpers\Role;
 use App\Helpers\SessionKey;
 use App\Helpers\SvgName;
@@ -607,7 +608,28 @@ test('every rail, dropdown and head is built from route cases, active on its own
         ->assertSee('data-digitalforte-link="footer_attribution"', false)
         ->assertSee('text-digitalforte-primary', false)
         ->assertSee('text-digitalforte-secondary', false)
-        ->assertSee('digitalforte_referral_click');
+        ->assertSee('digitalforte_referral_click')
+        ->assertSee('href="'.e(BrandLink::header_lockup->url()).'"', false)
+        ->assertSee('href="'.e(BrandLink::footer_attribution->url()).'"', false);
+
+    // An outward link is published with the path it is visited at, the root included: a query
+    // hung straight off a bare address is rewritten by whatever follows the link, so what is
+    // advertised and what is fetched differ by a separator, and the crawler that follows it
+    // records the difference as a hop rather than as the destination. The configured address is
+    // an environment value and may or may not end in a separator, so a destination that
+    // concatenates one has to tolerate both spellings or it doubles it.
+    expect(BrandLink::header_lockup->url())->toContain('/?utm_source=')
+        ->and(BrandLink::footer_attribution->url())->toContain('/?utm_source=')
+        ->and(BrandLink::showcase->url())->toEndWith('/showcase');
+
+    $configured = Config::string('brand.digitalforte_url');
+
+    config()->set('brand.digitalforte_url', 'https://example.test/');
+
+    expect(BrandLink::showcase->url())->toBe('https://example.test/showcase')
+        ->and(BrandLink::header_lockup->url())->toStartWith('https://example.test/?utm_source=');
+
+    config()->set('brand.digitalforte_url', $configured);
 
     config()->set('brand.attribution', false);
 
