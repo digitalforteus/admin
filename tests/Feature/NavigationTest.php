@@ -683,8 +683,8 @@ test('every rail, dropdown and head is built from route cases, active on its own
         ->assertOk()
         ->assertSee('href="'.Web::login->value.'"', false)
         ->assertSee('href="'.Web::contact->value.'"', false)
-        ->assertSee('>Login</span>', false)
-        ->assertSee('>Contact</span>', false)
+        ->assertSee('>Login</a>', false)
+        ->assertSee('>Contact</a>', false)
         ->assertSee(Config::string('app.name'))
         ->assertSee(Config::string('brand.logo_title'));
 
