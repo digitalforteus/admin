@@ -1,11 +1,14 @@
 <?php
 
 use App\AppConfig;
+use App\Helpers\OrganizationRole;
 use App\Helpers\Role;
 use App\Helpers\SessionKey;
 use App\Helpers\SvgName;
 use App\Helpers\Theme;
+use App\Models\Organization;
 use App\Models\User;
+use App\Modules\Organizations\OrganizationContext;
 use App\Routes\Admin;
 use App\Routes\AdminLink;
 use App\Routes\ApiRoute;
@@ -20,11 +23,14 @@ use App\View\DataModels\DescribesNav;
 use App\View\DataModels\DocsNav;
 use App\View\DataModels\LeftNav;
 use App\View\DataModels\Main;
+use App\View\DataModels\MemberRow;
 use App\View\DataModels\Nav;
 use App\View\DataModels\NavItem;
 use App\View\DataModels\NavLink;
 use App\View\DataModels\NavRail;
 use App\View\DataModels\OrganizationNav;
+use App\View\DataModels\OrganizationRow;
+use App\View\DataModels\OrganizationSwitcher;
 use App\View\DataModels\SettingsNav;
 use App\View\DataModels\Svg;
 use App\View\DataModels\Topnav;
@@ -354,7 +360,7 @@ test('every rail, dropdown and head is built from route cases, active on its own
         ],
         Nav::docs->name => [Web::docsApi, Web::docsMcp],
         Nav::organization->name => [], // Dynamic items based on OrganizationContext
-        Nav::left->name => [Web::home, Web::contact],
+        Nav::left->name => [Web::home, Auth::settingsOrganizations, Web::docs, Web::contact],
     ];
 
     foreach (Nav::cases() as $Nav) {
@@ -623,4 +629,119 @@ test('every rail, dropdown and head is built from route cases, active on its own
         ->assertDontSee('data-digitalforte-link', false)
         ->assertDontSee('digitalforte_referral_click')
         ->assertSee(Config::string('app.name'));
+
+    // Test organization navigation
+    $User = User::factory()->createOne();
+    $Organization = Organization::factory()->createOne();
+    $User->organizations()->attach($Organization->id, ['role' => OrganizationRole::owner->value]);
+
+    $this->actingAs($User);
+    $Request = Request::create('/o/'.$Organization->slug);
+    OrganizationContext::bind($Request, $Organization);
+    app()->instance('request', $Request);
+
+    expect(OrganizationNav::visible())->toBeTrue()
+        ->and(OrganizationNav::label())->toBe('Organization')
+        ->and(collect(OrganizationNav::items())->pluck('label')->all())
+        ->toContain('Overview', 'Connections', 'Members', 'Settings');
+
+    // Test non-owner doesn't see settings
+    $NonOwner = User::factory()->createOne();
+    $NonOwner->organizations()->attach($Organization->id, ['role' => OrganizationRole::member->value]);
+    $this->actingAs($NonOwner);
+    $Request2 = Request::create('/o/'.$Organization->slug);
+    OrganizationContext::bind($Request2, $Organization);
+    app()->instance('request', $Request2);
+
+    expect(collect(OrganizationNav::items())->pluck('label')->all())
+        ->not->toContain('Settings')
+        ->toContain('Overview', 'Connections', 'Members');
+
+    // Test organization nav not visible outside context
+    app()->instance('request', Request::create(Web::home->value));
+    expect(OrganizationNav::visible())->toBeFalse();
+
+    // Test LeftNav visibility and items
+    $LeftNavUser = User::factory()->createOne();
+    $this->actingAs($LeftNavUser);
+    app()->instance('request', Request::create(Auth::dashboard->value));
+
+    expect(LeftNav::visible())->toBeTrue()
+        ->and(LeftNav::label())->toBe('Primary')
+        ->and(collect(LeftNav::items())->pluck('label')->all())
+        ->toContain('Home', 'Organizations', 'Documentation', 'Contact');
+
+    // Test LeftNav not visible on non-dashboard routes
+    app()->instance('request', Request::create(Web::home->value));
+    expect(LeftNav::visible())->toBeFalse();
+
+    // Test OrganizationSwitcher
+    $OrgUser = User::factory()->createOne();
+    $OrgToSwitch = Organization::factory()->createOne();
+    $OrgToSwitch->update(['icon' => 'orgs/test.jpg']);
+    $OrgUser->organizations()->attach($OrgToSwitch->id, ['role' => OrganizationRole::owner->value]);
+    $this->actingAs($OrgUser);
+
+    $SwitcherRequest = Request::create('/o/'.$OrgToSwitch->slug);
+    OrganizationContext::bind($SwitcherRequest, $OrgToSwitch);
+    app()->instance('request', $SwitcherRequest);
+
+    $Switcher = OrganizationSwitcher::current();
+    expect($Switcher)->not->toBeNull();
+
+    if ($Switcher !== null) {
+        expect($Switcher->name)->toBe($OrgToSwitch->name)
+            ->and($Switcher->slug)->toBe($OrgToSwitch->slug)
+            ->and($Switcher->icon)->toBe($OrgToSwitch->icon)
+            ->and($Switcher->iconUrl())->toBeTruthy()
+            ->and($Switcher->initials())->toBeString();
+    }
+
+    // Test OrganizationSwitcher outside context returns null
+    app()->instance('request', Request::create(Web::home->value));
+    expect(OrganizationSwitcher::current())->toBeNull();
+
+    // Test MemberRow
+    $MemberRowOrg = Organization::factory()->createOne();
+    $MemberRowUser = User::factory()->createOne();
+    $MemberRowUser->organizations()->attach($MemberRowOrg->id, ['role' => OrganizationRole::member->value]);
+
+    $MemberRow = MemberRow::from([
+        MemberRow::organization => $MemberRowOrg->id,
+        MemberRow::id => $MemberRowUser->id,
+        MemberRow::name => $MemberRowUser->name,
+        MemberRow::email => $MemberRowUser->email,
+        MemberRow::role => OrganizationRole::member,
+    ]);
+
+    expect($MemberRow->initials())->toBeString()
+        ->and($MemberRow->url())->toContain('/members/');
+
+    // Test OrganizationRow
+    $OrgRowData = Organization::factory()->createOne(['name' => 'TestOrg', 'icon' => 'orgs/icon.jpg']);
+
+    $OrgRow = OrganizationRow::from([
+        OrganizationRow::id => $OrgRowData->id,
+        OrganizationRow::name => 'TestOrg',
+        OrganizationRow::icon => 'orgs/icon.jpg',
+        OrganizationRow::created_at => now()->toDateTimeString(),
+        OrganizationRow::owns => true,
+    ]);
+
+    expect($OrgRow->initials())->toBe('T')
+        ->and($OrgRow->iconUrl())->toBeTruthy()
+        ->and($OrgRow->url())->toContain('/settings/organizations/')
+        ->and($OrgRow->createdAt())->toBeString();
+
+    // Test OrganizationRow without icon
+    $OrgRowNoIcon = OrganizationRow::from([
+        OrganizationRow::id => 'test-id',
+        OrganizationRow::name => 'No Icon Org',
+        OrganizationRow::icon => null,
+        OrganizationRow::created_at => null,
+        OrganizationRow::owns => false,
+    ]);
+
+    expect($OrgRowNoIcon->iconUrl())->toBeNull()
+        ->and($OrgRowNoIcon->createdAt())->toBe('—');
 });
