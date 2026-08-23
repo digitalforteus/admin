@@ -49,8 +49,6 @@
                 </span>
             </div>
         </div>
-    </div>
-    <div class="gap-2 navbar-center">
         @php($ConnectionBreadcrumb = ConnectionBreadcrumb::current())
         @if($ConnectionBreadcrumb !== null)
             <x-connection-breadcrumb :connectionBreadcrumb="$ConnectionBreadcrumb->props()"/>
