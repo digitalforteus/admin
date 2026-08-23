@@ -24,6 +24,7 @@ use App\View\DataModels\Nav;
 use App\View\DataModels\NavItem;
 use App\View\DataModels\NavLink;
 use App\View\DataModels\NavRail;
+use App\View\DataModels\OrganizationNav;
 use App\View\DataModels\SettingsNav;
 use App\View\DataModels\Svg;
 use App\View\DataModels\Topnav;
@@ -335,7 +336,7 @@ test('every rail, dropdown and head is built from route cases, active on its own
 
     expect(Nav::admin->enum())->toBe(AdminNav::class)
         ->and(array_column(Nav::cases(), 'value'))
-        ->toBe([AdminNav::class, SettingsNav::class, DocsNav::class, LeftNav::class])
+        ->toBe([AdminNav::class, SettingsNav::class, DocsNav::class, OrganizationNav::class, LeftNav::class])
         ->and(View::exists('components.nav-rail'))->toBeTrue()
         ->and(View::exists('components.nav-link'))->toBeTrue();
 
@@ -345,19 +346,25 @@ test('every rail, dropdown and head is built from route cases, active on its own
         Nav::admin->name => [Admin::index, Admin::users, Admin::sessions, Admin::content, Admin::links],
         Nav::settings->name => [
             Auth::settingsProfile,
+            Auth::settingsOrganizations,
             Auth::settingsAppearance,
             Auth::settingsSecurity,
             Auth::settingsCredentials,
             Auth::settingsSessions,
         ],
         Nav::docs->name => [Web::docsApi, Web::docsMcp],
+        Nav::organization->name => [], // Dynamic items based on OrganizationContext
         Nav::left->name => [Web::home, Web::contact],
     ];
 
     foreach (Nav::cases() as $Nav) {
+        if (! $Nav->visible()) {
+            continue;
+        }
+
         $NavRail = NavRail::from($Nav->navRail());
 
-        expect(enum_exists($Nav->enum()))->toBeTrue()
+        expect(class_exists($Nav->enum()))->toBeTrue()
             ->and(is_subclass_of($Nav->enum(), DescribesNav::class))->toBeTrue()
             ->and($Nav->items())->toEqual($Nav->enum()::items())
             ->and($NavRail->label)->not->toBeEmpty()
@@ -588,8 +595,8 @@ test('every rail, dropdown and head is built from route cases, active on its own
         ->assertOk()
         ->assertSee('href="'.Web::login->value.'"', false)
         ->assertSee('href="'.Web::contact->value.'"', false)
-        ->assertSee('>Login</span>', false)
-        ->assertSee('>Contact</span>', false)
+        ->assertSee('>Login</a>', false)
+        ->assertSee('>Contact</a>', false)
         ->assertSee(Config::string('app.name'))
         ->assertSee(Config::string('brand.logo_title'));
 
