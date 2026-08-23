@@ -18,6 +18,11 @@ readonly class Topnav
     /** @return list<NavItem> */
     public function items(): array
     {
-        return $this->nav?->items() ?? [];
+        return $this->nav?->items() ?? Nav::left->items();
+    }
+
+    public function dropdown(): bool
+    {
+        return $this->nav instanceof Nav || request()->user() !== null;
     }
 }

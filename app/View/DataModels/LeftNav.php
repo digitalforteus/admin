@@ -30,6 +30,6 @@ enum LeftNav implements DescribesNav
 
     public static function visible(): bool
     {
-        return request()->user() !== null;
+        return Auth::dashboard->isActive(request());
     }
 }

@@ -18,20 +18,26 @@ use App\Routes\RouteIndex;
 use App\Routes\Web;
 use App\Sources\Db\App\Organizations;
 use App\Sources\Db\App\Users;
+use App\View\DataModels\AdminNav;
+use App\View\DataModels\DescribesNav;
 use App\View\DataModels\DocsNav;
 use App\View\DataModels\LeftNav;
 use App\View\DataModels\Main;
 use App\View\DataModels\Nav;
 use App\View\DataModels\NavItem;
+use App\View\DataModels\NavLink;
+use App\View\DataModels\NavRail;
 use App\View\DataModels\OrganizationNav;
 use App\View\DataModels\OrganizationSwitcher;
 use App\View\DataModels\SettingsNav;
 use App\View\DataModels\Svg;
 use App\View\DataModels\Topnav;
 use App\View\DataModels\UserMenu;
+use App\View\ViewDirectory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\View;
 use Laravel\Head\Facades\Head;
 use Tests\Fixtures\RouteIndexStub;
 use Zerotoprod\DataModel\PropertyRequiredException;
@@ -178,9 +184,20 @@ test('every rail, dropdown and head is built from route cases, active on its own
 
     $this->get(Web::home->value)
         ->assertOk()
-        ->assertDontSee('lg:pl-56');
+        ->assertDontSee('lg:pl-56')
+        ->assertDontSee('Open navigation');
 
     $User = User::factory()->createOne();
+
+    foreach ([Web::home, Web::contact, Web::privacyPolicy, Web::termsOfService] as $Web) {
+        $this->actingAs($User)
+            ->get($Web->value)
+            ->assertOk()
+            ->assertDontSee('aria-label="Primary"', false)
+            ->assertDontSee('lg:pl-56')
+            ->assertSee('Open navigation')
+            ->assertSee('href="'.Web::contact->value.'"', false);
+    }
 
     $this->actingAs($User)
         ->get(Web::home->value)
@@ -291,16 +308,205 @@ test('every rail, dropdown and head is built from route cases, active on its own
 
     expect(DocsNav::visible())->toBeFalse();
 
-    foreach (
-        [
-            ['John Doe', 'JD'],
-            ['John Quincy Doe', 'JD'],
-            ['Prince', 'P'],
-            ['  john   doe  ', 'JD'],
-            ['', '?'],
-            ['   ', '?'],
-        ] as [$name, $initials]
-    ) {
+    $broken = [];
+
+    foreach (markdownFiles(base_path()) as $file) {
+        $contents = (string) file_get_contents($file);
+
+        preg_match_all('/]\(([^)#]+?)(?:#[^)]*)?\)/', $contents, $matches);
+
+        foreach ($matches[1] as $target) {
+            if (preg_match('#^(https?:|mailto:|/)#', $target) === 1) {
+                continue;
+            }
+
+            if (! file_exists(dirname($file).'/'.$target)) {
+                $broken[] = str_replace(base_path().'/', '', $file).' -> '.$target;
+            }
+        }
+    }
+
+    expect($broken)->toBeEmpty("Markdown links pointing at nothing:\n  - ".implode("\n  - ", $broken));
+
+    $attributes = new ReflectionClass(AdminLink::class)->getAttributes(Attribute::class);
+
+    expect($attributes[0]->newInstance()->flags)->toBe(Attribute::TARGET_CLASS_CONSTANT)
+        ->and(array_column(AdminLink::routes(), AdminLink::url))->toContain(
+            Web::robots->value,
+            Web::llms->value,
+            Web::sitemap->value,
+            Web::openapi->value,
+            ApiRoute::readme->value,
+            Admin::openapi->value,
+        );
+
+    // Every tagged case is listed once, wherever it was tagged, and an order is what moves it
+    // up the page: the sequence of orders the page renders never descends. The argument is
+    // optional, and an absent order is not a first one: the case that gives none sorts behind
+    // every case that does.
+    $orders = taggedOrders();
+    $listed = array_column(AdminLink::routes(), AdminLink::url);
+
+    $sequence = array_map(static fn (string $url): int => $orders[$url], $listed);
+    $ascending = $sequence;
+    sort($ascending);
+
+    expect($listed)->toEqualCanonicalizing(array_keys($orders))
+        ->and($listed)->toHaveSameSize($orders)
+        ->and($sequence)->toBe($ascending)
+        ->and(new AdminLink()->order)->toBeNull()
+        ->and(AdminLink::links(RouteIndexStub::class))->toBe([[
+            AdminLink::order => PHP_INT_MAX,
+            AdminLink::name => RouteIndexStub::bare->name,
+            AdminLink::url => RouteIndexStub::bare->value,
+        ]]);
+
+    // An enum reports what it holds, in the order it declares it. Sorting is the job of the
+    // query where every index's links meet. A case tagged in an enum the registry does not
+    // name is not the application's routing, so the page does not display it.
+    $tagged = array_column(AdminLink::links(Web::class), AdminLink::name);
+
+    $declared = array_values(array_filter(
+        array_map(static fn (Web $Case): string => $Case->name, Web::cases()),
+        static fn (string $name): bool => in_array($name, $tagged, true),
+    ));
+
+    expect($tagged)->not->toBeEmpty()
+        ->and($tagged)->toBe($declared)
+        ->and(AdminLink::links(Auth::class))->toBeEmpty()
+        ->and(AdminLink::links(RouteIndexStub::class))->not->toBeEmpty()
+        ->and(array_column(AdminLink::routes(), AdminLink::url))
+        ->not->toContain(RouteIndexStub::bare->value);
+
+    $this->actingAs(User::factory()->createOne());
+    app()->instance('request', Request::create(Web::home->value));
+
+    $None = Topnav::from([]);
+
+    expect($None->nav)->toBeNull()
+        ->and($None->items())->toEqual(LeftNav::items())
+        ->and($None->dropdown())->toBeTrue()
+        ->and(Topnav::from([Topnav::nav => Nav::settings])->dropdown())->toBeTrue();
+
+    $this->forgetCredentials();
+    app()->instance('request', Request::create(Web::home->value));
+
+    expect(Topnav::from([])->dropdown())->toBeFalse();
+
+    foreach ([
+        [Nav::left, LeftNav::items()],
+        [Nav::admin, AdminNav::items()],
+        [Nav::settings, SettingsNav::items()],
+    ] as [$Nav, $items]) {
+        expect(Topnav::from([Topnav::nav => $Nav])->nav)->toBe($Nav)
+            ->and(Topnav::from([Topnav::nav => $Nav])->items())->toEqual($items);
+    }
+
+    expect(Nav::admin->enum())->toBe(AdminNav::class)
+        ->and(array_column(Nav::cases(), 'value'))
+        ->toBe([AdminNav::class, SettingsNav::class, DocsNav::class, OrganizationNav::class, LeftNav::class])
+        ->and(View::exists('components.nav-rail'))->toBeTrue()
+        ->and(View::exists('components.nav-link'))->toBeTrue();
+
+    // One case reads a context rather than a static declaration, so the loop below is
+    // run from inside that context: outside it that rail is empty by design, and an
+    // empty rail would say the registry is broken when it is only standing down.
+    $Railed = User::factory()->createOne();
+    $RailOrganization = memberOrganization($Railed, attributes: [Organizations::slug->value => 'rail-corp']);
+
+    $this->forgetCredentials()
+        ->actingAs($Railed)
+        ->get(OrganizationRoute::index->url([OrganizationRoute::organizationParameter => 'rail-corp']))
+        ->assertOk();
+
+    $railParameters = [OrganizationRoute::organizationParameter => 'rail-corp'];
+
+    // The rail a case renders is the items its enum declares, in the order it declares
+    // them, so the only thing a new navigation owes this test is the order it claims.
+    $declared = [
+        Nav::admin->name => [Admin::index, Admin::users, Admin::sessions, Admin::content, Admin::links],
+        Nav::settings->name => [
+            Auth::settingsProfile,
+            Auth::settingsOrganizations,
+            Auth::settingsAppearance,
+            Auth::settingsSecurity,
+            Auth::settingsCredentials,
+            Auth::settingsSessions,
+        ],
+        Nav::docs->name => [Web::docsApi, Web::docsMcp],
+        Nav::organization->name => [
+            OrganizationRoute::index,
+            OrganizationRoute::connections,
+            OrganizationRoute::members,
+            Auth::settingsOrganization,
+        ],
+        Nav::left->name => [Web::home, Auth::settingsOrganizations, Web::docs, Web::contact],
+    ];
+
+    foreach (Nav::cases() as $Nav) {
+        $NavRail = NavRail::from($Nav->navRail());
+
+        // The registry holds the contract, not a shape: a navigation that reads a
+        // context is an ordinary class, and one that declares its items is an enum.
+        expect(class_exists($Nav->enum()))->toBeTrue()
+            ->and(is_subclass_of($Nav->enum(), DescribesNav::class))->toBeTrue()
+            ->and($Nav->items())->toEqual($Nav->enum()::items())
+            ->and($NavRail->label)->not->toBeEmpty()
+            ->and($NavRail->items)->toEqual($Nav->items())
+            ->and($NavRail->items)->not->toBeEmpty()
+            ->and(array_map(static fn (NavItem $NavItem): object => $NavItem->route, $NavRail->items))
+            ->toBe($declared[$Nav->name]);
+
+        foreach ($NavRail->items as $NavItem) {
+            $NavLink = NavLink::from($NavItem->navLink());
+
+            expect($NavItem)->toBeInstanceOf(NavItem::class)
+                ->and(ViewDirectory::svg->has($NavItem->icon))->toBeTrue()
+                ->and($NavLink->url)->toBe($NavItem->url())
+                ->and($NavLink->label)->toBe($NavItem->label)
+                ->and(Svg::from($NavLink->svg)->name)->toBe($NavItem->icon)
+                ->and($NavLink->classnames)->toBeEmpty()
+                ->and($NavLink->classes())->toBe(['' => false, 'menu-active' => $NavItem->active()]);
+        }
+    }
+
+    // The dropdown renders the same link the rail does, styled for where it stands.
+    $Styled = NavLink::from([
+        ...LeftNav::home->item()->navLink(),
+        NavLink::classnames => 'items-center gap-3 my-1 font-medium',
+    ]);
+
+    expect($Styled->classes())->toBe(['items-center gap-3 my-1 font-medium' => true, 'menu-active' => $Styled->active])
+        ->and(static fn () => NavLink::from([]))->toThrow(PropertyRequiredException::class)
+        ->and(static fn () => NavRail::from([]))->toThrow(PropertyRequiredException::class);
+
+    $this->actingAs(User::factory()->createOne());
+
+    foreach ([
+        [Auth::settingsProfile->value, Nav::settings],
+        [Web::docsApi->value, Nav::docs],
+        [Auth::dashboard->value, Nav::left],
+    ] as [$path, $Nav]) {
+        app()->instance('request', Request::create($path));
+
+        expect(Nav::active())->toBe($Nav)
+            ->and($Nav->visible())->toBeTrue();
+    }
+
+    app()->instance('request', Request::create(Web::home->value));
+
+    expect(Nav::active())->toBeNull();
+
+    $this->forgetCredentials();
+
+    foreach ([
+        ['John Doe', 'JD'],
+        ['John Quincy Doe', 'JD'],
+        ['Prince', 'P'],
+        ['  john   doe  ', 'JD'],
+        ['', '?'],
+        ['   ', '?'],
+    ] as [$name, $initials]) {
         expect(UserMenu::from([UserMenu::name => $name])->initials())->toBe($initials);
     }
 
