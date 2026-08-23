@@ -13,11 +13,6 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 
-// A robots.txt without a User-agent line binds no crawler to any of its rules.
-
-// The spec's one required section: an agent that finds anything else at this path has no
-// entry point to read.
-
 /** @return list<string> */
 function sitemapLocations(string $xml): array
 {
@@ -62,10 +57,9 @@ test('what a crawler reads is published whole, dated, within the protocol cap, c
 
     $this->forgetCredentials();
 
-    $expected = array_map(
-        static fn (int $page): string => url(Web::sitemapPage->url(['page' => $page])),
-        array_keys(Sitemap::pages()),
-    );
+    $expected = Sitemap::pages()
+            |> array_keys(...)
+            |> (static fn ($x) => array_map(static fn (int $page): string => url(Web::sitemapPage->url(['page' => $page])), $x));
 
     $TestResponse = $this->get(Web::sitemap->value)
         ->assertOk()
@@ -89,13 +83,6 @@ test('what a crawler reads is published whole, dated, within the protocol cap, c
         ->assertOk()
         ->assertSee('Sitemap: '.url(Web::sitemap->url()), false);
 
-    // The referenced documents are the whole of the sitemap, so together they carry exactly the
-    // advertised paths, in order — a page missing from one of them leaves the site's index
-    // without it while the root document still looks complete. The attribute is a claim about
-    // each page; reaching every one of them is that claim being checked, and a route that stops
-    // being public, or gains a parameter, has to be excluded or this fails. A modification time
-    // a crawler cannot parse is worse than declaring none, and one that moves on its own is why
-    // it is read off a file rather than a clock.
     $expected = array_map(static fn (Web $page): string => url($page->url()), Web::sitemap());
 
     $index = (string) $this->get(Web::sitemap->value)->getContent();
@@ -120,10 +107,6 @@ test('what a crawler reads is published whole, dated, within the protocol cap, c
         expect(DateTimeImmutable::createFromFormat(DATE_W3C, $time))->toBeInstanceOf(DateTimeImmutable::class);
     }
 
-    // Numbering is the whole of addressing a page, so a number no page answers to is not a
-    // document with nothing in it: an empty one invites a crawler to drop what it already has.
-    // The cap is the protocol's, not a preference, and it is what makes splitting necessary at
-    // all: a document over it is rejected whole by the crawler that reads it.
     $this->get(Web::sitemapPage->url(['page' => count(Sitemap::pages()) + 1]))->assertNotFound();
     $this->get(Web::sitemapPage->url(['page' => 0]))->assertNotFound();
 
@@ -134,9 +117,6 @@ test('what a crawler reads is published whole, dated, within the protocol cap, c
         expect(count($cases))->toBeLessThanOrEqual(Sitemap::urlLimit);
     }
 
-    // A crawler reads the index and then every document it names, so a limit shared across
-    // them is spent on the first visit — and a refused fetch is read as the sitemap being
-    // gone rather than as being asked to slow down, which unpublishes the site quietly.
     for ($i = 0; $i < 3; $i++) {
         $index = $this->get(Web::sitemap->value)->assertOk();
 
@@ -220,7 +200,6 @@ test('what a crawler reads is published whole, dated, within the protocol cap, c
         ->toBe('https://discoveryto.com/path')
         ->and($redirect('https://www.discoveryto.com/api/users?sort=name&limit=10', 'www.discoveryto.com', 'https')->getTargetUrl())
         ->toBe('https://discoveryto.com/api/users?sort=name&limit=10')
-        // Fragments are client side and never reach the server, so a redirect omits them.
         ->and($redirect('https://www.discoveryto.com/docs', 'www.discoveryto.com', 'https')->getTargetUrl())
         ->toBe('https://discoveryto.com/docs');
 
@@ -241,11 +220,18 @@ test('what a crawler reads is published whole, dated, within the protocol cap, c
 
     app()->instance('env', 'production');
 
-    expect($passthrough('https://discoveryto.com/path', 'discoveryto.com', 'https')->getContent())
-        ->toBe('pass through');
+    $secure = $passthrough('https://discoveryto.com/path', 'discoveryto.com', 'https');
+
+    expect($secure->getContent())->toBe('pass through')
+        ->and($secure->headers->get(HttpHeader::StrictTransportSecurity->value))
+        ->toBe(CanonicalizeUrl::transportPolicy)
+        ->and($redirect('http://discoveryto.com/path', 'discoveryto.com', 'http')
+            ->headers->get(HttpHeader::StrictTransportSecurity->value))->toBeNull();
 
     app()->instance('env', 'local');
 
-    expect($passthrough('http://localhost:8080/path', 'localhost:8080', 'http')->getContent())
-        ->toBe('pass through');
+    $insecure = $passthrough('http://localhost:8080/path', 'localhost:8080', 'http');
+
+    expect($insecure->getContent())->toBe('pass through')
+        ->and($insecure->headers->get(HttpHeader::StrictTransportSecurity->value))->toBeNull();
 });

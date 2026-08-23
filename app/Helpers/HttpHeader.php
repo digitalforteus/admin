@@ -20,6 +20,7 @@ enum HttpHeader: string
     case HxRequest = 'HX-Request';
     case HxRedirect = 'HX-Redirect';
     case ContentType = 'Content-Type';
+    case StrictTransportSecurity = 'Strict-Transport-Security';
     case Authorization = 'Authorization';
     case RateLimitPolicy = 'RateLimit-Policy';
     case RateLimitLimit = 'RateLimit-Limit';

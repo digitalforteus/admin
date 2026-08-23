@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Helpers\HttpHeader;
 use Closure;
 use Illuminate\Http\Request;
 use Laravel\Head\Facades\Head;
@@ -10,6 +11,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 readonly class CanonicalizeUrl
 {
+    public const string transportPolicy = 'max-age=31536000; includeSubDomains';
+
     public function handle(Request $Request, Closure $Closure): Response
     {
         $host = $Request->getHost();
@@ -35,6 +38,12 @@ readonly class CanonicalizeUrl
 
         Head::og(url: Canonical::make()->render($Request));
 
-        return $Closure($Request);
+        $Response = $Closure($Request);
+
+        if ($isSecure && app()->isProduction()) {
+            $Response->headers->set(HttpHeader::StrictTransportSecurity->value, self::transportPolicy);
+        }
+
+        return $Response;
     }
 }
