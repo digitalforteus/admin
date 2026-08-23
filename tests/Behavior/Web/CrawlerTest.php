@@ -83,7 +83,7 @@ test('what a crawler reads is published whole, dated, within the protocol cap, c
         ->assertOk()
         ->assertSee('Sitemap: '.url(Web::sitemap->url()), false);
 
-    $expected = array_map(static fn (Web $page): string => url($page->url()), Web::sitemap());
+    $expected = array_map(static fn (Web $page): string => Sitemap::location($page), Web::sitemap());
 
     $index = (string) $this->get(Web::sitemap->value)->getContent();
     $listed = [];
@@ -97,7 +97,20 @@ test('what a crawler reads is published whole, dated, within the protocol cap, c
 
     expect($expected)->not->toBeEmpty()
         ->and($listed)->toBe($expected)
-        ->and($times)->not->toBeEmpty();
+        ->and($times)->not->toBeEmpty()
+        // The root is advertised in the spelling the page itself declares canonical. The
+        // generator drops a path that is only a separator, so without this the sitemap and the
+        // page disagree about the one address they both mean, and the crawler reports whichever
+        // it discarded as a page it was sent to and told not to index.
+        ->and(Sitemap::location(Web::home))->toEndWith('/')
+        ->and($listed)->toContain(Sitemap::location(Web::home))
+        // An entrance to authentication is public without being a page worth listing: it is
+        // held out of the sitemap and out of the index together, because a sitemap entry is a
+        // request to index and the two claims cannot disagree.
+        ->and($listed)->not->toContain(Sitemap::location(Web::login))
+        ->and($listed)->not->toContain(Sitemap::location(Web::register))
+        ->and(Web::sitemap())->not->toContain(Web::login)
+        ->and(Web::sitemap())->not->toContain(Web::register);
 
     foreach ($listed as $loc) {
         $this->get($loc)->assertOk();

@@ -38,23 +38,7 @@ use Laravel\Head\Facades\Head;
 use Tests\Fixtures\RouteIndexStub;
 use Zerotoprod\DataModel\PropertyRequiredException;
 
-// A case of the registry is the whole of registering an index: an enum it does not name
-// is not one, wherever that enum lives. The registry is read rather than discovered, so
-// the order it declares its cases in is the order the indexes come back in.
-
-// Docs are what an agent reads before touching an endpoint, and a link to a
-// file that does not exist is indistinguishable from a file it failed to find.
-// Cheaper to fail the gate than to have the reader re-search.
-
-/**
- * The markdown this repo owns: the docs, and the instruction files at the root.
- * `vendor` and `node_modules` are somebody else's to keep honest, and so is
- * `docs/repos` — mirrored upstream docs, gitignored, written against link
- * rewriters this repo does not run. Including them would make the gate fail or
- * pass on whether a contributor happens to have synced a mirror.
- *
- * @return list<string>
- */
+/** @return list<string> */
 function markdownFiles(string $base): array
 {
     $files = glob($base.'/*.md') ?: [];
@@ -541,13 +525,21 @@ test('every rail, dropdown and head is built from route cases, active on its own
     $this->get(Web::login->value)
         ->assertOk()
         ->assertSee("<title>Login - $name</title>", false)
-        ->assertSee('<meta name="description" content="Sign in to your '.$name.' client account.">', false);
+        ->assertSee('<meta name="description" content="Sign in to your '.$name.' client account.">', false)
+        ->assertSee('<meta name="robots" content="noindex, follow">', false);
 
     $this->get(Web::register->value)
         ->assertOk()
         ->assertSee('<meta name="description" content="Create your account.">', false)
         ->assertSee("<meta property=\"og:title\" content=\"Register - $name\">", false)
-        ->assertSee('<meta property="og:description" content="Create your account.">', false);
+        ->assertSee('<meta property="og:description" content="Create your account.">', false)
+        ->assertSee('<meta name="robots" content="noindex, follow">', false);
+
+    Head::flush();
+
+    $this->get(Web::contact->value)
+        ->assertOk()
+        ->assertSee('<meta name="robots" content="all">', false);
 
     $this->actingAs(User::factory()->createOne())
         ->get(Auth::settingsAppearance->value)
