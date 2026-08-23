@@ -6,12 +6,14 @@ use App\Routes\Web;
 use App\View\DataModels\AuthCard;
 use App\View\DataModels\Svg;
 use Illuminate\View\View;
+use Laravel\Head\Enums\RobotsRule;
 use Laravel\Head\Facades\Head;
 
 use function Laravel\Folio\render;
 
 Head::title('Login')
-    ->description('Sign in to your '.config('app.name').' client account.');
+    ->description('Sign in to your '.config('app.name').' client account.')
+    ->robots([RobotsRule::NoIndex, RobotsRule::Follow]);
 
 render(function (View $view) {
     if (auth()->check()) {

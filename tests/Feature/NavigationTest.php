@@ -1,22 +1,18 @@
 <?php
 
 use App\AppConfig;
-use App\Helpers\OrganizationRole;
 use App\Helpers\Role;
 use App\Helpers\SessionKey;
 use App\Helpers\SvgName;
 use App\Helpers\Theme;
 use App\Models\User;
-use App\Modules\Organizations\MembershipQuery;
 use App\Routes\Admin;
 use App\Routes\AdminLink;
 use App\Routes\ApiRoute;
 use App\Routes\Auth;
 use App\Routes\MiddlewareTag;
-use App\Routes\OrganizationRoute;
 use App\Routes\RouteIndex;
 use App\Routes\Web;
-use App\Sources\Db\App\Organizations;
 use App\Sources\Db\App\Users;
 use App\View\DataModels\AdminNav;
 use App\View\DataModels\Avatar;
@@ -28,8 +24,6 @@ use App\View\DataModels\Nav;
 use App\View\DataModels\NavItem;
 use App\View\DataModels\NavLink;
 use App\View\DataModels\NavRail;
-use App\View\DataModels\OrganizationNav;
-use App\View\DataModels\OrganizationSwitcher;
 use App\View\DataModels\SettingsNav;
 use App\View\DataModels\Svg;
 use App\View\DataModels\Topnav;
@@ -43,7 +37,23 @@ use Laravel\Head\Facades\Head;
 use Tests\Fixtures\RouteIndexStub;
 use Zerotoprod\DataModel\PropertyRequiredException;
 
-/** @return list<string> */
+// A case of the registry is the whole of registering an index: an enum it does not name
+// is not one, wherever that enum lives. The registry is read rather than discovered, so
+// the order it declares its cases in is the order the indexes come back in.
+
+// Docs are what an agent reads before touching an endpoint, and a link to a
+// file that does not exist is indistinguishable from a file it failed to find.
+// Cheaper to fail the gate than to have the reader re-search.
+
+/**
+ * The markdown this repo owns: the docs, and the instruction files at the root.
+ * `vendor` and `node_modules` are somebody else's to keep honest, and so is
+ * `docs/repos` — mirrored upstream docs, gitignored, written against link
+ * rewriters this repo does not run. Including them would make the gate fail or
+ * pass on whether a contributor happens to have synced a mirror.
+ *
+ * @return list<string>
+ */
 function markdownFiles(string $base): array
 {
     $files = glob($base.'/*.md') ?: [];
@@ -84,7 +94,7 @@ function taggedOrders(): array
 
 test('every rail, dropdown and head is built from route cases, active on its own path and shown where the page allows', function (): void {
     expect(AppConfig::routeIndexes())
-        ->toContain(Admin::class, ApiRoute::class, Auth::class, OrganizationRoute::class, Web::class)
+        ->toContain(Admin::class, ApiRoute::class, Auth::class, Web::class)
         ->and(AppConfig::routeIndexes())
         ->not->toContain(MiddlewareTag::class, RouteIndexStub::class)
         ->and(AppConfig::routeIndexes())->toBe(array_column(RouteIndex::cases(), 'value'));
@@ -114,39 +124,8 @@ test('every rail, dropdown and head is built from route cases, active on its own
         ->and($NavItem->icon)->toBe(SvgName::home)
         ->and($NavItem->route)->toBe(Web::home)
         ->and($NavItem->url())->toBe(Web::home->url())
-        ->and($NavItem->parameters)->toBeEmpty()
         ->and(static fn () => NavItem::from([NavItem::label => 'Home', NavItem::icon => SvgName::home]))
         ->toThrow(PropertyRequiredException::class);
-
-    $Parameterised = NavItem::from([
-        NavItem::label => 'Overview',
-        NavItem::icon => SvgName::home,
-        NavItem::route => OrganizationRoute::index,
-        NavItem::parameters => [OrganizationRoute::organizationParameter => 'acme'],
-    ]);
-
-    app()->instance('request', Request::create('/o/acme'));
-
-    expect($Parameterised->url())->toBe('/o/acme')
-        ->and($Parameterised->active())->toBeTrue()
-        ->and($Parameterised->url())->not->toContain('{');
-
-    app()->instance('request', Request::create('/o/globex'));
-
-    expect($Parameterised->active())->toBeFalse();
-
-    $Nested = NavItem::from([
-        NavItem::label => 'Members',
-        NavItem::icon => SvgName::user,
-        NavItem::route => OrganizationRoute::members,
-        NavItem::parameters => [OrganizationRoute::organizationParameter => 'acme'],
-        NavItem::nested => true,
-    ]);
-
-    app()->instance('request', Request::create('/o/acme/members/01hzz'));
-
-    expect($Nested->url())->toBe('/o/acme/members')
-        ->and($Nested->active())->toBeTrue();
 
     $Svg = Svg::from($NavItem->svg());
 
@@ -229,12 +208,10 @@ test('every rail, dropdown and head is built from route cases, active on its own
         ->assertOk()
         ->assertDontSee('aria-label="Settings"', false);
 
-    foreach (
-        [
-            'Credentials' => Auth::settingsCredential->url([Auth::credentialParameter => 'abc']),
-            'Sessions' => Auth::settingsSession->url([Auth::sessionParameter => 'abc']),
-        ] as $label => $url
-    ) {
+    foreach ([
+        'Credentials' => Auth::settingsCredential->url([Auth::credentialParameter => 'abc']),
+        'Sessions' => Auth::settingsSession->url([Auth::sessionParameter => 'abc']),
+    ] as $label => $url) {
         app()->instance('request', Request::create($url));
 
         $active = [];
@@ -246,53 +223,6 @@ test('every rail, dropdown and head is built from route cases, active on its own
         expect($active[$label])->toBeTrue()
             ->and($active['Profile'])->toBeFalse();
     }
-
-    // Every rail offers the areas it is the way in to, and a settings area with a
-    // page of its own is one of them: the entry stays lit across its sub-pages.
-    expect(collect(SettingsNav::items())->pluck('label')->all())
-        ->toContain('Organizations')
-        ->and(collect(LeftNav::items())->pluck('label')->all())
-        ->toContain('Organizations', 'Documentation');
-
-    foreach ([Auth::settingsOrganizations, Auth::settingsOrganizationCreate] as $Auth) {
-        app()->instance('request', Request::create($Auth->value));
-
-        $active = [];
-
-        foreach (SettingsNav::items() as $NavItem) {
-            $active[$NavItem->label] = $NavItem->active();
-        }
-
-        expect($active['Organizations'])->toBeTrue()
-            ->and($active['Profile'])->toBeFalse();
-    }
-
-    $Owner = User::factory()->createOne();
-    $Organization = memberOrganization($Owner, attributes: [Organizations::slug->value => 'acme']);
-    $Other = User::factory()->createOne();
-    MembershipQuery::add($Organization, $Other, OrganizationRole::admin);
-
-    $this->forgetCredentials()
-        ->actingAs($Owner)
-        ->get(OrganizationRoute::index->url([OrganizationRoute::organizationParameter => 'acme']))
-        ->assertOk()
-        ->assertSee('aria-label="Organization"', false)
-        ->assertSee(Auth::settingsOrganization->url([Auth::organizationParameter => $Organization->id]));
-
-    expect(collect(OrganizationNav::items())->pluck('label')->all())
-        ->toBe(['Overview', 'Connections', 'Members', 'Settings']);
-
-    // The rail never offers a page the caller would be refused at.
-    $this->forgetCredentials()
-        ->actingAs($Other)
-        ->get(OrganizationRoute::index->url([OrganizationRoute::organizationParameter => 'acme']))
-        ->assertOk()
-        ->assertDontSee(Auth::settingsOrganization->url([Auth::organizationParameter => $Organization->id]));
-
-    expect(collect(OrganizationNav::items())->pluck('label')->all())
-        ->toBe(['Overview', 'Connections', 'Members']);
-
-    $this->forgetCredentials();
 
     $this->get(Web::docsApi->value)
         ->assertOk()
@@ -405,22 +335,9 @@ test('every rail, dropdown and head is built from route cases, active on its own
 
     expect(Nav::admin->enum())->toBe(AdminNav::class)
         ->and(array_column(Nav::cases(), 'value'))
-        ->toBe([AdminNav::class, SettingsNav::class, DocsNav::class, OrganizationNav::class, LeftNav::class])
+        ->toBe([AdminNav::class, SettingsNav::class, DocsNav::class, LeftNav::class])
         ->and(View::exists('components.nav-rail'))->toBeTrue()
         ->and(View::exists('components.nav-link'))->toBeTrue();
-
-    // One case reads a context rather than a static declaration, so the loop below is
-    // run from inside that context: outside it that rail is empty by design, and an
-    // empty rail would say the registry is broken when it is only standing down.
-    $Railed = User::factory()->createOne();
-    $RailOrganization = memberOrganization($Railed, attributes: [Organizations::slug->value => 'rail-corp']);
-
-    $this->forgetCredentials()
-        ->actingAs($Railed)
-        ->get(OrganizationRoute::index->url([OrganizationRoute::organizationParameter => 'rail-corp']))
-        ->assertOk();
-
-    $railParameters = [OrganizationRoute::organizationParameter => 'rail-corp'];
 
     // The rail a case renders is the items its enum declares, in the order it declares
     // them, so the only thing a new navigation owes this test is the order it claims.
@@ -428,35 +345,25 @@ test('every rail, dropdown and head is built from route cases, active on its own
         Nav::admin->name => [Admin::index, Admin::users, Admin::sessions, Admin::content, Admin::links],
         Nav::settings->name => [
             Auth::settingsProfile,
-            Auth::settingsOrganizations,
             Auth::settingsAppearance,
             Auth::settingsSecurity,
             Auth::settingsCredentials,
             Auth::settingsSessions,
         ],
         Nav::docs->name => [Web::docsApi, Web::docsMcp],
-        Nav::organization->name => [
-            OrganizationRoute::index,
-            OrganizationRoute::connections,
-            OrganizationRoute::members,
-            Auth::settingsOrganization,
-        ],
-        Nav::left->name => [Web::home, Auth::settingsOrganizations, Web::docs, Web::contact],
+        Nav::left->name => [Web::home, Web::contact],
     ];
 
     foreach (Nav::cases() as $Nav) {
         $NavRail = NavRail::from($Nav->navRail());
 
-        // The registry holds the contract, not a shape: a navigation that reads a
-        // context is an ordinary class, and one that declares its items is an enum.
-        expect(class_exists($Nav->enum()))->toBeTrue()
+        expect(enum_exists($Nav->enum()))->toBeTrue()
             ->and(is_subclass_of($Nav->enum(), DescribesNav::class))->toBeTrue()
             ->and($Nav->items())->toEqual($Nav->enum()::items())
             ->and($NavRail->label)->not->toBeEmpty()
             ->and($NavRail->items)->toEqual($Nav->items())
             ->and($NavRail->items)->not->toBeEmpty()
-            ->and(array_map(static fn (NavItem $NavItem): object => $NavItem->route, $NavRail->items))
-            ->toBe($declared[$Nav->name]);
+            ->and(collect($NavRail->items)->pluck('route')->all())->toBe($declared[$Nav->name]);
 
         foreach ($NavRail->items as $NavItem) {
             $NavLink = NavLink::from($NavItem->navLink());
@@ -658,13 +565,11 @@ test('every rail, dropdown and head is built from route cases, active on its own
             ->assertSee("method: '$method'", false);
     }
 
-    foreach (
-        [
-            Web::termsOfService->value,
-            Web::privacyPolicy->value,
-            Web::contact->value,
-        ] as $route
-    ) {
+    foreach ([
+        Web::termsOfService->value,
+        Web::privacyPolicy->value,
+        Web::contact->value,
+    ] as $route) {
         $content = (string) $this->get($route)->assertOk()->getContent();
 
         preg_match('/<link rel="canonical" href="([^"]+)"/', $content, $canonical);
@@ -683,8 +588,8 @@ test('every rail, dropdown and head is built from route cases, active on its own
         ->assertOk()
         ->assertSee('href="'.Web::login->value.'"', false)
         ->assertSee('href="'.Web::contact->value.'"', false)
-        ->assertSee('>Login</a>', false)
-        ->assertSee('>Contact</a>', false)
+        ->assertSee('>Login</span>', false)
+        ->assertSee('>Contact</span>', false)
         ->assertSee(Config::string('app.name'))
         ->assertSee(Config::string('brand.logo_title'));
 
@@ -711,41 +616,4 @@ test('every rail, dropdown and head is built from route cases, active on its own
         ->assertDontSee('data-digitalforte-link', false)
         ->assertDontSee('digitalforte_referral_click')
         ->assertSee(Config::string('app.name'));
-});
-
-test('organization nav and switcher coverage', function (): void {
-    $User = User::factory()->createOne();
-    $Organization = memberOrganization($User, attributes: [
-        Organizations::name->value => 'Test Corp',
-        Organizations::slug->value => 'test-corp',
-    ]);
-
-    app()->instance('request', Request::create('/o/test-corp'));
-
-    $this->actingAs($User)->get(OrganizationRoute::index->url([OrganizationRoute::organizationParameter => 'test-corp']))->assertOk();
-
-    expect(OrganizationNav::visible())->toBeTrue()
-        ->and(OrganizationNav::label())->toBe('Organization')
-        ->and(OrganizationNav::items())->toHaveCount(4);
-
-    $Switcher = OrganizationSwitcher::current();
-    assert($Switcher instanceof OrganizationSwitcher);
-
-    expect($Switcher->name)->toBe('Test Corp')
-        ->and($Switcher->slug)->toBe('test-corp')
-        ->and($Switcher->initials())->toBe('TC')
-        ->and($Switcher->iconUrl())->toBeNull()
-        ->and($Switcher->sections())->toHaveCount(1)
-        ->and(OrganizationNav::items()[0]->label)->toBe('Overview')
-        ->and(OrganizationNav::items()[1]->label)->toBe('Connections')
-        ->and(OrganizationNav::items()[2]->label)->toBe('Members')
-        ->and(OrganizationNav::items()[3]->label)->toBe('Settings')
-        ->and(OrganizationNav::items()[3]->url())
-        ->toBe(Auth::settingsOrganization->url([Auth::organizationParameter => $Organization->id]));
-
-    app()->instance('request', Request::create(Web::home->value));
-
-    expect(OrganizationNav::visible())->toBeFalse()
-        ->and(OrganizationSwitcher::current())->toBeNull()
-        ->and(OrganizationNav::items())->toBeEmpty();
 });

@@ -17,7 +17,7 @@ readonly class SitemapPageController
         }
 
         $urls = array_map(
-            static fn (Web $Case): string => '    <url><loc>'.url($Case->url()).'</loc>'
+            static fn (Web $Case): string => '    <url><loc>'.Sitemap::location($Case).'</loc>'
                 .Sitemap::lastmod($Case).'</url>',
             $cases,
         );
