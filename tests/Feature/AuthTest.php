@@ -36,6 +36,7 @@ use App\Routes\Auth;
 use App\Sources\Db\App\OauthProviders;
 use App\Sources\Db\App\Users;
 use App\View\DataModels\AuthCard;
+use App\View\DataModels\Avatar;
 use App\View\DataModels\PictureField;
 use Firebase\JWT\JWT;
 use GuzzleHttp\Promise\PromiseInterface;
@@ -358,7 +359,7 @@ test('every credential the application accepts is adapted, validated, related to
         ->and($ProfilePicture->url())->toBeNull();
     $Disk->assertMissing($facePath);
 
-    expect(pictureField([PictureField::label => 'John Doe'])->initials())->toBe('JD')
+    expect(Avatar::from(pictureField([PictureField::label => 'John Doe'])->avatar())->initials())->toBe('JD')
         ->and(pictureField()->accept)->toBe(Extension::imageFilter())
         ->and(pictureField()->uploads)->toBe(Disk::retains())
         ->and(pictureField()->remove())->toBe('picture-remove')

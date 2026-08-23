@@ -5,11 +5,10 @@ namespace App\View\DataModels;
 use App\Helpers\DataModel;
 use App\Helpers\Disk;
 use App\Helpers\Extension;
-use App\Helpers\Initials;
 use App\Helpers\SvgName;
 use Zerotoprod\DataModel\Describe;
 
-class PictureField
+readonly class PictureField
 {
     use DataModel;
 
@@ -25,19 +24,23 @@ class PictureField
 
     public const string legend = 'legend';
 
-    public string $legend = 'Picture';
+    #[Describe([Describe::default => 'Picture'])]
+    public string $legend;
 
     public const string label = 'label';
 
-    public string $label = '';
+    #[Describe([Describe::default => ''])]
+    public string $label;
 
     public const string picture = 'picture';
 
-    public ?string $picture = null;
+    #[Describe([Describe::nullable => true])]
+    public ?string $picture;
 
     public const string size = 'size';
 
-    public string $size = 'w-40';
+    #[Describe([Describe::default => 'w-40'])]
+    public string $size;
 
     public const string accept = 'accept';
 
@@ -51,7 +54,8 @@ class PictureField
 
     public const string bag = 'bag';
 
-    public string $bag = 'default';
+    #[Describe([Describe::default => 'default'])]
+    public string $bag;
 
     /** @return array<string, mixed> */
     public function fieldset(): array
@@ -60,6 +64,17 @@ class PictureField
             Fieldset::legend => $this->legend,
             Fieldset::name => $this->field,
             Fieldset::bag => $this->bag,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    public function avatar(): array
+    {
+        return [
+            Avatar::name => $this->label,
+            Avatar::picture => $this->picture,
+            Avatar::size => $this->size,
+            Avatar::text => 'text-4xl',
         ];
     }
 
@@ -75,10 +90,5 @@ class PictureField
     public function remove(): string
     {
         return $this->field.'-remove';
-    }
-
-    public function initials(): string
-    {
-        return Initials::from($this->label);
     }
 }

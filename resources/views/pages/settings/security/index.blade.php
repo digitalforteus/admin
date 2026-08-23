@@ -3,6 +3,7 @@
 use App\Models\User;
 use App\Modules\Settings\Authentication\PasswordForm;
 use App\Routes\Auth;
+use App\View\DataModels\Avatar;
 use App\View\DataModels\SettingsCard;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Str;
@@ -179,11 +180,7 @@ Head::title('Security')
             @forelse($OauthProviders as $OauthProvider)
                 <div class="flex flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between" data-oauth-provider>
                     <div class="flex min-w-0 items-center gap-3">
-                        <div class="avatar">
-                            <div class="w-11 rounded-full">
-                                <img src="{{$OauthProvider->picture}}" alt="" referrerpolicy="no-referrer">
-                            </div>
-                        </div>
+                        <x-avatar :avatar="[Avatar::name => $OauthProvider->name, Avatar::picture => $OauthProvider->picture, Avatar::size => 'w-11']"/>
                         <div class="min-w-0">
                             <div class="flex items-center gap-2">
                                 <span class="font-medium" title="{{Str::headline($OauthProvider->provider_id->value)}}">{{Str::headline($OauthProvider->provider_id->value)}}</span>

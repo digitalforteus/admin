@@ -5,15 +5,7 @@
 @endphp
 <x-field :fieldset="$PictureField->fieldset()">
     <div class="relative w-fit" data-picture-field>
-        <div @class(['avatar', 'avatar-placeholder' => $PictureField->picture === null])>
-            <div class="{{$PictureField->size}} rounded-full">
-                @if($PictureField->picture !== null)
-                    <img src="{{$PictureField->picture}}" alt="{{$PictureField->label}}" title="{{$PictureField->label}}" referrerpolicy="no-referrer">
-                @else
-                    <span class="text-4xl" title="{{$PictureField->initials()}}">{{$PictureField->initials()}}</span>
-                @endif
-            </div>
-        </div>
+        <x-avatar :avatar="$PictureField->avatar()"/>
         <div class="dropdown dropdown-bottom dropdown-start absolute bottom-3 left-0">
             <div tabindex="0" role="button" class="gap-1 btn btn-sm" title="Edit {{$PictureField->legend}}">
                 <x-svg :svg="$PictureField->svg()"/>

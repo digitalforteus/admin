@@ -4,7 +4,6 @@ namespace App\View\DataModels;
 
 use App\Helpers\DataModel;
 use App\Helpers\Gravatar;
-use App\Helpers\Initials;
 use App\Routes\Admin;
 use App\Sources\Db\App\Users;
 use Illuminate\Support\Carbon;
@@ -55,14 +54,20 @@ readonly class UserRow
         return Admin::user->url([Admin::userParameter => $this->id]);
     }
 
-    public function initials(): string
-    {
-        return Initials::from($this->name);
-    }
-
     public function picture(): string
     {
         return $this->picture ?? Gravatar::url($this->email);
+    }
+
+    /** @return array<string, mixed> */
+    public function avatar(): array
+    {
+        return [
+            Avatar::name => $this->name,
+            Avatar::picture => $this->picture(),
+            Avatar::size => 'w-8',
+            Avatar::text => 'text-xs',
+        ];
     }
 
     public function emailVerified(): bool
