@@ -1,5 +1,6 @@
 @props(['organizationsTable'])
 @php
+    use App\View\DataModels\Avatar;
     use App\View\DataModels\OrganizationsTable;
     $OrganizationsTable = OrganizationsTable::from($organizationsTable);
 @endphp
@@ -22,15 +23,7 @@
             @forelse($OrganizationsTable->rows() as $OrganizationRow)
                 <tr data-organization-row>
                     <td>
-                        <div @class(['avatar', 'avatar-placeholder' => $OrganizationRow->iconUrl() === null])>
-                            <div class="w-8 rounded-full bg-neutral text-neutral-content">
-                                @if($OrganizationRow->iconUrl() !== null)
-                                    <img src="{{$OrganizationRow->iconUrl()}}" alt="{{$OrganizationRow->name}}" title="{{$OrganizationRow->name}}">
-                                @else
-                                    <span class="text-xs" title="{{$OrganizationRow->initials()}}">{{$OrganizationRow->initials()}}</span>
-                                @endif
-                            </div>
-                        </div>
+                        <x-avatar :avatar="[Avatar::name => $OrganizationRow->name, Avatar::picture => $OrganizationRow->iconUrl(), Avatar::size => 'w-8']"/>
                     </td>
                     <td class="whitespace-nowrap" title="{{$OrganizationRow->name}}">{{$OrganizationRow->name}}</td>
                     <td class="whitespace-nowrap">{{$OrganizationRow->createdAt()}}</td>

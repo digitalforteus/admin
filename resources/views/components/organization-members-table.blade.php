@@ -2,6 +2,7 @@
 @php
     use App\Modules\Organizations\Invitations\InvitationRequest;
     use App\Modules\Organizations\Members\MemberRequest;
+    use App\View\DataModels\Avatar;
     use App\View\DataModels\OrganizationMembersTable;
     use App\View\DataModels\TextInput;
     $OrganizationMembersTable = OrganizationMembersTable::from($organizationMembersTable);
@@ -37,11 +38,7 @@
             @forelse($OrganizationMembersTable->rows() as $MemberRow)
                 <tr data-member-row>
                     <td>
-                        <div class="avatar avatar-placeholder">
-                            <div class="w-8 rounded-full bg-neutral text-neutral-content">
-                                <span class="text-xs" title="{{$MemberRow->initials()}}">{{$MemberRow->initials()}}</span>
-                            </div>
-                        </div>
+                        <x-avatar :avatar="[Avatar::name => $MemberRow->name, Avatar::size => 'w-8']"/>
                     </td>
                     <td class="whitespace-nowrap" title="{{$MemberRow->name}}">{{$MemberRow->name}}</td>
                     <td class="whitespace-nowrap" title="{{$MemberRow->email}}">{{$MemberRow->email}}</td>

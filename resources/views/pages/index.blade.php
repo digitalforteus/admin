@@ -1,6 +1,10 @@
 <?php
 
+use App\Models\User;
+use App\Modules\Settings\Organizations\OrganizationQuery;
 use App\Routes\Web;
+use App\View\DataModels\Avatar;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
 use Laravel\Head\Facades\Head;
 
@@ -96,59 +100,35 @@ $structuredData = [
     <script type="application/ld+json">{!! json_encode($structuredData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_THROW_ON_ERROR) !!}</script>
     <x-status-toast/>
 
-    <nav aria-label="Client and contact links" class="mx-auto grid max-w-6xl gap-4 px-6 pb-16 lg:grid-cols-2 lg:px-10 lg:pb-20">
-        @guest
-            <a href="{{Web::login->value}}" class="group border border-base-300 bg-base-100 p-6 hover:border-primary" data-home-login>
-                <span class="text-lg font-semibold text-primary group-hover:underline">Login</span>
-                <span class="mt-2 block text-sm leading-relaxed text-base-content/70">
-                    Sign in securely to access your client account, software services, and API credentials.
-                </span>
-            </a>
-        @endguest
-        <a href="{{Web::contact->value}}" class="group border border-base-300 bg-base-100 p-6 hover:border-primary">
-            <span class="text-lg font-semibold text-primary group-hover:underline">Contact</span>
-            <span class="mt-2 block text-sm leading-relaxed text-base-content/70">
-                Talk with us about automation, consulting, custom development, or account support.
-            </span>
-        </a>
-    </nav>
-
-    <nav aria-labelledby="site-links-title" class="mx-auto max-w-6xl px-6 pb-16 lg:px-10 lg:pb-20">
-        <h2 id="site-links-title" class="mb-4 text-xl font-bold">Explore</h2>
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <a href="{{Web::openapi->value}}" class="group border border-base-300 bg-base-100 p-6 hover:border-primary">
-                <span class="text-lg font-semibold text-primary group-hover:underline">OpenAPI Spec</span>
-                <span class="mt-2 block text-sm leading-relaxed text-base-content/70">
-                    Download the machine-readable contract for {{$appName}}'s public API.
-                </span>
-            </a>
-            @guest
-                <a href="{{Web::login->value}}" class="group border border-base-300 bg-base-100 p-6 hover:border-primary">
-                    <span class="text-lg font-semibold text-primary group-hover:underline">Login</span>
-                    <span class="mt-2 block text-sm leading-relaxed text-base-content/70">
-                    Log in to create credentials and connect an agent through MCP.
-                </span>
-                </a>
-            @endguest
-            <a href="{{Web::mcp->value}}" class="group border border-base-300 bg-base-100 p-6 hover:border-primary">
-                <span class="text-lg font-semibold text-primary group-hover:underline">MCP Server</span>
-                <span class="mt-2 block text-sm leading-relaxed text-base-content/70">
-                    Connect coding agents to the API.
-                </span>
-            </a>
-            <a href="{{Web::llms->value}}" class="group border border-base-300 bg-base-100 p-6 hover:border-primary">
-                <span class="text-lg font-semibold text-primary group-hover:underline">Agent Instructions</span>
-                <span class="mt-2 block text-sm leading-relaxed text-base-content/70">
-                    Give agents concise instructions for understanding and using {{$appName}}.
-                </span>
-            </a>
-            <a href="{{Web::contact->value}}" class="group border border-base-300 bg-base-100 p-6 hover:border-primary">
-                <span class="text-lg font-semibold text-primary group-hover:underline">Contact {{$appName}}</span>
-                <span class="mt-2 block text-sm leading-relaxed text-base-content/70">
-                    Ask about services, integrations, account access, or support.
-                </span>
-            </a>
-        </div>
-    </nav>
-
+    @auth
+        @php
+            $User = Auth::user();
+            if ($User instanceof User) {
+                $Organizations = OrganizationQuery::get($User);
+                $organizationCards = array_map(static function (array $org): array {
+                    return [
+                        ...$org,
+                        'url' => '/o/' . $org['slug'],
+                    ];
+                }, $Organizations);
+            } else {
+                $organizationCards = [];
+            }
+        @endphp
+        @if ($organizationCards)
+            <nav aria-labelledby="organizations-title" class="mx-auto max-w-6xl px-6 pb-16 lg:px-10 lg:pb-20">
+                <h2 id="organizations-title" class="mb-4 text-xl font-bold">Your organizations</h2>
+                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    @foreach ($organizationCards as $card)
+                        <a href="{{ $card['url'] }}" class="group border border-base-300 bg-base-100 p-6 hover:border-primary">
+                            <div class="flex items-center gap-3">
+                                <x-avatar :avatar="[Avatar::name => $card['name'], Avatar::picture => $card['icon'], Avatar::size => 'w-10']"/>
+                                <span class="text-lg font-semibold text-primary group-hover:underline">{{ $card['name'] }}</span>
+                            </div>
+                        </a>
+                    @endforeach
+                </div>
+            </nav>
+        @endif
+    @endauth
 </x-main>

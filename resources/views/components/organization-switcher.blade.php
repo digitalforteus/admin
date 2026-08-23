@@ -1,6 +1,7 @@
 @props(['organizationSwitcher'])
 @php
     use App\Helpers\SvgName;
+    use App\View\DataModels\Avatar;
     use App\View\DataModels\OrganizationSwitcher;
     use App\View\DataModels\Svg;
     $OrganizationSwitcher = OrganizationSwitcher::from($organizationSwitcher);
@@ -9,15 +10,7 @@
     <div tabindex="0" role="button" data-organization-switcher
          class="flex w-full items-center gap-3 rounded-box border border-base-300 bg-base-100 px-3 py-2 text-left"
          title="{{$OrganizationSwitcher->name}}">
-        <div @class(['avatar', 'avatar-placeholder' => $OrganizationSwitcher->iconUrl() === null])>
-            <div class="w-8 rounded-full bg-neutral text-neutral-content">
-                @if($OrganizationSwitcher->iconUrl() !== null)
-                    <img src="{{$OrganizationSwitcher->iconUrl()}}" alt="{{$OrganizationSwitcher->name}}" title="{{$OrganizationSwitcher->name}}">
-                @else
-                    <span class="text-xs" title="{{$OrganizationSwitcher->initials()}}">{{$OrganizationSwitcher->initials()}}</span>
-                @endif
-            </div>
-        </div>
+        <x-avatar :avatar="[Avatar::name => $OrganizationSwitcher->name, Avatar::picture => $OrganizationSwitcher->iconUrl(), Avatar::size => 'w-8']"/>
         <div class="min-w-0 grow">
             <p class="truncate font-semibold" title="{{$OrganizationSwitcher->name}}">{{$OrganizationSwitcher->name}}</p>
             <p class="truncate text-xs opacity-60" title="{{$OrganizationSwitcher->enterprise}}">{{$OrganizationSwitcher->enterprise}}</p>
