@@ -64,6 +64,8 @@ Five files, and no others: `app/Routes/Admin.php`, `routes/web_admin.php`, the n
 
 Call `mcp__project__scaffold-endpoint` — it writes the route case, request DTO, response DTO, schema, controller and test together, already matching the conventions, with a marker where a decision is left. Fill in the action body and the test assertions; that is the whole job. Hand-writing the four files instead is the mistake that costs the most: it reads a sibling module to copy the shape, then pays several `check` cycles for what the generator gets right the first time. `dry_run` shows the artifacts without writing them. `Write` creates missing directories — never `mkdir` first.
 
+Without scaffolding: add a case to `app/Routes/Admin.php` (or `ApiRoute.php`), create `Request.php` and `Response.php` in `app/Modules/Api/<Layer>/<Thing>/<Action>/` with `DataModel` and `Has*Schema` traits, create `Schema.php` implementing `DescribesOperation`, and create `Controller.php` with the `__invoke` method; bind in the matching `routes/api*.php` file. Rector enforces PascalCase parameter names in the controller method (e.g., `$Request` not `$request`), so name it correctly the first time to avoid a gate retry.
+
 The DTOs have no constructor: properties are declared with `#[Request]`/`#[Response]` plus the `DataModel` and `Has*Schema` traits, built with `::from($array)`, returned through `api_response()->created(...)`. Declare only the statuses a test reaches — `openapi:coverage` fails a declared response nothing exercises.
 
 phpstan at max, the two rules a new module trips: a `readonly` property may not carry a default value, and every `array` in a signature needs a generic (`@return array<string, mixed>`, `@param`). Fix both before the first `check`, not after.
