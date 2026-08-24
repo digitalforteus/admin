@@ -6,6 +6,7 @@ use App\Helpers\OrganizationRole;
 use App\Helpers\SvgName;
 use App\Models\Connection;
 use App\Models\Organization;
+use App\Models\Project;
 use App\Models\User;
 use App\Modules\Connections\ConnectionProvider;
 use App\Modules\Organizations\MembershipQuery;
@@ -43,19 +44,13 @@ readonly class OrganizationNav implements DescribesNav
                 NavItem::parameters => $parameters,
             ]),
             NavItem::from([
-                NavItem::label => 'Connections',
-                NavItem::icon => SvgName::link,
-                NavItem::route => OrganizationRoute::connections,
-                NavItem::parameters => $parameters,
-                NavItem::nested => true,
-            ]),
-            NavItem::from([
                 NavItem::label => 'Projects',
                 NavItem::icon => SvgName::folder,
                 NavItem::route => OrganizationRoute::projects,
                 NavItem::parameters => $parameters,
                 NavItem::nested => true,
             ]),
+            ...self::inProject($Organization),
             NavItem::from([
                 NavItem::label => 'Members',
                 NavItem::icon => SvgName::user,
@@ -64,7 +59,7 @@ readonly class OrganizationNav implements DescribesNav
                 NavItem::nested => true,
             ]),
             ...self::owned($Organization),
-            ...self::plugin($Organization),
+            ...self::plugin(),
         ];
     }
 
@@ -87,15 +82,47 @@ readonly class OrganizationNav implements DescribesNav
         ];
     }
 
-    /** @return list<NavItem> */
-    private static function plugin(Organization $Organization): array
+    /**
+     * The rail a project adds while the address is inside one.
+     *
+     * A depth that is not being visited contributes nothing, so the rail is the
+     * depths the address actually reached and never a fixed list: an entry offered
+     * for a depth with no context resolved would have no url to point at.
+     *
+     * @return list<NavItem>
+     */
+    private static function inProject(Organization $Organization): array
     {
-        $Connection = OrganizationContext::connection();
+        $Project = OrganizationContext::project();
 
-        if (! $Connection instanceof Connection) {
+        if (! $Project instanceof Project) {
             return [];
         }
 
-        return ConnectionProvider::pluginFor($Connection->provider)?->navItems($Organization, $Connection) ?? [];
+        return [
+            NavItem::from([
+                NavItem::label => 'Connections',
+                NavItem::icon => SvgName::link,
+                NavItem::route => OrganizationRoute::connections,
+                NavItem::parameters => [
+                    OrganizationRoute::organizationParameter => $Organization->slug,
+                    OrganizationRoute::projectParameter => $Project->slug,
+                ],
+                NavItem::nested => true,
+            ]),
+        ];
+    }
+
+    /** @return list<NavItem> */
+    private static function plugin(): array
+    {
+        $Project = OrganizationContext::project();
+        $Connection = OrganizationContext::connection();
+
+        if (! $Project instanceof Project || ! $Connection instanceof Connection) {
+            return [];
+        }
+
+        return ConnectionProvider::pluginFor($Connection->provider)?->navItems($Project, $Connection) ?? [];
     }
 }

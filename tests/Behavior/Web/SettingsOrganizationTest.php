@@ -15,6 +15,7 @@ use App\Routes\Web;
 use App\Sources\Db\App\Connections;
 use App\Sources\Db\App\Organizations;
 use App\Sources\Db\App\OrganizationUser;
+use App\Sources\Db\App\Projects;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
@@ -193,7 +194,8 @@ test('an image larger than the limit is rejected', function (): void {
 test('only an owner may open or write to the page, and what deletion takes is shown before it is pressed', function (): void {
     $Owner = User::factory()->createOne();
     $Organization = memberOrganization($Owner, attributes: [Organizations::name->value => 'Acme Inc.']);
-    $Connection = organizationConnection($Organization, attributes: [
+    $Project = memberProject($Organization, [Projects::name->value => 'Website Redesign']);
+    $Connection = projectConnection($Project, attributes: [
         Connections::name->value => 'Primary Repo',
         Connections::slug->value => 'primary-repo',
     ]);
@@ -210,11 +212,11 @@ test('only an owner may open or write to the page, and what deletion takes is sh
         ->assertOk()
         ->assertSee('data-organization-delete', false)
         ->assertSee('data-organization-member', false)
-        ->assertSee('data-organization-connection', false)
+        ->assertSee('data-organization-project', false)
         ->assertSee($Owner->name)
         ->assertSee($Admin->name)
         ->assertSee($Member->name)
-        ->assertSee('Primary Repo');
+        ->assertSee('Website Redesign');
 
     // Holding a membership is not holding the organization: every write is the
     // owner's, and an administrator of it is refused along with a plain member.
@@ -230,14 +232,15 @@ test('only an owner may open or write to the page, and what deletion takes is sh
 
     expect($Organization->refresh()->name)->toBe('Acme Inc.');
 
-    // An organization that has switched nothing on says so rather than nothing.
-    ConnectionQuery::disable($Organization, $Connection);
+    // An organization holding nothing says so rather than nothing.
+    ConnectionQuery::disable($Project, $Connection);
+    $Project->delete();
 
     $this->forgetCredentials()
         ->actingAs($Owner)
         ->get(organizationUrl($Organization))
         ->assertOk()
-        ->assertSee('data-organization-connections-empty', false);
+        ->assertSee('data-organization-projects-empty', false);
 
     $this->actingAs($Owner)
         ->from(organizationUrl($Organization))

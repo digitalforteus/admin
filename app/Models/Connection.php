@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Sources\Db\App\Connections;
-use App\Sources\Db\App\OrganizationConnection;
+use App\Sources\Db\App\ProjectConnection;
 use Database\Factories\ConnectionFactory;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
@@ -24,7 +24,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read Enterprise $enterprise
- * @property-read Collection<int, Organization> $organizations
+ * @property-read Collection<int, Project> $projects
  *
  * @mixin IdeHelperConnection
  */
@@ -69,11 +69,11 @@ class Connection extends Model
         return $this->belongsTo(Enterprise::class);
     }
 
-    /** @return BelongsToMany<Organization, $this> */
-    public function organizations(): BelongsToMany
+    /** @return BelongsToMany<Project, $this> */
+    public function projects(): BelongsToMany
     {
-        return $this->belongsToMany(Organization::class, OrganizationConnection::table())
-            ->withPivot(OrganizationConnection::enabled_at->value)
+        return $this->belongsToMany(Project::class, ProjectConnection::table())
+            ->withPivot(ProjectConnection::enabled_at->value)
             ->withTimestamps();
     }
 }

@@ -1,6 +1,5 @@
 <?php
 
-use App\Modules\Connections\ConnectionQuery;
 use App\Modules\Organizations\MembershipQuery;
 use App\Modules\Organizations\OrganizationContext;
 use App\Routes\OrganizationRoute;
@@ -12,8 +11,10 @@ Head::title('Organization')
     ->hiddenFromRobots();
 ?>
 @php
+    use App\Modules\Projects\ProjectQuery;
+
     $Organization = OrganizationContext::organization();
-    $enabled = ConnectionQuery::enabledFor($Organization);
+    $Projects = ProjectQuery::forOrganization($Organization);
     $Role = MembershipQuery::role($Organization, request()->user());
     $parameters = [OrganizationRoute::organizationParameter => $Organization->slug];
 @endphp
@@ -32,12 +33,12 @@ Head::title('Organization')
             <dd class="mt-1 font-medium" title="{{$Role?->value}}">{{$Role?->label() ?? '—'}}</dd>
         </div>
         <div class="rounded-box border border-base-300 p-4">
-            <dt class="text-xs uppercase tracking-wider text-base-content/55">Connections</dt>
-            <dd class="mt-1 font-medium" title="{{count($enabled)}}">{{count($enabled)}} enabled</dd>
+            <dt class="text-xs uppercase tracking-wider text-base-content/55">Projects</dt>
+            <dd class="mt-1 font-medium" title="{{count($Projects)}}">{{count($Projects)}}</dd>
         </div>
     </dl>
     <div class="mt-6 flex flex-wrap gap-2">
-        <a class="btn btn-sm" href="{{OrganizationRoute::connections->url($parameters)}}">Connections</a>
+        <a class="btn btn-sm" href="{{OrganizationRoute::projects->url($parameters)}}">Projects</a>
         <a class="btn btn-sm" href="{{OrganizationRoute::members->url($parameters)}}">Members</a>
     </div>
 </x-organization-card>

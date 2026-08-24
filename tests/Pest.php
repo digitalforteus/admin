@@ -5,10 +5,12 @@ use App\Helpers\Role;
 use App\Models\Connection;
 use App\Models\Organization;
 use App\Models\PersonalAccessToken;
+use App\Models\Project;
 use App\Models\User;
 use App\Modules\Connections\ConnectionQuery;
 use App\Modules\Organizations\MembershipQuery;
 use App\Sources\Db\App\Connections;
+use App\Sources\Db\App\Projects;
 use Laravel\Sanctum\NewAccessToken;
 use Tests\TestCase;
 
@@ -42,15 +44,24 @@ function memberOrganization(
 }
 
 /** @param  array<string, mixed>  $attributes */
-function organizationConnection(Organization $Organization, bool $enabled = true, array $attributes = []): Connection
+function memberProject(Organization $Organization, array $attributes = []): Project
+{
+    return Project::factory()->createOne([
+        Projects::organization_id->value => $Organization->id,
+        ...$attributes,
+    ]);
+}
+
+/** @param  array<string, mixed>  $attributes */
+function projectConnection(Project $Project, bool $enabled = true, array $attributes = []): Connection
 {
     $Connection = Connection::factory()->createOne([
-        Connections::enterprise_id->value => $Organization->enterprise_id,
+        Connections::enterprise_id->value => $Project->organization->enterprise_id,
         ...$attributes,
     ]);
 
     if ($enabled) {
-        ConnectionQuery::enable($Organization, $Connection);
+        ConnectionQuery::enable($Project, $Connection);
     }
 
     return $Connection;

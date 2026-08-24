@@ -1,7 +1,6 @@
 <?php
 
 use App\Modules\Connections\ConnectionProvider;
-use App\Modules\Organizations\Authorize;
 use App\Modules\Organizations\Connections\ConnectionFields;
 use App\Modules\Organizations\Connections\ConnectionForm;
 use App\Routes\OrganizationRoute;
@@ -16,12 +15,20 @@ Head::title('New Connection')
     ->hiddenFromRobots();
 ?>
 @php
+    use App\Modules\Organizations\Authorize;
+    use App\Modules\Organizations\OrganizationContext;
+    use App\Modules\Projects\ProjectQuery;
+
     $Organization = Authorize::owns(request());
+    $Project = ProjectQuery::find($Organization, OrganizationContext::project()->slug);
     $Provider = ConnectionProvider::tryFromKey(request()->string(Connections::provider->value)->value());
-    $parameters = [OrganizationRoute::organizationParameter => $Organization->slug];
+    $parameters = [
+        OrganizationRoute::organizationParameter => $Organization->slug,
+        OrganizationRoute::projectParameter => $Project->slug,
+    ];
 @endphp
 <x-organization-card :organizationCard="[
-    OrganizationCard::organization => $Organization->name,
+    OrganizationCard::organization => $Project->name,
     OrganizationCard::title => 'New Connection',
 ]">
     <x-status-toast/>

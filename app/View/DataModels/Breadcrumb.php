@@ -44,7 +44,7 @@ readonly class Breadcrumb
             self::enterprise($User),
             self::organization($User),
             self::project($User),
-            self::connection(),
+            self::connection($User),
         ]));
 
         return $segments === [] ? null : self::from([self::segments => $segments]);
@@ -239,16 +239,25 @@ readonly class Breadcrumb
     }
 
     /** @return array<string, mixed>|null */
-    private static function connection(): ?array
+    private static function connection(User $User): ?array
     {
         $Organization = OrganizationContext::organization();
+        $Project = OrganizationContext::project();
         $Connection = OrganizationContext::connection();
 
-        if (! $Organization instanceof Organization || ! $Connection instanceof Connection) {
+        if (! $Organization instanceof Organization || ! $Project instanceof Project) {
             return null;
         }
 
-        $parameters = [OrganizationRoute::organizationParameter => $Organization->slug];
+        if (! $Connection instanceof Connection) {
+            return null;
+        }
+
+        $parameters = [
+            OrganizationRoute::organizationParameter => $Organization->slug,
+            OrganizationRoute::projectParameter => $Project->slug,
+        ];
+        $owns = MembershipQuery::role($Organization, $User) === OrganizationRole::owner;
 
         return [
             BreadcrumbSegment::label => $Connection->name,
@@ -259,12 +268,12 @@ readonly class Breadcrumb
             BreadcrumbSegment::picture => null,
             BreadcrumbSegment::fallback => SvgName::link,
             BreadcrumbSegment::switchLabel => 'Switch connection',
-            BreadcrumbSegment::settingsUrl => OrganizationRoute::connectionManage->url([
+            BreadcrumbSegment::settingsUrl => self::connectionSettings($owns, [
                 ...$parameters,
                 OrganizationRoute::connectionParameter => $Connection->slug,
             ]),
             BreadcrumbSegment::settingsLabel => 'Connection settings',
-            BreadcrumbSegment::createUrl => OrganizationRoute::connectionCreate->url($parameters),
+            BreadcrumbSegment::createUrl => self::connectionCreate($owns, $parameters),
             BreadcrumbSegment::createLabel => 'New connection',
             BreadcrumbSegment::items => array_map(
                 static fn (Connection $Each): array => [
@@ -276,8 +285,28 @@ readonly class Breadcrumb
                     BreadcrumbItem::picture => null,
                     BreadcrumbItem::fallback => SvgName::link,
                 ],
-                self::beside(ConnectionQuery::enabledFor($Organization), $Connection->slug),
+                self::beside(ConnectionQuery::enabledFor($Project), $Connection->slug),
             ),
         ];
+    }
+
+    /** @param  array<string, string|int>  $parameters */
+    private static function connectionSettings(bool $owns, array $parameters): ?string
+    {
+        if (! $owns) {
+            return null;
+        }
+
+        return OrganizationRoute::connectionManage->url($parameters);
+    }
+
+    /** @param  array<string, string|int>  $parameters */
+    private static function connectionCreate(bool $owns, array $parameters): ?string
+    {
+        if (! $owns) {
+            return null;
+        }
+
+        return OrganizationRoute::connectionCreate->url($parameters);
     }
 }

@@ -6,7 +6,7 @@ use App\Helpers\DataModel;
 use App\Routes\OrganizationRoute;
 use Zerotoprod\DataModel\Describe;
 
-readonly class OrganizationConnectionsTable
+readonly class ProjectConnectionsTable
 {
     use DataModel;
 
@@ -14,6 +14,11 @@ readonly class OrganizationConnectionsTable
 
     #[Describe([Describe::required => true])]
     public string $organization;
+
+    public const string project = 'project';
+
+    #[Describe([Describe::required => true])]
+    public string $project;
 
     public const string manages = 'manages';
 
@@ -35,6 +40,7 @@ readonly class OrganizationConnectionsTable
     {
         return OrganizationRoute::connectionCreate->url([
             OrganizationRoute::organizationParameter => $this->organization,
+            OrganizationRoute::projectParameter => $this->project,
         ]);
     }
 
@@ -44,6 +50,7 @@ readonly class OrganizationConnectionsTable
         return array_map(
             fn (array $connection): ConnectionRow => ConnectionRow::from([
                 ConnectionRow::organization => $this->organization,
+                ConnectionRow::project => $this->project,
                 ...$connection,
             ]),
             $this->connections,

@@ -21,26 +21,26 @@ use ZeroToProd\DbModel\Table;
 #[Table(
     schema: App::class,
     attributes: [
-        Table::name => 'organization_connection',
+        Table::name => 'project_connection',
         Table::collate => 'utf8mb4_unicode_ci',
         Table::indexes => [
-            'organization_connection_connection_id_foreign' => [
+            'project_connection_connection_id_foreign' => [
                 self::connection_id,
             ],
         ],
     ])]
-enum OrganizationConnection: string
+enum ProjectConnection: string
 {
     use HasColumn;
 
     #[Column([
-        Column::name => self::organization_id,
+        Column::name => self::project_id,
         Column::type => ColumnType::char->value,
         Column::length => 26,
         Column::nullable => false,
         Column::primary_key => true,
     ])]
-    case organization_id = 'organization_id';
+    case project_id = 'project_id';
 
     #[Column([
         Column::name => self::connection_id,
@@ -53,7 +53,7 @@ enum OrganizationConnection: string
 
     #[Column([
         Column::name => self::enabled_at,
-        Column::comment => 'When the organization enabled the connection',
+        Column::comment => 'When the project enabled the connection',
         Column::type => ColumnType::timestamp->value,
         Column::nullable => true,
     ])]

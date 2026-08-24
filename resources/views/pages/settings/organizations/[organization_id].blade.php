@@ -17,13 +17,13 @@ Head::title('Organization')
 ?>
 @php
     use App\Models\User;
-    use App\Modules\Connections\ConnectionQuery;
+    use App\Modules\Projects\ProjectQuery;
     use App\Modules\Organizations\MembershipQuery;
     use App\Modules\Settings\Organizations\OrganizationQuery;
 
     $Organization = OrganizationQuery::owned(User::authenticated(request()), $organization_id);
     $Members = MembershipQuery::members($Organization);
-    $Connections = ConnectionQuery::enabled($Organization);
+    $Projects = ProjectQuery::forOrganization($Organization);
     $organization = Auth::settingsOrganization->url([Auth::organizationParameter => $Organization->id]);
 @endphp
 <x-settings-card :settingsCard="[SettingsCard::title => $Organization->name]">
@@ -44,7 +44,7 @@ Head::title('Organization')
         <button class="btn btn-primary">Save</button>
     </form>
     <form class="mt-4" method="POST" action="{{$organization}}"
-          onsubmit="return confirm('Delete this organization? Every membership and every connection it has switched on goes with it.')">
+          onsubmit="return confirm('Delete this organization? Every membership and every project it holds goes with it.')">
         @csrf
         @method('DELETE')
         <button type="submit" class="btn btn-sm btn-error" data-organization-delete>Delete</button>
@@ -62,12 +62,12 @@ Head::title('Organization')
             </ul>
         </div>
         <div class="rounded-box border border-base-300 p-4">
-            <h2 class="text-xs uppercase tracking-wider text-base-content/55">Connections it switches off</h2>
+            <h2 class="text-xs uppercase tracking-wider text-base-content/55">Projects it deletes</h2>
             <ul class="mt-2 space-y-1">
-                @forelse($Connections as $Connection)
-                    <li data-organization-connection title="{{$Connection->name}}">{{$Connection->name}}</li>
+                @forelse($Projects as $Project)
+                    <li data-organization-project title="{{$Project->name}}">{{$Project->name}}</li>
                 @empty
-                    <li data-organization-connections-empty class="text-base-content/70">None enabled.</li>
+                    <li data-organization-projects-empty class="text-base-content/70">None yet.</li>
                 @endforelse
             </ul>
         </div>

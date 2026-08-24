@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Helpers\Disk;
-use App\Sources\Db\App\OrganizationConnection;
 use App\Sources\Db\App\Organizations;
 use App\Sources\Db\App\OrganizationUser;
 use Database\Factories\OrganizationFactory;
@@ -28,7 +27,6 @@ use Illuminate\Support\Str;
  * @property Carbon|null $updated_at
  * @property-read Enterprise                              $enterprise
  * @property-read User|null                               $creator
- * @property-read Collection<int, Connection>             $connections
  * @property-read Collection<int, User>                   $users
  * @property-read Collection<int, Project>                $projects
  * @property-read Collection<int, OrganizationInvitation> $invitations
@@ -78,14 +76,6 @@ class Organization extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, Organizations::created_by->value);
-    }
-
-    /** @return BelongsToMany<Connection, $this> */
-    public function connections(): BelongsToMany
-    {
-        return $this->belongsToMany(Connection::class, OrganizationConnection::table())
-            ->withPivot(OrganizationConnection::enabled_at->value)
-            ->withTimestamps();
     }
 
     /** @return BelongsToMany<User, $this> */

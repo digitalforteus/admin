@@ -6,6 +6,7 @@ use App\Modules\Connections\ConnectionProvider;
 use App\Modules\Connections\Github\GithubForm;
 use App\Routes\OrganizationRoute;
 use App\Sources\Db\App\Connections;
+use App\Sources\Db\App\Projects;
 use App\View\DataModels\ConnectionRow;
 use App\View\DataModels\NavItem;
 use App\View\DataModels\TextInput;
@@ -27,7 +28,8 @@ test('the registry answers for the keys it names, answers nothing for the rest, 
     }
 
     $Organization = memberOrganization(User::factory()->createOne());
-    $Connection = organizationConnection($Organization, attributes: [
+    $Project = memberProject($Organization, [Projects::slug->value => 'alpha']);
+    $Connection = projectConnection($Project, attributes: [
         Connections::slug->value => 'primary',
         Connections::provider->value => ConnectionProvider::github->name,
         Connections::config->value => [GithubForm::owner => 'octocat', GithubForm::repo => 'hello-world'],
@@ -56,14 +58,15 @@ test('the registry answers for the keys it names, answers nothing for the rest, 
         expect($Plugin->validate($fields)->fails())->toBeFalse()
             ->and($Plugin->validate([])->fails())->toBeTrue();
 
-        foreach ($Plugin->navItems($Organization, $Connection) as $NavItem) {
+        foreach ($Plugin->navItems($Project, $Connection) as $NavItem) {
             expect($NavItem)->toBeInstanceOf(NavItem::class)
                 ->and(ViewDirectory::svg->has($NavItem->icon))->toBeTrue()
                 ->and($NavItem->parameters)->toBe([
                     OrganizationRoute::organizationParameter => $Organization->slug,
+                    OrganizationRoute::projectParameter => $Project->slug,
                     OrganizationRoute::connectionParameter => $Connection->slug,
                 ])
-                ->and($NavItem->url())->toContain($Organization->slug, $Connection->slug)
+                ->and($NavItem->url())->toContain($Organization->slug, $Project->slug, $Connection->slug)
                 // A secret must not reach a plugin's own navigation.
                 ->and($NavItem->url())->not->toContain('secret-token')
                 ->and($NavItem->label)->not->toContain('secret-token');
@@ -73,7 +76,7 @@ test('the registry answers for the keys it names, answers nothing for the rest, 
     $Enterprise = $Connection->enterprise;
 
     expect($Enterprise->id)->toBe($Organization->enterprise_id)
-        ->and(collect($Connection->organizations()->get())->pluck('id')->all())->toBe([$Organization->id])
+        ->and(collect($Connection->projects()->get())->pluck('id')->all())->toBe([$Project->id])
         ->and(collect($Enterprise->connections()->get())->pluck('id')->all())->toBe([$Connection->id])
         ->and(collect($Enterprise->organizations()->get())->pluck('id')->all())->toBe([$Organization->id]);
 
@@ -87,6 +90,7 @@ test('the registry answers for the keys it names, answers nothing for the rest, 
 
     $Row = ConnectionRow::from([
         ConnectionRow::organization => $Organization->slug,
+        ConnectionRow::project => $Project->slug,
         ConnectionRow::name => 'Retired Provider',
         ConnectionRow::slug => 'retired',
         ConnectionRow::provider => 'stripe',
@@ -99,6 +103,7 @@ test('the registry answers for the keys it names, answers nothing for the rest, 
 
     $Known = ConnectionRow::from([
         ConnectionRow::organization => $Organization->slug,
+        ConnectionRow::project => $Project->slug,
         ConnectionRow::name => 'Primary',
         ConnectionRow::slug => 'primary',
         ConnectionRow::provider => ConnectionProvider::github->name,
@@ -107,7 +112,7 @@ test('the registry answers for the keys it names, answers nothing for the rest, 
 
     expect($Known->available())->toBeTrue()
         ->and($Known->label())->toBe('GitHub')
-        ->and($Known->url())->toContain($Organization->slug, 'primary')
+        ->and($Known->url())->toContain($Organization->slug, $Project->slug, 'primary')
         ->and($Known->enabledUrl())->toContain('connections', 'enabled')
         ->and($Known->manageUrl())->toContain('connections', 'primary');
 });

@@ -7,6 +7,7 @@ use App\Models\Connection;
 use App\Modules\Connections\ConnectionProvider;
 use App\Modules\Connections\ConnectionQuery;
 use App\Modules\Organizations\Authorize;
+use App\Modules\Projects\ProjectQuery;
 use App\Routes\OrganizationRoute;
 use App\Sources\Db\App\Connections;
 use Illuminate\Http\RedirectResponse;
@@ -15,10 +16,14 @@ use Illuminate\Support\Facades\Validator;
 
 readonly class ConnectionStoreController
 {
-    public function __invoke(Request $Request, string $organization): RedirectResponse
+    public function __invoke(Request $Request, string $organization, string $project): RedirectResponse
     {
         $Organization = Authorize::owns($Request);
-        $parameters = [OrganizationRoute::organizationParameter => $Organization->slug];
+        $Project = ProjectQuery::find($Organization, $project);
+        $parameters = [
+            OrganizationRoute::organizationParameter => $Organization->slug,
+            OrganizationRoute::projectParameter => $Project->slug,
+        ];
         $Provider = ConnectionProvider::tryFromKey($Request->string(Connections::provider->value)->value());
 
         if (! $Provider instanceof ConnectionProvider) {
@@ -51,7 +56,7 @@ readonly class ConnectionStoreController
             Connections::config->value => $fields[Connections::config->value],
         ]);
 
-        ConnectionQuery::enable($Organization, $Connection);
+        ConnectionQuery::enable($Project, $Connection);
 
         return redirect()
             ->to(OrganizationRoute::connectionManage->url([

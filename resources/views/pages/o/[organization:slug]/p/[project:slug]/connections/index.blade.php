@@ -1,23 +1,25 @@
 <?php
 
+use App\Helpers\OrganizationRole;
 use App\Models\Connection;
 use App\Modules\Connections\ConnectionQuery;
-use App\Helpers\OrganizationRole;
-use App\Modules\Organizations\MembershipQuery;
-use App\Modules\Organizations\OrganizationContext;
 use App\View\DataModels\ConnectionRow;
 use App\View\DataModels\OrganizationCard;
-use App\View\DataModels\OrganizationConnectionsTable;
+use App\View\DataModels\ProjectConnectionsTable;
 use Laravel\Head\Facades\Head;
 
 Head::title('Connections')
-    ->description('The connections this organization has opted into.')
+    ->description('The connections this project has opted into.')
     ->hiddenFromRobots();
 ?>
 @php
+    use App\Modules\Organizations\MembershipQuery;
+    use App\Modules\Organizations\OrganizationContext;
+
     $Organization = OrganizationContext::organization();
+    $Project = OrganizationContext::project();
     $Role = MembershipQuery::role($Organization, request()->user());
-    $enabled = ConnectionQuery::enabledIds($Organization);
+    $enabled = ConnectionQuery::enabledIds($Project);
     $connections = array_values(array_map(
         static fn (Connection $Connection): array => [
             ConnectionRow::name => $Connection->name,
@@ -29,14 +31,15 @@ Head::title('Connections')
     ));
 @endphp
 <x-organization-card :organizationCard="[
-    OrganizationCard::organization => $Organization->name,
+    OrganizationCard::organization => $Project->name,
     OrganizationCard::title => 'Connections',
 ]">
     <x-status-toast/>
-    <x-organization-connections-table :organizationConnectionsTable="[
-        OrganizationConnectionsTable::organization => $Organization->slug,
-        OrganizationConnectionsTable::manages => $Role?->manages() ?? false,
-        OrganizationConnectionsTable::owns => $Role === OrganizationRole::owner,
-        OrganizationConnectionsTable::connections => $connections,
+    <x-project-connections-table :projectConnectionsTable="[
+        ProjectConnectionsTable::organization => $Organization->slug,
+        ProjectConnectionsTable::project => $Project->slug,
+        ProjectConnectionsTable::manages => $Role?->manages() ?? false,
+        ProjectConnectionsTable::owns => $Role === OrganizationRole::owner,
+        ProjectConnectionsTable::connections => $connections,
     ]"/>
 </x-organization-card>

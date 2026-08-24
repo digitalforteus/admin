@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Validator;
 
 readonly class ConnectionUpdateController
 {
-    public function __invoke(Request $Request, string $organization, string $connection): RedirectResponse
+    public function __invoke(Request $Request, string $organization, string $project, string $connection): RedirectResponse
     {
         $Connection = ConnectionQuery::find(Authorize::owns($Request), $connection);
         $ConnectionPlugin = ConnectionProvider::pluginFor($Connection->provider);

@@ -3,7 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\Connection;
-use App\Models\Organization;
+use App\Models\Project;
 use App\Modules\Connections\ConnectionQuery;
 use App\Modules\Organizations\OrganizationContext;
 use App\Routes\OrganizationRoute;
@@ -17,17 +17,18 @@ readonly class ResolveConnection
     {
         $parameter = $Request->route(OrganizationRoute::connectionParameter);
         $slug = $parameter instanceof Connection ? $parameter->slug : $parameter;
-        $Organization = OrganizationContext::organization();
+        $Project = OrganizationContext::project();
 
-        if (! is_string($slug) || $slug === '' || ! $Organization instanceof Organization) {
+        if (! is_string($slug) || $slug === '' || ! $Project instanceof Project) {
             return $Closure($Request);
         }
 
-        $Connection = ConnectionQuery::bySlug($Organization, $slug);
+        $Connection = ConnectionQuery::bySlug($Project, $slug);
 
         if ($Connection === null) {
-            return redirect(OrganizationRoute::index->url([
-                OrganizationRoute::organizationParameter => $Organization->slug,
+            return redirect(OrganizationRoute::project->url([
+                OrganizationRoute::organizationParameter => $Project->organization->slug,
+                OrganizationRoute::projectParameter => $Project->slug,
             ]));
         }
 

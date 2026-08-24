@@ -18,6 +18,11 @@ readonly class ConnectionRow
     #[Describe([Describe::required => true])]
     public string $organization;
 
+    public const string project = 'project';
+
+    #[Describe([Describe::required => true])]
+    public string $project;
+
     public const string name = 'name';
 
     #[Describe([Describe::required => true])]
@@ -61,26 +66,27 @@ readonly class ConnectionRow
 
     public function url(): string
     {
-        return OrganizationRoute::connection->url([
-            OrganizationRoute::organizationParameter => $this->organization,
-            OrganizationRoute::connectionParameter => $this->slug,
-        ]);
+        return OrganizationRoute::connection->url($this->parameters());
     }
 
     public function manageUrl(): string
     {
-        return OrganizationRoute::connectionManage->url([
-            OrganizationRoute::organizationParameter => $this->organization,
-            OrganizationRoute::connectionParameter => $this->slug,
-        ]);
+        return OrganizationRoute::connectionManage->url($this->parameters());
     }
 
     public function enabledUrl(): string
     {
-        return OrganizationRoute::connectionEnabled->url([
+        return OrganizationRoute::connectionEnabled->url($this->parameters());
+    }
+
+    /** @return array<string, string> */
+    private function parameters(): array
+    {
+        return [
             OrganizationRoute::organizationParameter => $this->organization,
+            OrganizationRoute::projectParameter => $this->project,
             OrganizationRoute::connectionParameter => $this->slug,
-        ]);
+        ];
     }
 
     private function plugin(): ?ConnectionPlugin

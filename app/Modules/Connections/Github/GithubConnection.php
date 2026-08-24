@@ -5,7 +5,7 @@ namespace App\Modules\Connections\Github;
 use App\Helpers\Rule;
 use App\Helpers\SvgName;
 use App\Models\Connection;
-use App\Models\Organization;
+use App\Models\Project;
 use App\Modules\Connections\ConnectionPlugin;
 use App\Routes\OrganizationRoute;
 use App\View\DataModels\NavItem;
@@ -57,14 +57,15 @@ readonly class GithubConnection implements ConnectionPlugin
         return GithubQuery::runs($Connection, 1)->ok;
     }
 
-    public function page(Organization $Organization, Connection $Connection): View
+    public function page(Project $Project, Connection $Connection): View
     {
         $page = max(1, request()->integer(RunsTable::page, 1));
         $Runs = GithubQuery::runs($Connection, $page);
 
         return view('Github.page', [
             'runsTable' => [
-                RunsTable::organization => $Organization->slug,
+                RunsTable::organization => $Project->organization->slug,
+                RunsTable::project => $Project->slug,
                 RunsTable::connection => $Connection->slug,
                 RunsTable::ok => $Runs->ok,
                 RunsTable::status => $Runs->status,
@@ -76,7 +77,7 @@ readonly class GithubConnection implements ConnectionPlugin
     }
 
     /** @return list<NavItem> */
-    public function navItems(Organization $Organization, Connection $Connection): array
+    public function navItems(Project $Project, Connection $Connection): array
     {
         return [
             NavItem::from([
@@ -84,7 +85,8 @@ readonly class GithubConnection implements ConnectionPlugin
                 NavItem::icon => $this->icon(),
                 NavItem::route => OrganizationRoute::connection,
                 NavItem::parameters => [
-                    OrganizationRoute::organizationParameter => $Organization->slug,
+                    OrganizationRoute::organizationParameter => $Project->organization->slug,
+                    OrganizationRoute::projectParameter => $Project->slug,
                     OrganizationRoute::connectionParameter => $Connection->slug,
                 ],
             ]),

@@ -4,7 +4,7 @@ namespace App\Modules\Connections;
 
 use App\Helpers\SvgName;
 use App\Models\Connection;
-use App\Models\Organization;
+use App\Models\Project;
 use App\View\DataModels\NavItem;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Contracts\View\View;
@@ -27,7 +27,7 @@ interface ConnectionPlugin
     public function verify(Connection $Connection): bool;
 
     /** @return list<NavItem> */
-    public function navItems(Organization $Organization, Connection $Connection): array;
+    public function navItems(Project $Project, Connection $Connection): array;
 
-    public function page(Organization $Organization, Connection $Connection): View;
+    public function page(Project $Project, Connection $Connection): View;
 }

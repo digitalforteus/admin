@@ -4,19 +4,32 @@ namespace App\Modules\Connections;
 
 use App\Models\Connection;
 use App\Models\Organization;
+use App\Models\Project;
 use App\Sources\Db\App\Connections;
-use App\Sources\Db\App\OrganizationConnection;
-use App\Sources\Db\App\Organizations;
+use App\Sources\Db\App\ProjectConnection;
+use App\Sources\Db\App\Projects;
 use Illuminate\Database\Eloquent\Collection;
 use RuntimeException;
 
+/**
+ * The credentials an enterprise holds, and which of its projects opted into them.
+ *
+ * Two scopes meet here and neither may be mistaken for the other: a connection
+ * belongs to the enterprise, so the same credential is held once and listed for
+ * every project beneath it, while opting in belongs to one project, so enabling it
+ * in one grants nothing anywhere else. Attaching across enterprises is refused here
+ * rather than left to the pivot, which has no column that could express the rule and
+ * would record the row happily. A provider this application no longer serves is
+ * filtered out of what is offered rather than removed, because the row is a
+ * credential somebody stored and losing it silently is worse than hiding it.
+ */
 readonly class ConnectionQuery
 {
     /** @return list<Connection> */
-    public static function enabledFor(Organization $Organization): array
+    public static function enabledFor(Project $Project): array
     {
         return array_values(array_filter(
-            self::enabled($Organization)->all(),
+            self::enabled($Project)->all(),
             static fn (Connection $Connection): bool => ConnectionProvider::tryFromKey($Connection->provider) !== null,
         ));
     }
@@ -46,20 +59,20 @@ readonly class ConnectionQuery
         return $Connection;
     }
 
-    /** @return Collection<int, Organization> */
-    public static function organizations(Connection $Connection): Collection
+    /** @return Collection<int, Project> */
+    public static function projects(Connection $Connection): Collection
     {
-        $Relation = $Connection->organizations();
+        $Relation = $Connection->projects();
 
-        $Relation->whereNotNull(OrganizationConnection::table().'.'.OrganizationConnection::enabled_at->value);
-        $Relation->orderBy(Organizations::name->value);
+        $Relation->whereNotNull(ProjectConnection::table().'.'.ProjectConnection::enabled_at->value);
+        $Relation->orderBy(Projects::name->value);
 
         return $Relation->get();
     }
 
-    public static function bySlug(Organization $Organization, string $slug): ?Connection
+    public static function bySlug(Project $Project, string $slug): ?Connection
     {
-        foreach (self::enabledFor($Organization) as $Connection) {
+        foreach (self::enabledFor($Project) as $Connection) {
             if ($Connection->slug === $slug) {
                 return $Connection;
             }
@@ -69,43 +82,43 @@ readonly class ConnectionQuery
     }
 
     /** @return list<string> */
-    public static function enabledIds(Organization $Organization): array
+    public static function enabledIds(Project $Project): array
     {
         return array_values(array_map(
             static fn (Connection $Connection): string => $Connection->id,
-            self::enabled($Organization)->all(),
+            self::enabled($Project)->all(),
         ));
     }
 
-    public static function enable(Organization $Organization, Connection $Connection): void
+    public static function enable(Project $Project, Connection $Connection): void
     {
-        self::sameEnterprise($Organization, $Connection);
+        self::sameEnterprise($Project, $Connection);
 
-        $Organization->connections()->syncWithoutDetaching([
-            $Connection->id => [OrganizationConnection::enabled_at->value => now()],
+        $Project->connections()->syncWithoutDetaching([
+            $Connection->id => [ProjectConnection::enabled_at->value => now()],
         ]);
     }
 
-    public static function disable(Organization $Organization, Connection $Connection): void
+    public static function disable(Project $Project, Connection $Connection): void
     {
-        self::sameEnterprise($Organization, $Connection);
+        self::sameEnterprise($Project, $Connection);
 
-        $Organization->connections()->detach($Connection->id);
+        $Project->connections()->detach($Connection->id);
     }
 
-    private static function sameEnterprise(Organization $Organization, Connection $Connection): void
+    private static function sameEnterprise(Project $Project, Connection $Connection): void
     {
-        if ($Connection->enterprise_id !== $Organization->enterprise_id) {
-            throw new RuntimeException('A connection may only be attached to an organization of its own enterprise.');
+        if ($Connection->enterprise_id !== $Project->organization->enterprise_id) {
+            throw new RuntimeException('A connection may only be attached to a project of its own enterprise.');
         }
     }
 
     /** @return Collection<int, Connection> */
-    public static function enabled(Organization $Organization): Collection
+    public static function enabled(Project $Project): Collection
     {
-        $Relation = $Organization->connections();
+        $Relation = $Project->connections();
 
-        $Relation->whereNotNull(OrganizationConnection::table().'.'.OrganizationConnection::enabled_at->value);
+        $Relation->whereNotNull(ProjectConnection::table().'.'.ProjectConnection::enabled_at->value);
         $Relation->orderBy(Connections::name->value);
 
         return $Relation->get();

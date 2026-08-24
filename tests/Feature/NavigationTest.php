@@ -653,7 +653,7 @@ test('every rail, dropdown and head is built from route cases, active on its own
     expect(OrganizationNav::visible())->toBeTrue()
         ->and(OrganizationNav::label())->toBe('Organization')
         ->and(collect(OrganizationNav::items())->pluck('label')->all())
-        ->toContain('Overview', 'Connections', 'Projects', 'Members', 'Settings');
+        ->toContain('Overview', 'Projects', 'Members', 'Settings');
 
     // Test non-owner doesn't see settings
     $NonOwner = User::factory()->createOne();
@@ -665,7 +665,7 @@ test('every rail, dropdown and head is built from route cases, active on its own
 
     expect(collect(OrganizationNav::items())->pluck('label')->all())
         ->not->toContain('Settings')
-        ->toContain('Overview', 'Connections', 'Projects', 'Members');
+        ->toContain('Overview', 'Projects', 'Members');
 
     // Test organization nav not visible outside context
     app()->instance('request', Request::create(Web::home->value));

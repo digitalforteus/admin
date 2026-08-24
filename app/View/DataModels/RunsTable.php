@@ -16,6 +16,11 @@ readonly class RunsTable
     #[Describe([Describe::required => true])]
     public string $organization;
 
+    public const string project = 'project';
+
+    #[Describe([Describe::required => true])]
+    public string $project;
+
     public const string connection = 'connection';
 
     #[Describe([Describe::required => true])]
@@ -82,6 +87,7 @@ readonly class RunsTable
     {
         return OrganizationRoute::connection->url([
             OrganizationRoute::organizationParameter => $this->organization,
+            OrganizationRoute::projectParameter => $this->project,
             OrganizationRoute::connectionParameter => $this->connection,
         ], [self::page => $page]);
     }

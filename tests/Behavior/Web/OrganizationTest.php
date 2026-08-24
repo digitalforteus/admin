@@ -15,6 +15,7 @@ use App\Routes\OrganizationRoute;
 use App\Routes\Web;
 use App\Sources\Db\App\Enterprises;
 use App\Sources\Db\App\Organizations;
+use App\Sources\Db\App\Projects;
 use App\View\DataModels\Breadcrumb;
 use App\View\DataModels\OrganizationNav;
 use Illuminate\Http\Request;
@@ -68,7 +69,7 @@ test('an organization page is addressed by slug, scoped to membership, and carri
         ->assertDontSee('aria-label="Primary"', false)
         ->assertSee($Organization->enterprise->name)
         ->assertSee(OrganizationRoute::members->url([OrganizationRoute::organizationParameter => 'acme']))
-        ->assertSee(OrganizationRoute::connections->url([OrganizationRoute::organizationParameter => 'acme']));
+        ->assertSee(OrganizationRoute::projects->url([OrganizationRoute::organizationParameter => 'acme']));
 
     expect(session(SessionKey::organization->value))->toBe('acme');
 
@@ -99,11 +100,26 @@ test('an organization page is addressed by slug, scoped to membership, and carri
     expect($Stranger->slug)->toBe('initech');
 
     // The rail only stands inside an organization, and stands down everywhere else.
+    // A depth the address has not reached contributes nothing to it, which is why
+    // the connections of a project are absent until a project is being visited.
     $this->actingAs($User)->get($url)->assertOk();
 
     expect(OrganizationNav::visible())->toBeTrue()
         ->and(collect(OrganizationNav::items())->pluck('label')->all())
-        ->toBe(['Overview', 'Connections', 'Projects', 'Members', 'Settings']);
+        ->toBe(['Overview', 'Projects', 'Members', 'Settings']);
+
+    $Project = memberProject($Organization, [Projects::slug->value => 'alpha']);
+
+    $this->actingAs($User)
+        ->get(OrganizationRoute::project->url([
+            OrganizationRoute::organizationParameter => 'acme',
+            OrganizationRoute::projectParameter => 'alpha',
+        ]))
+        ->assertOk();
+
+    expect(collect(OrganizationNav::items())->pluck('label')->all())
+        ->toBe(['Overview', 'Projects', 'Connections', 'Members', 'Settings'])
+        ->and($Project->organization_id)->toBe($Organization->id);
 
     $this->actingAs($User)
         ->get(Web::home->value)

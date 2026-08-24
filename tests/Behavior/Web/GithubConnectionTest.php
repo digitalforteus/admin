@@ -8,6 +8,7 @@ use App\Modules\Connections\Github\GithubQuery;
 use App\Routes\OrganizationRoute;
 use App\Sources\Db\App\Connections;
 use App\Sources\Db\App\Organizations;
+use App\Sources\Db\App\Projects;
 use App\View\DataModels\RunsTable;
 use Illuminate\Support\Facades\Http;
 use Zerotoprod\GitHubSdk\ApiResult;
@@ -51,7 +52,8 @@ function workflowRun(array $overrides = []): array
 test('the run list renders what the provider reports, states a refusal and an empty repository differently, and is reachable only while the connection is', function (): void {
     $User = User::factory()->createOne();
     $Organization = memberOrganization($User, attributes: [Organizations::slug->value => 'acme']);
-    $Connection = organizationConnection($Organization, attributes: [
+    $Project = memberProject($Organization, [Projects::slug->value => 'alpha']);
+    $Connection = projectConnection($Project, attributes: [
         Connections::name->value => 'Hello World',
         Connections::slug->value => 'hello-world',
         Connections::provider->value => ConnectionProvider::github->name,
@@ -59,8 +61,11 @@ test('the run list renders what the provider reports, states a refusal and an em
         Connections::credentials->value => [GithubForm::token => 'secret-token'],
     ]);
 
-    $parameters = [OrganizationRoute::organizationParameter => 'acme'];
-    $index = OrganizationRoute::index->url($parameters);
+    $parameters = [
+        OrganizationRoute::organizationParameter => 'acme',
+        OrganizationRoute::projectParameter => 'alpha',
+    ];
+    $index = OrganizationRoute::project->url($parameters);
     $page = OrganizationRoute::connection->url([
         ...$parameters,
         OrganizationRoute::connectionParameter => 'hello-world',
@@ -201,6 +206,7 @@ test('the run list renders what the provider reports, states a refusal and an em
     // to a page keeps the whole context rather than only the number.
     $Paged = RunsTable::from([
         RunsTable::organization => 'acme',
+        RunsTable::project => 'alpha',
         RunsTable::connection => 'hello-world',
         RunsTable::total => 45,
         RunsTable::page => 2,
@@ -211,6 +217,7 @@ test('the run list renders what the provider reports, states a refusal and an em
         ->and($Paged->nextUrl())->toBe($page.'?'.RunsTable::page.'=3')
         ->and(RunsTable::from([
             RunsTable::organization => 'acme',
+            RunsTable::project => 'alpha',
             RunsTable::connection => 'hello-world',
         ])->nextUrl())->toBeNull();
 
@@ -233,13 +240,13 @@ test('the run list renders what the provider reports, states a refusal and an em
 
     // Switching the connection off sends a caller back rather than rendering.
     $this->forgetCredentials();
-    ConnectionQuery::disable($Organization, $Connection);
+    ConnectionQuery::disable($Project, $Connection);
 
     $this->actingAs($User)->get($page)->assertRedirect($index);
 
     // Removing the provider from the registry leaves the row exactly as it was and
     // renders it unavailable. This is the test the whole design exists to pass.
-    ConnectionQuery::enable($Organization, $Connection);
+    ConnectionQuery::enable($Project, $Connection);
     $Connection->update([Connections::provider->value => 'stripe']);
 
     $this->actingAs($User)->get($page)->assertRedirect($index);
@@ -252,11 +259,11 @@ test('the run list renders what the provider reports, states a refusal and an em
 
     expect($Connection->refresh()->credentials)->toBe([GithubForm::token => 'secret-token'])
         ->and($Connection->refresh()->config)->toEqualCanonicalizing([GithubForm::owner => 'octocat', GithubForm::repo => 'hello-world'])
-        ->and(ConnectionQuery::enabledFor($Organization))->toBeEmpty();
+        ->and(ConnectionQuery::enabledFor($Project))->toBeEmpty();
 
     // Restoring the key restores the row.
     $Connection->update([Connections::provider->value => ConnectionProvider::github->name]);
 
-    expect(collect(ConnectionQuery::enabledFor($Organization))->pluck(Connections::slug->value)->all())
+    expect(collect(ConnectionQuery::enabledFor($Project))->pluck(Connections::slug->value)->all())
         ->toBe(['hello-world']);
 });

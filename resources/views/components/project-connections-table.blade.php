@@ -1,11 +1,11 @@
-@props(['organizationConnectionsTable'])
+@props(['projectConnectionsTable'])
 @php
-    use App\View\DataModels\OrganizationConnectionsTable;
-    $OrganizationConnectionsTable = OrganizationConnectionsTable::from($organizationConnectionsTable);
+    use App\View\DataModels\ProjectConnectionsTable;
+    $ProjectConnectionsTable = ProjectConnectionsTable::from($projectConnectionsTable);
 @endphp
-@if($OrganizationConnectionsTable->owns)
+@if($ProjectConnectionsTable->owns)
     <div class="mt-6">
-        <a class="btn btn-primary btn-sm" data-connection-add href="{{$OrganizationConnectionsTable->createUrl()}}">Add connection</a>
+        <a class="btn btn-primary btn-sm" data-connection-add href="{{$ProjectConnectionsTable->createUrl()}}">Add connection</a>
     </div>
 @endif
 <div class="mt-6 overflow-x-auto rounded-box border border-base-300">
@@ -19,7 +19,7 @@
         </tr>
         </thead>
         <tbody>
-        @forelse($OrganizationConnectionsTable->rows() as $ConnectionRow)
+        @forelse($ProjectConnectionsTable->rows() as $ConnectionRow)
             <tr data-connection-row>
                 <td class="whitespace-nowrap" title="{{$ConnectionRow->name}}">
                     @if($ConnectionRow->available() && $ConnectionRow->enabled)
@@ -45,7 +45,7 @@
                 </td>
                 <td class="whitespace-nowrap text-right">
                     <div class="flex items-center justify-end gap-2">
-                        @if($OrganizationConnectionsTable->manages && $ConnectionRow->available())
+                        @if($ProjectConnectionsTable->manages && $ConnectionRow->available())
                             <form method="POST" action="{{$ConnectionRow->enabledUrl()}}">
                                 @csrf
                                 @if($ConnectionRow->enabled)
@@ -56,7 +56,7 @@
                                 </button>
                             </form>
                         @endif
-                        @if($OrganizationConnectionsTable->owns)
+                        @if($ProjectConnectionsTable->owns)
                             <a class="btn btn-ghost btn-xs" data-connection-manage href="{{$ConnectionRow->manageUrl()}}">Manage</a>
                         @endif
                     </div>

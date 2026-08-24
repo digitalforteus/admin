@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 
 readonly class ConnectionDestroyController
 {
-    public function __invoke(Request $Request, string $organization, string $connection): RedirectResponse
+    public function __invoke(Request $Request, string $organization, string $project, string $connection): RedirectResponse
     {
         $Organization = Authorize::owns($Request);
 
@@ -19,6 +19,7 @@ readonly class ConnectionDestroyController
         return redirect()
             ->to(OrganizationRoute::connections->url([
                 OrganizationRoute::organizationParameter => $Organization->slug,
+                OrganizationRoute::projectParameter => $project,
             ]))
             ->with('status', 'Connection deleted.');
     }
