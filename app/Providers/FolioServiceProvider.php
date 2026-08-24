@@ -6,6 +6,7 @@ use App\Helpers\Role;
 use App\Http\Middleware\ResolveConnection;
 use App\Http\Middleware\ResolveEnterprise;
 use App\Http\Middleware\ResolveOrganization;
+use App\Http\Middleware\ResolveProject;
 use App\Routes\MiddlewareTag;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Folio\Folio;
@@ -29,6 +30,7 @@ class FolioServiceProvider extends ServiceProvider
                 MiddlewareTag::auth->value,
                 MiddlewareTag::verified->value,
                 ResolveOrganization::class,
+                ResolveProject::class,
                 ResolveConnection::class,
             ],
             'settings' => [MiddlewareTag::auth->value, MiddlewareTag::verified->value],

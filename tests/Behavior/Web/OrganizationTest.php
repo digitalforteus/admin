@@ -103,7 +103,7 @@ test('an organization page is addressed by slug, scoped to membership, and carri
 
     expect(OrganizationNav::visible())->toBeTrue()
         ->and(collect(OrganizationNav::items())->pluck('label')->all())
-        ->toBe(['Overview', 'Connections', 'Members', 'Settings']);
+        ->toBe(['Overview', 'Connections', 'Projects', 'Members', 'Settings']);
 
     $this->actingAs($User)
         ->get(Web::home->value)

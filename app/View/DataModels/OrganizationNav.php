@@ -50,6 +50,13 @@ readonly class OrganizationNav implements DescribesNav
                 NavItem::nested => true,
             ]),
             NavItem::from([
+                NavItem::label => 'Projects',
+                NavItem::icon => SvgName::folder,
+                NavItem::route => OrganizationRoute::projects,
+                NavItem::parameters => $parameters,
+                NavItem::nested => true,
+            ]),
+            NavItem::from([
                 NavItem::label => 'Members',
                 NavItem::icon => SvgName::user,
                 NavItem::route => OrganizationRoute::members,

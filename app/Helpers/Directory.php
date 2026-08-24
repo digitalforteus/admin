@@ -14,4 +14,5 @@ enum Directory: string
 {
     case profile_pictures = 'profile-pictures';
     case organization_icons = 'organization-icons';
+    case project_icons = 'project-icons';
 }

@@ -28,6 +28,7 @@ enum OrganizationRoute: string
     public const string connectionParameter = 'connection';
     public const string memberParameter = 'member';
     public const string invitationParameter = 'invitation';
+    public const string projectParameter = 'project';
 
     case index = self::prefix.'/{'.self::organizationParameter.'}';
     case connections = self::prefix.'/{'.self::organizationParameter.'}/connections';
@@ -39,6 +40,11 @@ enum OrganizationRoute: string
     case member = self::prefix.'/{'.self::organizationParameter.'}/members/{'.self::memberParameter.'}';
     case invitations = self::prefix.'/{'.self::organizationParameter.'}/invitations';
     case invitation = self::prefix.'/{'.self::organizationParameter.'}/invitations/{'.self::invitationParameter.'}';
+    case projects = self::prefix.'/{'.self::organizationParameter.'}/projects';
+    case projectCreate = self::prefix.'/{'.self::organizationParameter.'}/projects/new';
+    case project = self::prefix.'/{'.self::organizationParameter.'}/p/{'.self::projectParameter.'}';
+    case projectSettings = self::prefix.'/{'.self::organizationParameter.'}/p/{'.self::projectParameter.'}/settings';
+    case projectIcon = self::prefix.'/{'.self::organizationParameter.'}/p/{'.self::projectParameter.'}/icon';
     case settings = self::prefix.'/{'.self::organizationParameter.'}/settings';
     case connection = self::prefix.'/{'.self::organizationParameter.'}/{'.self::connectionParameter.'}';
 }

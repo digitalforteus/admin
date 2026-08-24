@@ -30,6 +30,7 @@ use Illuminate\Support\Str;
  * @property-read User|null                               $creator
  * @property-read Collection<int, Connection>             $connections
  * @property-read Collection<int, User>                   $users
+ * @property-read Collection<int, Project>                $projects
  * @property-read Collection<int, OrganizationInvitation> $invitations
  *
  * @mixin IdeHelperOrganization
@@ -93,6 +94,12 @@ class Organization extends Model
         return $this->belongsToMany(User::class, OrganizationUser::table())
             ->withPivot(OrganizationUser::role->value)
             ->withTimestamps();
+    }
+
+    /** @return HasMany<Project, $this> */
+    public function projects(): HasMany
+    {
+        return $this->hasMany(Project::class);
     }
 
     /** @return HasMany<OrganizationInvitation, $this> */

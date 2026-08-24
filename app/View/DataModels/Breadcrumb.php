@@ -8,12 +8,14 @@ use App\Helpers\SvgName;
 use App\Models\Connection;
 use App\Models\Enterprise;
 use App\Models\Organization;
+use App\Models\Project;
 use App\Models\User;
 use App\Modules\Connections\ConnectionQuery;
 use App\Modules\Enterprises\EnterpriseContext;
 use App\Modules\Enterprises\EnterpriseQuery;
 use App\Modules\Organizations\MembershipQuery;
 use App\Modules\Organizations\OrganizationContext;
+use App\Modules\Projects\ProjectQuery;
 use App\Routes\EnterpriseRoute;
 use App\Routes\OrganizationRoute;
 use Illuminate\Support\Facades\Auth;
@@ -41,6 +43,7 @@ readonly class Breadcrumb
         $segments = array_values(array_filter([
             self::enterprise($User),
             self::organization($User),
+            self::project($User),
             self::connection(),
         ]));
 
@@ -138,7 +141,7 @@ readonly class Breadcrumb
     /**
      * What stands beside the thing being looked at, which is everything but itself.
      *
-     * @template TModel of Enterprise|Organization|Connection
+     * @template TModel of Enterprise|Organization|Project|Connection
      *
      * @param  list<TModel>  $models
      * @return list<TModel>
@@ -147,7 +150,7 @@ readonly class Breadcrumb
     {
         return array_values(array_filter(
             $models,
-            static fn (Enterprise|Organization|Connection $Model): bool => $Model->slug !== $slug,
+            static fn (Enterprise|Organization|Project|Connection $Model): bool => $Model->slug !== $slug,
         ));
     }
 
@@ -169,6 +172,70 @@ readonly class Breadcrumb
         }
 
         return OrganizationRoute::settings->url($parameters);
+    }
+
+    /** @return array<string, mixed>|null */
+    private static function project(User $User): ?array
+    {
+        $Organization = OrganizationContext::organization();
+        $Project = OrganizationContext::project();
+
+        if (! $Organization instanceof Organization || ! $Project instanceof Project) {
+            return null;
+        }
+
+        $parameters = [OrganizationRoute::organizationParameter => $Organization->slug];
+        $manages = MembershipQuery::role($Organization, $User)?->manages() ?? false;
+
+        return [
+            BreadcrumbSegment::label => $Project->name,
+            BreadcrumbSegment::url => OrganizationRoute::project->url([
+                ...$parameters,
+                OrganizationRoute::projectParameter => $Project->slug,
+            ]),
+            BreadcrumbSegment::picture => $Project->iconUrl(),
+            BreadcrumbSegment::fallback => SvgName::folder,
+            BreadcrumbSegment::switchLabel => 'Switch project',
+            BreadcrumbSegment::settingsUrl => self::projectSettings($manages, [
+                ...$parameters,
+                OrganizationRoute::projectParameter => $Project->slug,
+            ]),
+            BreadcrumbSegment::settingsLabel => 'Project settings',
+            BreadcrumbSegment::createUrl => self::projectCreate($manages, $parameters),
+            BreadcrumbSegment::createLabel => 'New project',
+            BreadcrumbSegment::items => array_map(
+                static fn (Project $Each): array => [
+                    BreadcrumbItem::label => $Each->name,
+                    BreadcrumbItem::url => OrganizationRoute::project->url([
+                        ...$parameters,
+                        OrganizationRoute::projectParameter => $Each->slug,
+                    ]),
+                    BreadcrumbItem::picture => $Each->iconUrl(),
+                    BreadcrumbItem::fallback => SvgName::folder,
+                ],
+                self::beside(ProjectQuery::forOrganization($Organization), $Project->slug),
+            ),
+        ];
+    }
+
+    /** @param  array<string, string|int>  $parameters */
+    private static function projectSettings(bool $manages, array $parameters): ?string
+    {
+        if (! $manages) {
+            return null;
+        }
+
+        return OrganizationRoute::projectSettings->url($parameters);
+    }
+
+    /** @param  array<string, string|int>  $parameters */
+    private static function projectCreate(bool $manages, array $parameters): ?string
+    {
+        if (! $manages) {
+            return null;
+        }
+
+        return OrganizationRoute::projectCreate->url($parameters);
     }
 
     /** @return array<string, mixed>|null */
