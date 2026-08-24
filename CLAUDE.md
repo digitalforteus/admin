@@ -14,6 +14,11 @@ sail pest --filter=ApiUser         # the test you are writing
 
 - Iterate with `pest --filter=<Test>` at end of turn.
 
+The site is `http://<slug>.test`, served by Valet's nginx as a proxy to the
+first port of the block this clone reserves. All five published ports sit
+together at the top of `.env` so several projects run at once; a port taken
+outside the block answers as whichever project holds it, and nothing reports it.
+
 ## MCP Servers
 
 | Working on                            | Server             |
