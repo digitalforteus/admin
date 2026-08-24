@@ -19,6 +19,7 @@ enum RouteIndex: string
     case admin = Admin::class;
     case api = ApiRoute::class;
     case auth = Auth::class;
+    case enterprise = EnterpriseRoute::class;
     case organization = OrganizationRoute::class;
     case web = Web::class;
 

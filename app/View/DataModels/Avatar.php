@@ -4,6 +4,7 @@ namespace App\View\DataModels;
 
 use App\Helpers\DataModel;
 use App\Helpers\Initials;
+use App\Helpers\SvgName;
 use Zerotoprod\DataModel\Describe;
 
 readonly class Avatar
@@ -30,8 +31,22 @@ readonly class Avatar
     #[Describe([Describe::default => 'text-sm'])]
     public string $text;
 
+    public const string fallback = 'fallback';
+
+    #[Describe([Describe::nullable => true])]
+    public ?SvgName $fallback;
+
     public function initials(): string
     {
         return Initials::from($this->name);
+    }
+
+    /** @return array<string, mixed> */
+    public function svg(): array
+    {
+        return [
+            Svg::name => $this->fallback,
+            Svg::classname => 'h-1/2 w-1/2',
+        ];
     }
 }

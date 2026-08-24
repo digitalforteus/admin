@@ -2,30 +2,45 @@
 
 use App\Helpers\OrganizationRole;
 use App\Helpers\SessionKey;
+use App\Helpers\SvgName;
 use App\Http\Middleware\ResolveOrganization;
+use App\Models\Enterprise;
 use App\Models\Organization;
 use App\Models\User;
 use App\Modules\Organizations\Authorize;
 use App\Modules\Organizations\MembershipQuery;
 use App\Modules\Organizations\OrganizationContext;
+use App\Routes\EnterpriseRoute;
 use App\Routes\OrganizationRoute;
 use App\Routes\Web;
+use App\Sources\Db\App\Enterprises;
 use App\Sources\Db\App\Organizations;
+use App\View\DataModels\Breadcrumb;
 use App\View\DataModels\OrganizationNav;
-use App\View\DataModels\OrganizationSwitcher;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 test('an organization page is addressed by slug, scoped to membership, and carries the chrome for the context it names', function (): void {
     $User = User::factory()->createOne();
+    $Enterprise = Enterprise::factory()->createOne([Enterprises::name->value => 'Acme Holdings']);
     $Organization = memberOrganization($User, attributes: [
+        Organizations::enterprise_id->value => $Enterprise->id,
         Organizations::name->value => 'Acme Inc.',
         Organizations::slug->value => 'acme',
     ]);
     $Other = memberOrganization($User, attributes: [
+        Organizations::enterprise_id->value => $Enterprise->id,
         Organizations::name->value => 'Globex Corp.',
         Organizations::slug->value => 'globex',
+    ]);
+    // A second enterprise the same account belongs to: the organization dropdown is
+    // scoped to the enterprise the address names, the enterprise dropdown is not.
+    $Elsewhere = Enterprise::factory()->createOne([Enterprises::name->value => 'Umbrella Group']);
+    memberOrganization($User, attributes: [
+        Organizations::enterprise_id->value => $Elsewhere->id,
+        Organizations::name->value => 'Umbrella Ltd.',
+        Organizations::slug->value => 'umbrella',
     ]);
     $Stranger = Organization::factory()->createOne([
         Organizations::name->value => 'Initech LLC',
@@ -43,10 +58,13 @@ test('an organization page is addressed by slug, scoped to membership, and carri
         ->assertSee('Acme Inc.')
         ->assertSee('Globex Corp.')
         ->assertDontSee('Initech LLC')
+        ->assertDontSee('Umbrella Ltd.')
+        ->assertSee('Umbrella Group')
         ->assertSee('aria-label="Organization"', false)
-        ->assertSee('data-organization-switcher', false)
-        ->assertSee('data-connection-breadcrumb', false)
-        ->assertDontSee('data-connection-switcher', false)
+        ->assertSee('data-breadcrumb', false)
+        ->assertSee('data-breadcrumb-switcher', false)
+        ->assertSee('data-breadcrumb-settings', false)
+        ->assertSee('data-breadcrumb-create', false)
         ->assertDontSee('aria-label="Primary"', false)
         ->assertSee($Organization->enterprise->name)
         ->assertSee(OrganizationRoute::members->url([OrganizationRoute::organizationParameter => 'acme']))
@@ -95,29 +113,46 @@ test('an organization page is addressed by slug, scoped to membership, and carri
     expect(OrganizationNav::visible())->toBeFalse()
         ->and(OrganizationNav::items())->toBeEmpty();
 
-    // Membership is what the switcher lists, and the address is what it checks.
+    // The trail is one depth per thing the address resolved, widest first, and each
+    // depth lists only what sits beside the thing it names.
     $this->actingAs($User)->get($url)->assertOk();
 
-    $Switcher = OrganizationSwitcher::current() ?? throw new RuntimeException('An organization page carries a switcher.');
+    $Breadcrumb = Breadcrumb::current() ?? throw new RuntimeException('An organization page carries a trail.');
+    $trail = $Breadcrumb->trail();
 
-    expect($Switcher->name)->toBe('Acme Inc.')
-        ->and($Switcher->slug)->toBe('acme')
-        ->and($Switcher->enterprise)->toBe($Organization->enterprise->name);
+    expect($trail)->toHaveCount(2)
+        ->and($trail[0]->label)->toBe('Acme Holdings')
+        ->and($trail[0]->url)->toBe(EnterpriseRoute::index->url([
+            EnterpriseRoute::enterpriseParameter => $Enterprise->slug,
+        ]))
+        ->and($trail[0]->settingsUrl)->toBe(EnterpriseRoute::settings->url([
+            EnterpriseRoute::enterpriseParameter => $Enterprise->slug,
+        ]))
+        ->and($trail[0]->createUrl)->toBe(EnterpriseRoute::create->url())
+        ->and($trail[0]->fallback)->toBe(SvgName::city)
+        ->and(collect($trail[0]->entries())->pluck('label')->all())
+        ->toBe(['Umbrella Group'])
+        ->and($trail[1]->label)->toBe('Acme Inc.')
+        ->and($trail[1]->url)->toBe($url)
+        ->and($trail[1]->settingsUrl)->toBe(OrganizationRoute::settings->url([
+            OrganizationRoute::organizationParameter => 'acme',
+        ]))
+        ->and($trail[1]->createUrl)->toBe(EnterpriseRoute::organizationCreate->url([
+            EnterpriseRoute::enterpriseParameter => $Enterprise->slug,
+        ]))
+        ->and($trail[1]->fallback)->toBe(SvgName::building)
+        // What a depth lists is what stands beside it: the thing being looked at is
+        // the heading the list hangs from, so it is never also an entry in it.
+        ->and(collect($trail[1]->entries())->pluck('label')->all())
+        ->toBe(['Globex Corp.'])
+        ->and(collect($trail[1]->entries())->pluck('fallback')->all())
+        ->toBe([SvgName::building]);
 
-    $labels = [];
-    $active = [];
+    // A trail is only ever built for a reader the address resolved something for.
+    $this->forgetCredentials();
+    app()->instance('request', Request::create(Web::home->value));
 
-    foreach ($Switcher->sections() as $Group) {
-        foreach ($Group->items() as $NavItem) {
-            $labels[] = $NavItem->label;
-            $active[$NavItem->label] = $Group->isActive($NavItem);
-        }
-    }
-
-    expect($labels)->toContain('Acme Inc.', 'Globex Corp.')
-        ->and($labels)->not->toContain('Initech LLC')
-        ->and($active['Acme Inc.'])->toBeTrue()
-        ->and($active['Globex Corp.'])->toBeFalse();
+    expect(Breadcrumb::current())->toBeNull();
 
     // A path naming no organization resolves none, and every reader of the context
     // is required to cope with that rather than assume one is always present.
@@ -136,7 +171,7 @@ test('an organization page is addressed by slug, scoped to membership, and carri
 
     // Membership reads the same way from either side of the pivot.
     expect(collect($User->organizations()->get())->pluck(Organizations::slug->value)->all())
-        ->toEqualCanonicalizing(['acme', 'globex']);
+        ->toEqualCanonicalizing(['acme', 'globex', 'umbrella']);
 
     // A member below the top still reads every page; standing only gates a change.
     $Member = User::factory()->createOne();
@@ -146,5 +181,17 @@ test('an organization page is addressed by slug, scoped to membership, and carri
         ->actingAs($Member)
         ->get($url)
         ->assertOk()
-        ->assertSee('Acme Inc.');
+        ->assertSee('Acme Inc.')
+        ->assertDontSee('data-breadcrumb-settings', false);
+
+    // Standing is what a settings door answers to, so a member below the top is
+    // offered none — at either depth, because neither is held by membership alone.
+    $Held = Breadcrumb::current();
+
+    expect($Held)->not->toBeNull();
+
+    $trail = $Held->trail();
+
+    expect($trail[0]->settingsUrl)->toBeNull()
+        ->and($trail[1]->settingsUrl)->toBeNull();
 });

@@ -1,0 +1,1 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="{{$classname}}"><path fill-rule="evenodd" d="M4 3a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v19h-6v-4h-4v4H4V3Zm4 3h2v2H8V6Zm6 0h2v2h-2V6ZM8 10h2v2H8v-2Zm6 0h2v2h-2v-2ZM8 14h2v2H8v-2Zm6 0h2v2h-2v-2Z" clip-rule="evenodd"/></svg>

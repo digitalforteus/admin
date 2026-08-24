@@ -39,5 +39,6 @@ enum OrganizationRoute: string
     case member = self::prefix.'/{'.self::organizationParameter.'}/members/{'.self::memberParameter.'}';
     case invitations = self::prefix.'/{'.self::organizationParameter.'}/invitations';
     case invitation = self::prefix.'/{'.self::organizationParameter.'}/invitations/{'.self::invitationParameter.'}';
+    case settings = self::prefix.'/{'.self::organizationParameter.'}/settings';
     case connection = self::prefix.'/{'.self::organizationParameter.'}/{'.self::connectionParameter.'}';
 }

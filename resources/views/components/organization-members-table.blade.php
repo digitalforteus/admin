@@ -1,5 +1,6 @@
 @props(['organizationMembersTable'])
 @php
+    use App\Helpers\SvgName;
     use App\Modules\Organizations\Invitations\InvitationRequest;
     use App\Modules\Organizations\Members\MemberRequest;
     use App\View\DataModels\Avatar;
@@ -38,7 +39,7 @@
             @forelse($OrganizationMembersTable->rows() as $MemberRow)
                 <tr data-member-row>
                     <td>
-                        <x-avatar :avatar="[Avatar::name => $MemberRow->name, Avatar::size => 'w-8']"/>
+                        <x-avatar :avatar="[Avatar::name => $MemberRow->name, Avatar::size => 'w-8', Avatar::fallback => SvgName::user]"/>
                     </td>
                     <td class="whitespace-nowrap" title="{{$MemberRow->name}}">{{$MemberRow->name}}</td>
                     <td class="whitespace-nowrap" title="{{$MemberRow->email}}">{{$MemberRow->email}}</td>

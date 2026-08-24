@@ -4,7 +4,7 @@
     use App\Helpers\ProfilePicture;
     use App\Helpers\SvgName;
     use App\Routes\Web;
-    use App\View\DataModels\ConnectionBreadcrumb;
+    use App\View\DataModels\Breadcrumb;
     use App\View\DataModels\NavLink;
     use App\View\DataModels\Svg;
     use App\View\DataModels\Topnav;
@@ -49,9 +49,9 @@
                 </span>
             </div>
         </div>
-        @php($ConnectionBreadcrumb = ConnectionBreadcrumb::current())
-        @if($ConnectionBreadcrumb !== null)
-            <x-connection-breadcrumb :connectionBreadcrumb="$ConnectionBreadcrumb->props()"/>
+        @php($Breadcrumb = Breadcrumb::current())
+        @if($Breadcrumb !== null)
+            <x-breadcrumb :breadcrumb="$Breadcrumb->props()"/>
         @endif
     </div>
     <div class="navbar-end">

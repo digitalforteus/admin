@@ -1,14 +1,11 @@
 @props(['organizationsTable'])
 @php
+    use App\Helpers\SvgName;
     use App\View\DataModels\Avatar;
     use App\View\DataModels\OrganizationsTable;
     $OrganizationsTable = OrganizationsTable::from($organizationsTable);
 @endphp
 <div class="mt-6 flex flex-col gap-4">
-    <div>
-        <a class="btn btn-primary btn-sm" data-organization-add href="{{ $OrganizationsTable->createUrl() }}">Add organization</a>
-    </div>
-
     <div class="overflow-x-auto rounded-box border border-base-300">
         <table class="table table-zebra">
             <thead>
@@ -23,7 +20,7 @@
             @forelse($OrganizationsTable->rows() as $OrganizationRow)
                 <tr data-organization-row>
                     <td>
-                        <x-avatar :avatar="[Avatar::name => $OrganizationRow->name, Avatar::picture => $OrganizationRow->iconUrl(), Avatar::size => 'w-8']"/>
+                        <x-avatar :avatar="[Avatar::name => $OrganizationRow->name, Avatar::picture => $OrganizationRow->iconUrl(), Avatar::size => 'w-8', Avatar::fallback => SvgName::building]"/>
                     </td>
                     <td class="whitespace-nowrap" title="{{$OrganizationRow->name}}">{{$OrganizationRow->name}}</td>
                     <td class="whitespace-nowrap">{{$OrganizationRow->createdAt()}}</td>

@@ -48,24 +48,6 @@ readonly class OrganizationQuery
         return $Organization;
     }
 
-    /** @return array<string, list<Organization>> */
-    public static function forUser(User $User): array
-    {
-        $Builder = self::scoped($User)->with('enterprise');
-
-        $Builder->orderBy(Organizations::name->value);
-
-        $Organizations = $Builder->get();
-
-        $grouped = [];
-
-        foreach ($Organizations as $Organization) {
-            $grouped[$Organization->enterprise_id][] = $Organization;
-        }
-
-        return $grouped;
-    }
-
     /** @return list<array<string, mixed>> */
     public static function get(User $User): array
     {

@@ -16,7 +16,7 @@ use App\Routes\OrganizationRoute;
 use App\Sources\Db\App\Connections;
 use App\Sources\Db\App\OrganizationConnection;
 use App\Sources\Db\App\Organizations;
-use App\View\DataModels\ConnectionBreadcrumb;
+use App\View\DataModels\Breadcrumb;
 use GuzzleHttp\Promise\PromiseInterface;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
@@ -73,20 +73,43 @@ test('an organization opts into its enterprise connections, keeps the ones nothi
         ->assertSee('Disabled')
         ->assertSee('Unavailable');
 
-    // On an organization page the trail is the organization alone, and the only
-    // destinations it would offer are the ones enabled and still answerable.
+    // A depth the address does not reach is left out of the trail rather than
+    // emptied, so an organization page stops at the organization.
     $this->actingAs($User)
         ->get(OrganizationRoute::index->url($parameters))
         ->assertOk()
         ->assertSee('1 enabled')
-        ->assertSee('data-connection-breadcrumb', false)
-        ->assertDontSee('data-connection-switcher', false);
+        ->assertSee('data-breadcrumb', false);
 
-    $Breadcrumb = ConnectionBreadcrumb::current() ?? throw new RuntimeException('No trail inside an organization.');
+    $trail = (Breadcrumb::current() ?? throw new RuntimeException('No trail inside an organization.'))->trail();
 
-    expect($Breadcrumb->active)->toBeNull()
-        ->and($Breadcrumb->organization)->toBe($Organization->name)
-        ->and(collect($Breadcrumb->items())->pluck('label')->all())->toBe(['Primary Repo']);
+    expect($trail)->toHaveCount(2)
+        ->and($trail[0]->label)->toBe($Organization->enterprise->name)
+        ->and($trail[1]->label)->toBe($Organization->name);
+
+    // Naming a connection adds its depth, and that depth offers only the ones
+    // enabled and still answerable.
+    $this->actingAs($User)
+        ->get(OrganizationRoute::connection->url([
+            ...$parameters,
+            OrganizationRoute::connectionParameter => 'primary-repo',
+        ]))
+        ->assertOk();
+
+    $Named = Breadcrumb::current();
+
+    expect($Named)->not->toBeNull();
+
+    $trail = $Named->trail();
+
+    expect($trail)->toHaveCount(3)
+        ->and($trail[2]->label)->toBe('Primary Repo')
+        ->and($trail[2]->entries())->toBeEmpty()
+        ->and($trail[2]->settingsUrl)->toBe(OrganizationRoute::connectionManage->url([
+            ...$parameters,
+            OrganizationRoute::connectionParameter => 'primary-repo',
+        ]))
+        ->and($trail[2]->createUrl)->toBe(OrganizationRoute::connectionCreate->url($parameters));
 
     // Enabling and disabling is the pivot, and it is the caller's standing that
     // decides whether it may be written.

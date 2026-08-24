@@ -117,7 +117,7 @@ test('the run list renders what the provider reports, states a refusal and an em
         ->assertDontSee('data-runs-error', false)
         // The connection segment of the trail is present, and the rail carries the
         // page this plugin contributes.
-        ->assertSee('data-connection-switcher', false)
+        ->assertSee('data-breadcrumb-switcher', false)
         ->assertSee('Workflow Runs')
         // A secret reaches a header and nothing else.
         ->assertDontSee('secret-token');

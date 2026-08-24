@@ -36,6 +36,7 @@ readonly class UserMenu
         return [
             Avatar::name => $this->name,
             Avatar::picture => $this->picture,
+            Avatar::fallback => SvgName::user,
         ];
     }
 

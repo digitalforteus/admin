@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Helpers\Role;
 use App\Http\Middleware\ResolveConnection;
+use App\Http\Middleware\ResolveEnterprise;
 use App\Http\Middleware\ResolveOrganization;
 use App\Routes\MiddlewareTag;
 use Illuminate\Support\ServiceProvider;
@@ -18,6 +19,11 @@ class FolioServiceProvider extends ServiceProvider
             'admin/*' => [MiddlewareTag::auth->value, Role::admin->middleware()],
             'confirm-password' => [MiddlewareTag::auth->value, MiddlewareTag::verified->value],
             'confirm-password/*' => [MiddlewareTag::auth->value, MiddlewareTag::verified->value],
+            'e/*' => [
+                MiddlewareTag::auth->value,
+                MiddlewareTag::verified->value,
+                ResolveEnterprise::class,
+            ],
             'email/verify/*' => [MiddlewareTag::auth->value],
             'o/*' => [
                 MiddlewareTag::auth->value,

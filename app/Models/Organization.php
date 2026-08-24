@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Helpers\Disk;
 use App\Sources\Db\App\OrganizationConnection;
 use App\Sources\Db\App\Organizations;
 use App\Sources\Db\App\OrganizationUser;
@@ -53,6 +54,11 @@ class Organization extends Model
         Organizations::icon->value => null,
         Organizations::created_by->value => null,
     ];
+
+    public function iconUrl(): ?string
+    {
+        return $this->icon !== null && $this->icon !== '' ? Disk::public->url($this->icon) : null;
+    }
 
     public function resolveChildRouteBinding($childType, $value, $field): ?Model
     {

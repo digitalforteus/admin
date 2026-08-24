@@ -10,7 +10,6 @@ use App\Models\User;
 use App\Modules\Connections\ConnectionProvider;
 use App\Modules\Organizations\MembershipQuery;
 use App\Modules\Organizations\OrganizationContext;
-use App\Routes\Auth;
 use App\Routes\OrganizationRoute;
 
 readonly class OrganizationNav implements DescribesNav
@@ -75,8 +74,8 @@ readonly class OrganizationNav implements DescribesNav
             NavItem::from([
                 NavItem::label => 'Settings',
                 NavItem::icon => SvgName::gear,
-                NavItem::route => Auth::settingsOrganization,
-                NavItem::parameters => [Auth::organizationParameter => $Organization->id],
+                NavItem::route => OrganizationRoute::settings,
+                NavItem::parameters => [OrganizationRoute::organizationParameter => $Organization->slug],
             ]),
         ];
     }

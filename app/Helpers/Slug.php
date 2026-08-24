@@ -10,7 +10,7 @@ readonly class Slug
     public const string fallback = 'untitled';
 
     /** @var list<string> */
-    public const array reserved = ['new'];
+    public const array reserved = ['new', 'p', 'settings', 'connections', 'members', 'invitations'];
 
     /**
      * @param  class-string<Model>  $model

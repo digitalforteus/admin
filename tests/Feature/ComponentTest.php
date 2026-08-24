@@ -243,12 +243,21 @@ test('every component names a view that exists and reads one props array into ty
         ->and($Avatar->size)->toBe('w-9')
         ->and($Avatar->text)->toBe('text-sm')
         ->and($Avatar->initials())->toBe('?')
+        ->and($Avatar->fallback)->toBeNull()
         ->and(Avatar::from(UserRow::from($attributes)->avatar()))
         ->toHaveProperties([
             Avatar::picture => UserRow::from($attributes)->picture(),
             Avatar::size => 'w-8',
-            Avatar::text => 'text-xs',
+            Avatar::fallback => SvgName::user,
         ]);
+
+    // An avatar naming a fallback shows the thing's kind where a picture is missing,
+    // and the initials are what a caller naming none still falls back to.
+    $Fallback = Avatar::from([Avatar::name => 'Ada Lovelace', Avatar::fallback => SvgName::user]);
+
+    expect(Svg::from($Fallback->svg())->name)->toBe(SvgName::user)
+        ->and(Svg::from($Fallback->svg())->classname)->toBe('h-1/2 w-1/2')
+        ->and($Fallback->initials())->toBe('AL');
 
     $properties = array_keys(get_class_vars(UserRow::class));
 

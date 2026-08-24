@@ -4,6 +4,7 @@ namespace App\View\DataModels;
 
 use App\Helpers\DataModel;
 use App\Helpers\Gravatar;
+use App\Helpers\SvgName;
 use App\Routes\Admin;
 use App\Sources\Db\App\Users;
 use Illuminate\Support\Carbon;
@@ -66,7 +67,7 @@ readonly class UserRow
             Avatar::name => $this->name,
             Avatar::picture => $this->picture(),
             Avatar::size => 'w-8',
-            Avatar::text => 'text-xs',
+            Avatar::fallback => SvgName::user,
         ];
     }
 

@@ -3,12 +3,13 @@
 use App\Helpers\Directory;
 use App\Helpers\Disk;
 use App\Helpers\OrganizationRole;
-use App\Helpers\Slug;
+use App\Models\Enterprise;
 use App\Models\Organization;
 use App\Models\User;
 use App\Modules\Organizations\MembershipQuery;
 use App\Modules\Settings\Organizations\OrganizationForm;
 use App\Routes\Auth;
+use App\Routes\EnterpriseRoute;
 use App\Routes\Web;
 use App\Sources\Db\App\Organizations;
 use Illuminate\Support\Facades\Storage;
@@ -19,36 +20,45 @@ test('guests are redirected to login', function (): void {
 });
 
 test('guests cannot create an organization', function (): void {
-    $this->post(Auth::settingsOrganizations->value, [OrganizationForm::name => 'Acme Inc.'])
-        ->assertRedirect(Web::login->value);
+    $Enterprise = Enterprise::factory()->createOne();
+
+    $this->post(
+        EnterpriseRoute::organizationCreate->url([EnterpriseRoute::enterpriseParameter => $Enterprise->slug]),
+        [OrganizationForm::name => 'Acme Inc.'],
+    )->assertRedirect(Web::login->value);
 
     $this->assertDatabaseMissing(Organizations::table(), [
         Organizations::name->value => 'Acme Inc.',
     ]);
 });
 
-test('the page renders the nav, the empty state and the way to a new organization', function (): void {
+test('the page renders the nav, the empty state and the way to a first enterprise', function (): void {
+    // An account holding nothing is offered an enterprise, not an organization: an
+    // organization is only ever created inside one, so there is nowhere to put it yet.
     $this->actingAs(User::factory()->createOne())
         ->get(Auth::settingsOrganizations->value)
         ->assertOk()
         ->assertSee('data-page-header', false)
         ->assertSee(Auth::settingsOrganizations->value)
         ->assertSee('data-organizations-empty', false)
-        ->assertSee('data-organization-add', false)
-        ->assertSee(Auth::settingsOrganizationCreate->value);
-});
+        ->assertSee('data-enterprise-add', false)
+        ->assertSee(EnterpriseRoute::create->value)
+        ->assertDontSee('data-organization-add', false)
+        ->assertDontSee('data-enterprise-link', false)
+        ->assertDontSee('data-organization-create', false);
 
-test('the create page carries the form the list no longer holds', function (): void {
-    $this->actingAs(User::factory()->createOne())
-        ->get(Auth::settingsOrganizationCreate->value)
-        ->assertOk()
-        ->assertSee('data-organization-create', false)
-        ->assertSee('Organization Name');
+    $User = User::factory()->createOne();
+    $Organization = memberOrganization($User);
 
-    $this->actingAs(User::factory()->createOne())
+    $this->forgetCredentials()
+        ->actingAs($User)
         ->get(Auth::settingsOrganizations->value)
         ->assertOk()
-        ->assertDontSee('data-organization-create', false);
+        ->assertSee('data-enterprise-link', false)
+        ->assertSee($Organization->enterprise->name)
+        ->assertSee(EnterpriseRoute::index->url([
+            EnterpriseRoute::enterpriseParameter => $Organization->enterprise->slug,
+        ]));
 });
 
 test('only an owner is offered the way in to manage one', function (): void {
@@ -84,78 +94,6 @@ test('the page lists only the organizations the caller is a member of', function
         ->assertSee('Acme Inc.')
         ->assertSee('Globex Corp.')
         ->assertDontSee('Initech LLC');
-});
-
-test('creating an organization makes the creator its owner', function (): void {
-    $User = User::factory()->createOne();
-
-    $this->actingAs($User)
-        ->from(Auth::settingsOrganizationCreate->value)
-        ->post(Auth::settingsOrganizations->value, [OrganizationForm::name => 'Acme Inc.'])
-        ->assertSessionHas('status', 'Organization created.');
-
-    $Organization = Organization::query()->sole();
-
-    // Supplying the name lands on the row it named, not back on an empty form.
-    $this->assertDatabaseCount(Organizations::table(), 1);
-
-    expect($Organization->name)->toBe('Acme Inc.')
-        ->and($Organization->slug)->toBe('acme-inc')
-        ->and($Organization->created_by)->toBe($User->id)
-        ->and($Organization->creator?->id)->toBe($User->id)
-        ->and(MembershipQuery::role($Organization, $User))->toBe(OrganizationRole::owner)
-        ->and($Organization->enterprise->name)->toBe('Acme Inc.');
-
-    // The segment is unique, so a second organization of the same name gets a
-    // different one rather than failing the write, and a name that reduces to
-    // nothing still gets one.
-    $this->actingAs($User)
-        ->from(Auth::settingsOrganizationCreate->value)
-        ->post(Auth::settingsOrganizations->value, [OrganizationForm::name => 'Acme Inc.'])
-        ->assertSessionHas('status', 'Organization created.');
-
-    $this->actingAs($User)
-        ->from(Auth::settingsOrganizationCreate->value)
-        ->post(Auth::settingsOrganizations->value, [OrganizationForm::name => '???'])
-        ->assertSessionHas('status', 'Organization created.');
-
-    expect(Organization::query()->pluck(Organizations::slug->value)->all())
-        ->toEqualCanonicalizing(['acme-inc', 'acme-inc-2', Slug::fallback]);
-});
-
-test('a name is squished before it is stored', function (): void {
-    $this->actingAs(User::factory()->createOne())
-        ->from(Auth::settingsOrganizationCreate->value)
-        ->post(Auth::settingsOrganizations->value, [OrganizationForm::name => '  Acme   Inc.  ']);
-
-    expect(Organization::query()->sole()->name)->toBe('Acme Inc.');
-});
-
-test('validation fails with a missing name', function (): void {
-    $this->actingAs(User::factory()->createOne())
-        ->from(Auth::settingsOrganizationCreate->value)
-        ->post(Auth::settingsOrganizations->value)
-        ->assertRedirect(Auth::settingsOrganizationCreate->value)
-        ->assertSessionHasErrors(OrganizationForm::name);
-
-    expect(Organization::query()->count())->toBe(0);
-});
-
-test('validation errors are displayed on the form', function (): void {
-    $this->actingAs(User::factory()->createOne())
-        ->from(Auth::settingsOrganizationCreate->value)
-        ->followingRedirects()
-        ->post(Auth::settingsOrganizations->value, [OrganizationForm::name => ''])
-        ->assertOk()
-        ->assertSee('The name field is required.');
-});
-
-test('old input is preserved on validation failure', function (): void {
-    $this->actingAs(User::factory()->createOne())
-        ->from(Auth::settingsOrganizationCreate->value)
-        ->post(Auth::settingsOrganizations->value, [OrganizationForm::name => str_repeat('a', 256)])
-        ->assertSessionHasErrors(OrganizationForm::name)
-        ->assertSessionHasInput(OrganizationForm::name, str_repeat('a', 256));
 });
 
 test('an organization is deleted', function (): void {

@@ -8,6 +8,7 @@ enum SvgName: string
     case check_circle = 'check-circle';
     case chevron_down = 'chevron-down';
     case chevron_up = 'chevron-up';
+    case building = 'building';
     case city = 'city';
     case code = 'code';
     case command_line = 'command-line';
@@ -15,6 +16,7 @@ enum SvgName: string
     case digitalforte_logo = 'digitalforte-logo';
     case document = 'document';
     case email = 'email';
+    case folder = 'folder';
     case gear = 'gear';
     case github = 'github';
     case google = 'google';
@@ -28,6 +30,7 @@ enum SvgName: string
     case mailbox = 'mailbox';
     case moon = 'moon';
     case pencil = 'pencil';
+    case plus = 'plus';
     case sun = 'sun';
     case swatch = 'swatch';
     case user = 'user';

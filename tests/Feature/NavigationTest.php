@@ -16,9 +16,13 @@ use App\Routes\Auth;
 use App\Routes\MiddlewareTag;
 use App\Routes\RouteIndex;
 use App\Routes\Web;
+use App\Sources\Db\App\Organizations;
 use App\Sources\Db\App\Users;
 use App\View\DataModels\AdminNav;
 use App\View\DataModels\Avatar;
+use App\View\DataModels\Breadcrumb;
+use App\View\DataModels\BreadcrumbItem;
+use App\View\DataModels\BreadcrumbSegment;
 use App\View\DataModels\DescribesNav;
 use App\View\DataModels\DocsNav;
 use App\View\DataModels\LeftNav;
@@ -30,7 +34,6 @@ use App\View\DataModels\NavLink;
 use App\View\DataModels\NavRail;
 use App\View\DataModels\OrganizationNav;
 use App\View\DataModels\OrganizationRow;
-use App\View\DataModels\OrganizationSwitcher;
 use App\View\DataModels\SettingsNav;
 use App\View\DataModels\Svg;
 use App\View\DataModels\Topnav;
@@ -432,7 +435,11 @@ test('every rail, dropdown and head is built from route cases, active on its own
     }
 
     expect(UserMenu::from([UserMenu::name => 'John Doe', UserMenu::picture => 'https://example.com/avatar.jpg'])->avatar())
-        ->toBe([Avatar::name => 'John Doe', Avatar::picture => 'https://example.com/avatar.jpg'])
+        ->toBe([
+            Avatar::name => 'John Doe',
+            Avatar::picture => 'https://example.com/avatar.jpg',
+            Avatar::fallback => SvgName::user,
+        ])
         ->and(UserMenu::from([UserMenu::name => 'John Doe'])->avatar()[Avatar::picture])->toBeNull();
 
     // The address is this segment's alone, so every fetch of its avatar is one
@@ -483,7 +490,10 @@ test('every rail, dropdown and head is built from route cases, active on its own
         ->get(Web::home->value)
         ->assertOk()
         ->assertSee('https://example.com/avatar.jpg')
-        ->assertSee('<span class="hidden text-sm" title="JD">JD</span>', false);
+        // A picture is shown over the kind it stands for, not instead of it: the icon
+        // is rendered hidden so a picture that fails to load reveals it.
+        ->assertSee('<span class="flex items-center justify-center hidden" title="John Doe">', false)
+        ->assertDontSee('title="JD">JD</span>', false);
 
     Config::set('services.google.client_id', 'client-id.apps.googleusercontent.com');
 
@@ -675,31 +685,62 @@ test('every rail, dropdown and head is built from route cases, active on its own
     app()->instance('request', Request::create(Web::home->value));
     expect(LeftNav::visible())->toBeFalse();
 
-    // Test OrganizationSwitcher
+    // The trail is one depth per thing the address resolved, and each depth carries
+    // the picture the thing is shown by rather than an icon the markup chose.
     $OrgUser = User::factory()->createOne();
     $OrgToSwitch = Organization::factory()->createOne();
     $OrgToSwitch->update(['icon' => 'orgs/test.jpg']);
     $OrgUser->organizations()->attach($OrgToSwitch->id, ['role' => OrganizationRole::owner->value]);
+    $Beside = Organization::factory()->createOne([
+        Organizations::enterprise_id->value => $OrgToSwitch->enterprise_id,
+        Organizations::icon->value => 'orgs/beside.jpg',
+    ]);
+    $OrgUser->organizations()->attach($Beside->id, ['role' => OrganizationRole::owner->value]);
     $this->actingAs($OrgUser);
 
-    $SwitcherRequest = Request::create('/o/'.$OrgToSwitch->slug);
-    OrganizationContext::bind($SwitcherRequest, $OrgToSwitch);
-    app()->instance('request', $SwitcherRequest);
+    $TrailRequest = Request::create('/o/'.$OrgToSwitch->slug);
+    OrganizationContext::bind($TrailRequest, $OrgToSwitch);
+    app()->instance('request', $TrailRequest);
 
-    $Switcher = OrganizationSwitcher::current();
-    expect($Switcher)->not->toBeNull();
+    $Breadcrumb = Breadcrumb::current();
 
-    if ($Switcher !== null) {
-        expect($Switcher->name)->toBe($OrgToSwitch->name)
-            ->and($Switcher->slug)->toBe($OrgToSwitch->slug)
-            ->and($Switcher->icon)->toBe($OrgToSwitch->icon)
-            ->and($Switcher->iconUrl())->toBeTruthy()
-            ->and($Switcher->initials())->toBeString();
-    }
+    expect($Breadcrumb)->not->toBeNull();
 
-    // Test OrganizationSwitcher outside context returns null
+    $trail = $Breadcrumb?->trail() ?? [];
+
+    expect($trail)->toHaveCount(2)
+        ->and($trail[0]->label)->toBe($OrgToSwitch->enterprise->name)
+        ->and($trail[0]->picture)->toBeNull()
+        ->and($trail[1]->label)->toBe($OrgToSwitch->name)
+        ->and($trail[1]->picture)->toBe($OrgToSwitch->iconUrl())
+        ->and($trail[1]->picture)->toBeTruthy()
+        ->and(Avatar::from($trail[1]->avatar())->picture)->toBe($OrgToSwitch->iconUrl())
+        ->and(Avatar::from($trail[1]->avatar())->fallback)->toBe(SvgName::building)
+        ->and(Avatar::from($trail[0]->avatar())->picture)->toBeNull()
+        ->and(Avatar::from($trail[0]->avatar())->fallback)->toBe(SvgName::city)
+        ->and($Breadcrumb?->props()[Breadcrumb::segments])->toEqual($Breadcrumb?->segments);
+
+    // A depth lists what stands beside the thing it names, never the thing itself.
+    $Entry = $trail[1]->entries()[0];
+
+    expect($trail[1]->entries())->toHaveCount(1)
+        ->and($Entry->label)->toBe($Beside->name)
+        ->and(Avatar::from($Entry->avatar())->picture)->toBe($Beside->iconUrl())
+        ->and(Avatar::from($Entry->avatar())->fallback)->toBe(SvgName::building)
+        ->and(static fn () => BreadcrumbItem::from([]))->toThrow(PropertyRequiredException::class)
+        ->and(static fn () => BreadcrumbSegment::from([]))->toThrow(PropertyRequiredException::class);
+
+    // A trail is built for a reader and an address, so a page naming nothing has none.
     app()->instance('request', Request::create(Web::home->value));
-    expect(OrganizationSwitcher::current())->toBeNull();
+
+    expect(Breadcrumb::current())->toBeNull();
+
+    $this->forgetCredentials();
+    app()->instance('request', Request::create(Web::home->value));
+
+    expect(Breadcrumb::current())->toBeNull();
+
+    $this->actingAs($OrgUser);
 
     // Test MemberRow
     $MemberRowOrg = Organization::factory()->createOne();

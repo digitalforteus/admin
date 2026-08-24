@@ -1,5 +1,7 @@
 <?php
 
+use App\Modules\Enterprises\EnterpriseController;
+use App\Modules\Enterprises\EnterpriseUpdateController;
 use App\Modules\Fortify\EmailVerificationNotificationController;
 use App\Modules\Fortify\RecoveryCodesRegenerateController;
 use App\Modules\Fortify\TwoFactorConfirmController;
@@ -27,6 +29,7 @@ use App\Modules\Settings\Profile\ProfilePictureDestroyController;
 use App\Modules\Settings\Sessions\SessionDestroyController;
 use App\Modules\Settings\Sessions\SessionsDestroyController;
 use App\Routes\Auth;
+use App\Routes\EnterpriseRoute;
 use App\Routes\MiddlewareTag;
 use Illuminate\Support\Facades\Route;
 
@@ -73,7 +76,9 @@ Route::middleware(MiddlewareTag::verified->value)->group(function () {
     Route::post(Auth::settingsCredentials->value, TokenController::class);
     Route::post(Auth::settingsCredential->value, TokenUpdateController::class);
     Route::delete(Auth::settingsCredential->value, TokenDestroyController::class);
-    Route::post(Auth::settingsOrganizations->value, OrganizationController::class);
+    Route::post(EnterpriseRoute::create->value, EnterpriseController::class);
+    Route::post(EnterpriseRoute::settings->value, EnterpriseUpdateController::class);
+    Route::post(EnterpriseRoute::organizationCreate->value, OrganizationController::class);
     Route::post(Auth::settingsOrganization->value, OrganizationUpdateController::class);
     Route::delete(Auth::settingsOrganization->value, OrganizationDestroyController::class);
     Route::post(Auth::settingsOrganizationIcon->value, OrganizationIconController::class);
