@@ -140,6 +140,7 @@ if (confirm('Delete init', true)) {
 }
 
 commit($answers);
+graft_history();
 
 if ($origin === null) {
     writeln('');
@@ -486,6 +487,74 @@ function create_origin(array $answers): void
     }
 
     step('Creating the repository', $command);
+}
+
+/*
+ * Give this clone and the template a commit in common.
+ *
+ * A project started from this template by copying rather than forking shares no
+ * commit with it, and every pull from the upstream then stops on unrelated
+ * histories before the merge driver is ever consulted. One merge that keeps this
+ * side's tree wholesale records the ancestry without touching a file, and pulls
+ * merge normally from then on. Nothing is grafted when the histories already
+ * meet, and a tree with uncommitted work is left alone, because the graft is a
+ * merge commit and a merge commit cannot be recorded over it.
+ */
+function graft_history(): void
+{
+    $remote = upstream_remote();
+
+    if ($remote === null || git('rev-parse --verify --quiet HEAD') === '') {
+        return;
+    }
+
+    $branch = branch();
+
+    if (git('status --porcelain') !== '') {
+        writeln('');
+        writeln('  Uncommitted changes, so the history is not grafted. Commit, then:');
+        writeln('    git fetch '.$remote.' && git merge -s ours --allow-unrelated-histories '.$remote.'/'.$branch.' -m "Graft template history"');
+
+        return;
+    }
+
+    if (! confirm('Graft the template history so pulls from '.$remote.' merge', true)) {
+        return;
+    }
+
+    if (! step('Fetching the template', 'git fetch '.$remote)) {
+        return;
+    }
+
+    $tip = git('rev-parse --verify --quiet '.$remote.'/'.$branch);
+
+    if ($tip === '') {
+        writeln('');
+        writeln('  No '.$remote.'/'.$branch.', so there is nothing to graft from.');
+
+        return;
+    }
+
+    if (git('merge-base HEAD '.$tip) !== '') {
+        writeln('');
+        writeln('  The histories already meet, so nothing is grafted.');
+
+        return;
+    }
+
+    step('Grafting the template history', 'git merge -s ours --allow-unrelated-histories '.$tip.' -m '.escapeshellarg('Graft template history'));
+}
+
+/** The remote pointing at the template, whatever it is called here. */
+function upstream_remote(): ?string
+{
+    foreach (remotes() as $name => $url) {
+        if (is_upstream($url)) {
+            return $name;
+        }
+    }
+
+    return null;
 }
 
 /** @param array<string, string> $answers */
