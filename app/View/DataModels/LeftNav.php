@@ -5,6 +5,7 @@ namespace App\View\DataModels;
 use App\Helpers\HasNavItems;
 use App\Helpers\SvgName;
 use App\Routes\Auth;
+use App\Routes\ContextRoute;
 use App\Routes\Web;
 
 enum LeftNav implements DescribesNav
@@ -14,8 +15,8 @@ enum LeftNav implements DescribesNav
     #[NavItem([NavItem::label => 'Home', NavItem::icon => SvgName::home, NavItem::route => Web::home])]
     case home;
 
-    #[NavItem([NavItem::label => 'Organizations', NavItem::icon => SvgName::city, NavItem::route => Auth::settingsOrganizations, NavItem::nested => true])]
-    case organizations;
+    #[NavItem([NavItem::label => 'Enterprises', NavItem::icon => SvgName::city, NavItem::route => ContextRoute::enterpriseIndex, NavItem::nested => true])]
+    case enterprises;
 
     #[NavItem([NavItem::label => 'Documentation', NavItem::icon => SvgName::document, NavItem::route => Web::docs, NavItem::nested => true])]
     case docs;

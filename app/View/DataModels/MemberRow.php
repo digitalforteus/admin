@@ -3,19 +3,13 @@
 namespace App\View\DataModels;
 
 use App\Helpers\DataModel;
-use App\Helpers\Initials;
-use App\Helpers\OrganizationRole;
-use App\Routes\OrganizationRoute;
+use App\Helpers\MemberRole;
+use App\Routes\ContextRoute;
 use Zerotoprod\DataModel\Describe;
 
 readonly class MemberRow
 {
     use DataModel;
-
-    public const string organization = 'organization';
-
-    #[Describe([Describe::required => true])]
-    public string $organization;
 
     public const string id = 'id';
 
@@ -35,18 +29,10 @@ readonly class MemberRow
     public const string role = 'role';
 
     #[Describe([Describe::required => true])]
-    public OrganizationRole $role;
-
-    public function initials(): string
-    {
-        return Initials::from($this->name);
-    }
+    public MemberRole $role;
 
     public function url(): string
     {
-        return OrganizationRoute::member->url([
-            OrganizationRoute::organizationParameter => $this->organization,
-            OrganizationRoute::memberParameter => $this->id,
-        ]);
+        return ContextRoute::member->url(ContextRoute::parameters([ContextRoute::memberParameter => $this->id]));
     }
 }

@@ -3,7 +3,7 @@
 namespace App\View\DataModels;
 
 use App\Helpers\DataModel;
-use App\Routes\OrganizationRoute;
+use App\Routes\ContextRoute;
 use Zerotoprod\DataModel\Describe;
 
 readonly class RunsTable
@@ -11,16 +11,6 @@ readonly class RunsTable
     use DataModel;
 
     public const int perPage = 20;
-    public const string organization = 'organization';
-
-    #[Describe([Describe::required => true])]
-    public string $organization;
-
-    public const string project = 'project';
-
-    #[Describe([Describe::required => true])]
-    public string $project;
-
     public const string connection = 'connection';
 
     #[Describe([Describe::required => true])]
@@ -85,10 +75,9 @@ readonly class RunsTable
 
     private function pageUrl(int $page): string
     {
-        return OrganizationRoute::connection->url([
-            OrganizationRoute::organizationParameter => $this->organization,
-            OrganizationRoute::projectParameter => $this->project,
-            OrganizationRoute::connectionParameter => $this->connection,
-        ], [self::page => $page]);
+        return ContextRoute::connection->url(
+            ContextRoute::parameters([ContextRoute::connectionParameter => $this->connection]),
+            [self::page => $page],
+        );
     }
 }

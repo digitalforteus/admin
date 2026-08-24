@@ -6,7 +6,7 @@ use App\Helpers\DataModel;
 use App\Helpers\SvgName;
 use App\Routes\Admin;
 use App\Routes\Auth;
-use App\Routes\OrganizationRoute;
+use App\Routes\ContextRoute;
 use App\Routes\Web;
 use Attribute;
 use Zerotoprod\DataModel\Describe;
@@ -37,7 +37,7 @@ readonly class NavItem
     public const string route = 'route';
 
     #[Describe([Describe::required => true])]
-    public Admin|Auth|OrganizationRoute|Web $route;
+    public Admin|Auth|ContextRoute|Web $route;
 
     public const string parameters = 'parameters';
 

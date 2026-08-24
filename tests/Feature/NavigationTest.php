@@ -1,39 +1,39 @@
 <?php
 
 use App\AppConfig;
-use App\Helpers\OrganizationRole;
+use App\Helpers\Depth;
+use App\Helpers\MemberRole;
 use App\Helpers\Role;
 use App\Helpers\SessionKey;
 use App\Helpers\SvgName;
 use App\Helpers\Theme;
-use App\Models\Organization;
 use App\Models\User;
-use App\Modules\Organizations\OrganizationContext;
+use App\Modules\Contexts\Authorize;
+use App\Modules\Contexts\Context;
+use App\Modules\Memberships\MembershipQuery;
 use App\Routes\Admin;
 use App\Routes\AdminLink;
 use App\Routes\ApiRoute;
 use App\Routes\Auth;
+use App\Routes\ContextRoute;
 use App\Routes\MiddlewareTag;
 use App\Routes\RouteIndex;
 use App\Routes\Web;
-use App\Sources\Db\App\Organizations;
 use App\Sources\Db\App\Users;
 use App\View\DataModels\AdminNav;
 use App\View\DataModels\Avatar;
 use App\View\DataModels\Breadcrumb;
 use App\View\DataModels\BreadcrumbItem;
 use App\View\DataModels\BreadcrumbSegment;
+use App\View\DataModels\ContextNav;
 use App\View\DataModels\DescribesNav;
 use App\View\DataModels\DocsNav;
 use App\View\DataModels\LeftNav;
 use App\View\DataModels\Main;
-use App\View\DataModels\MemberRow;
 use App\View\DataModels\Nav;
 use App\View\DataModels\NavItem;
 use App\View\DataModels\NavLink;
 use App\View\DataModels\NavRail;
-use App\View\DataModels\OrganizationNav;
-use App\View\DataModels\OrganizationRow;
 use App\View\DataModels\SettingsNav;
 use App\View\DataModels\Svg;
 use App\View\DataModels\Topnav;
@@ -44,6 +44,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\View;
 use Laravel\Head\Facades\Head;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Tests\Fixtures\RouteIndexStub;
 use Zerotoprod\DataModel\PropertyRequiredException;
 
@@ -345,7 +346,7 @@ test('every rail, dropdown and head is built from route cases, active on its own
 
     expect(Nav::admin->enum())->toBe(AdminNav::class)
         ->and(array_column(Nav::cases(), 'value'))
-        ->toBe([AdminNav::class, SettingsNav::class, DocsNav::class, OrganizationNav::class, LeftNav::class])
+        ->toBe([AdminNav::class, SettingsNav::class, DocsNav::class, ContextNav::class, LeftNav::class])
         ->and(View::exists('components.nav-rail'))->toBeTrue()
         ->and(View::exists('components.nav-link'))->toBeTrue();
 
@@ -355,15 +356,14 @@ test('every rail, dropdown and head is built from route cases, active on its own
         Nav::admin->name => [Admin::index, Admin::users, Admin::sessions, Admin::content, Admin::links],
         Nav::settings->name => [
             Auth::settingsProfile,
-            Auth::settingsOrganizations,
             Auth::settingsAppearance,
             Auth::settingsSecurity,
             Auth::settingsCredentials,
             Auth::settingsSessions,
         ],
         Nav::docs->name => [Web::docsApi, Web::docsMcp],
-        Nav::organization->name => [], // Dynamic items based on OrganizationContext
-        Nav::left->name => [Web::home, Auth::settingsOrganizations, Web::docs, Web::contact],
+        Nav::context->name => [], // Dynamic items based on OrganizationContext
+        Nav::left->name => [Web::home, ContextRoute::enterpriseIndex, Web::docs, Web::contact],
     ];
 
     foreach (Nav::cases() as $Nav) {
@@ -640,157 +640,75 @@ test('every rail, dropdown and head is built from route cases, active on its own
         ->assertDontSee('digitalforte_referral_click')
         ->assertSee(Config::string('app.name'));
 
-    // Test organization navigation
-    $User = User::factory()->createOne();
-    $Organization = Organization::factory()->createOne();
-    $User->organizations()->attach($Organization->id, ['role' => OrganizationRole::owner->value]);
+    // The rail is the depth the address settled and what may be done inside it, so a
+    // depth reached with no standing to change it is offered no way to.
+    $Owner = User::factory()->createOne();
+    $Organization = memberOrganization($Owner);
 
-    $this->actingAs($User);
-    $Request = Request::create('/o/'.$Organization->slug);
-    OrganizationContext::bind($Request, $Organization);
+    $this->actingAs($Owner);
+    $Request = Request::create(ContextRoute::organization->url(atOrganization($Organization)));
+    Context::bind($Request, Depth::enterprise, $Organization->enterprise);
+    Context::bind($Request, Depth::organization, $Organization);
     app()->instance('request', $Request);
 
-    expect(OrganizationNav::visible())->toBeTrue()
-        ->and(OrganizationNav::label())->toBe('Organization')
-        ->and(collect(OrganizationNav::items())->pluck('label')->all())
-        ->toContain('Overview', 'Projects', 'Members', 'Settings');
+    expect(ContextNav::visible())->toBeTrue()
+        ->and(ContextNav::label())->toBe('Organization')
+        ->and(collect(ContextNav::items())->pluck('label')->all())
+        ->toBe(['Overview', 'Members', 'Settings'])
+        ->and(Context::deepest())->toBe(Depth::organization)
+        ->and(Context::standing())->toBe(MemberRole::owner);
 
-    // Test non-owner doesn't see settings
-    $NonOwner = User::factory()->createOne();
-    $NonOwner->organizations()->attach($Organization->id, ['role' => OrganizationRole::member->value]);
-    $this->actingAs($NonOwner);
-    $Request2 = Request::create('/o/'.$Organization->slug);
-    OrganizationContext::bind($Request2, $Organization);
-    app()->instance('request', $Request2);
+    $Member = User::factory()->createOne();
+    MembershipQuery::grant(Depth::organization, $Organization, $Member, MemberRole::member);
+    $this->actingAs($Member);
+    $Reading = Request::create(ContextRoute::organization->url(atOrganization($Organization)));
+    Context::bind($Reading, Depth::enterprise, $Organization->enterprise);
+    Context::bind($Reading, Depth::organization, $Organization);
+    app()->instance('request', $Reading);
 
-    expect(collect(OrganizationNav::items())->pluck('label')->all())
-        ->not->toContain('Settings')
-        ->toContain('Overview', 'Projects', 'Members');
+    expect(collect(ContextNav::items())->pluck('label')->all())->toBe(['Overview', 'Members'])
+        ->and(Context::role(Depth::organization))->toBe(MemberRole::member);
 
-    // Test organization nav not visible outside context
+    // A depth the address never reached contributes nothing, and outside the hierarchy
+    // the rail stands down entirely.
     app()->instance('request', Request::create(Web::home->value));
-    expect(OrganizationNav::visible())->toBeFalse();
 
-    // Test LeftNav visibility and items
-    $LeftNavUser = User::factory()->createOne();
-    $this->actingAs($LeftNavUser);
+    expect(ContextNav::visible())->toBeFalse()
+        ->and(ContextNav::items())->toBeEmpty()
+        ->and(ContextNav::label())->toBe('Context')
+        ->and(Context::deepest())->toBeNull()
+        ->and(Context::standing())->toBeNull()
+        ->and(Context::role(Depth::organization))->toBeNull()
+        // Nothing may be authorised at a depth the address never settled.
+        ->and(static fn (): mixed => Authorize::organization())
+        ->toThrow(NotFoundHttpException::class);
+
+    // A depth reached without the one containing it contributes nothing: the plugin's
+    // own pages hang off the project, so there is nowhere to point them.
+    $Orphan = Request::create(Web::home->value);
+    Context::bind($Orphan, Depth::connection, projectConnection(memberProject($Organization)));
+    app()->instance('request', $Orphan);
+
+    expect(Context::deepest())->toBe(Depth::connection)
+        ->and(collect(ContextNav::items())->pluck('label')->all())->toBe(['Connections']);
+
+    // The primary rail is what an account holding nothing is offered.
+    $this->actingAs(User::factory()->createOne());
     app()->instance('request', Request::create(Auth::dashboard->value));
 
     expect(LeftNav::visible())->toBeTrue()
         ->and(LeftNav::label())->toBe('Primary')
         ->and(collect(LeftNav::items())->pluck('label')->all())
-        ->toContain('Home', 'Organizations', 'Documentation', 'Contact');
+        ->toContain('Home', 'Enterprises', 'Documentation', 'Contact');
 
-    // Test LeftNav not visible on non-dashboard routes
     app()->instance('request', Request::create(Web::home->value));
-    expect(LeftNav::visible())->toBeFalse();
 
-    // The trail is one depth per thing the address resolved, and each depth carries
-    // the picture the thing is shown by rather than an icon the markup chose.
-    $OrgUser = User::factory()->createOne();
-    $OrgToSwitch = Organization::factory()->createOne();
-    $OrgToSwitch->update(['icon' => 'orgs/test.jpg']);
-    $OrgUser->organizations()->attach($OrgToSwitch->id, ['role' => OrganizationRole::owner->value]);
-    $Beside = Organization::factory()->createOne([
-        Organizations::enterprise_id->value => $OrgToSwitch->enterprise_id,
-        Organizations::icon->value => 'orgs/beside.jpg',
-    ]);
-    $OrgUser->organizations()->attach($Beside->id, ['role' => OrganizationRole::owner->value]);
-    $this->actingAs($OrgUser);
-
-    $TrailRequest = Request::create('/o/'.$OrgToSwitch->slug);
-    OrganizationContext::bind($TrailRequest, $OrgToSwitch);
-    app()->instance('request', $TrailRequest);
-
-    $Breadcrumb = Breadcrumb::current();
-
-    expect($Breadcrumb)->not->toBeNull();
-
-    $trail = $Breadcrumb?->trail() ?? [];
-
-    expect($trail)->toHaveCount(3)
-        ->and($trail[0]->label)->toBe($OrgToSwitch->enterprise->name)
-        ->and($trail[0]->picture)->toBeNull()
-        ->and($trail[1]->label)->toBe($OrgToSwitch->name)
-        ->and($trail[1]->picture)->toBe($OrgToSwitch->iconUrl())
-        ->and($trail[1]->picture)->toBeTruthy()
-        ->and(Avatar::from($trail[1]->avatar())->picture)->toBe($OrgToSwitch->iconUrl())
-        ->and(Avatar::from($trail[1]->avatar())->fallback)->toBe(SvgName::building)
-        ->and(Avatar::from($trail[0]->avatar())->picture)->toBeNull()
-        ->and(Avatar::from($trail[0]->avatar())->fallback)->toBe(SvgName::city)
-        ->and($Breadcrumb?->props()[Breadcrumb::segments])->toEqual($Breadcrumb?->segments);
-
-    // A depth lists what stands beside the thing it names, never the thing itself.
-    $Entry = $trail[1]->entries()[0];
-
-    expect($trail[1]->entries())->toHaveCount(1)
-        ->and($Entry->label)->toBe($Beside->name)
-        ->and(Avatar::from($Entry->avatar())->picture)->toBe($Beside->iconUrl())
-        ->and(Avatar::from($Entry->avatar())->fallback)->toBe(SvgName::building)
+    expect(LeftNav::visible())->toBeFalse()
         ->and(static fn () => BreadcrumbItem::from([]))->toThrow(PropertyRequiredException::class)
         ->and(static fn () => BreadcrumbSegment::from([]))->toThrow(PropertyRequiredException::class);
-
-    // A trail is built for a reader, not for an address: a page that names nothing
-    // still offers the widest depth to choose, and only a stranger is offered none.
-    app()->instance('request', Request::create(Web::home->value));
-
-    $Offered = Breadcrumb::current();
-
-    $offered = $Offered?->trail() ?? [];
-
-    expect($Offered)->not->toBeNull()
-        ->and($offered)->toHaveCount(1)
-        ->and($offered[0]->settled())->toBeFalse()
-        ->and($offered[0]->label)->toBe('Select enterprise');
 
     $this->forgetCredentials();
     app()->instance('request', Request::create(Web::home->value));
 
     expect(Breadcrumb::current())->toBeNull();
-
-    $this->actingAs($OrgUser);
-
-    // Test MemberRow
-    $MemberRowOrg = Organization::factory()->createOne();
-    $MemberRowUser = User::factory()->createOne();
-    $MemberRowUser->organizations()->attach($MemberRowOrg->id, ['role' => OrganizationRole::member->value]);
-
-    $MemberRow = MemberRow::from([
-        MemberRow::organization => $MemberRowOrg->id,
-        MemberRow::id => $MemberRowUser->id,
-        MemberRow::name => $MemberRowUser->name,
-        MemberRow::email => $MemberRowUser->email,
-        MemberRow::role => OrganizationRole::member,
-    ]);
-
-    expect($MemberRow->initials())->toBeString()
-        ->and($MemberRow->url())->toContain('/members/');
-
-    // Test OrganizationRow
-    $OrgRowData = Organization::factory()->createOne(['name' => 'TestOrg', 'icon' => 'orgs/icon.jpg']);
-
-    $OrgRow = OrganizationRow::from([
-        OrganizationRow::id => $OrgRowData->id,
-        OrganizationRow::name => 'TestOrg',
-        OrganizationRow::icon => 'orgs/icon.jpg',
-        OrganizationRow::created_at => now()->toDateTimeString(),
-        OrganizationRow::owns => true,
-    ]);
-
-    expect($OrgRow->initials())->toBe('T')
-        ->and($OrgRow->iconUrl())->toBeTruthy()
-        ->and($OrgRow->url())->toContain('/settings/organizations/')
-        ->and($OrgRow->createdAt())->toBeString();
-
-    // Test OrganizationRow without icon
-    $OrgRowNoIcon = OrganizationRow::from([
-        OrganizationRow::id => 'test-id',
-        OrganizationRow::name => 'No Icon Org',
-        OrganizationRow::icon => null,
-        OrganizationRow::created_at => null,
-        OrganizationRow::owns => false,
-    ]);
-
-    expect($OrgRowNoIcon->iconUrl())->toBeNull()
-        ->and($OrgRowNoIcon->createdAt())->toBe('—');
 });

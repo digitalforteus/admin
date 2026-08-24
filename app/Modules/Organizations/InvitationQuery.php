@@ -2,10 +2,12 @@
 
 namespace App\Modules\Organizations;
 
-use App\Helpers\OrganizationRole;
+use App\Helpers\Depth;
+use App\Helpers\MemberRole;
 use App\Models\Organization;
 use App\Models\OrganizationInvitation;
 use App\Models\User;
+use App\Modules\Memberships\MembershipQuery;
 use App\Sources\Db\App\OrganizationInvitations;
 use App\Sources\Db\App\Users;
 use Illuminate\Database\Eloquent\Collection;
@@ -26,7 +28,7 @@ class InvitationQuery
     public static function invite(
         Organization $Organization,
         string $email,
-        OrganizationRole $OrganizationRole,
+        MemberRole $MemberRole,
         ?User $Inviter,
     ): OrganizationInvitation {
         $Invitation = $Organization->invitations()->firstOrNew([
@@ -34,7 +36,7 @@ class InvitationQuery
         ]);
 
         $Invitation->fill([
-            OrganizationInvitations::role->value => $OrganizationRole,
+            OrganizationInvitations::role->value => $MemberRole,
             OrganizationInvitations::token->value => Str::random(48),
             OrganizationInvitations::expires_at->value => now()->addWeek(),
             OrganizationInvitations::invited_by->value => $Inviter?->id,
@@ -61,7 +63,7 @@ class InvitationQuery
             $Member = $Existing instanceof User ? $Existing : self::create($Invitation->email);
             $Organization = $Invitation->organization;
 
-            MembershipQuery::add($Organization, $Member, $Invitation->role);
+            MembershipQuery::grant(Depth::organization, $Organization, $Member, $Invitation->role);
 
             $Invitation->delete();
 

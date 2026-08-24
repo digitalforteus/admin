@@ -2,7 +2,8 @@
 
 namespace App\Modules\Projects;
 
-use App\Modules\Organizations\Authorize;
+use App\Helpers\MemberRole;
+use App\Modules\Contexts\Authorize;
 use App\Sources\Db\App\Projects;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -10,9 +11,9 @@ use Illuminate\Support\Facades\Validator;
 
 readonly class ProjectUpdateController
 {
-    public function __invoke(Request $Request, string $organization, string $project): RedirectResponse
+    public function __invoke(Request $Request): RedirectResponse
     {
-        $Project = ProjectQuery::find(Authorize::manages($Request), $project);
+        $Project = Authorize::project(MemberRole::admin);
 
         $ProjectRequest = ProjectRequest::from($Request->all());
         $Validator = Validator::make(...$ProjectRequest->validator());

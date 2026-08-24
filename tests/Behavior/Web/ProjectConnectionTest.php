@@ -1,6 +1,7 @@
 <?php
 
-use App\Helpers\OrganizationRole;
+use App\Helpers\Depth;
+use App\Helpers\MemberRole;
 use App\Helpers\Slug;
 use App\Models\Connection;
 use App\Models\Enterprise;
@@ -9,10 +10,10 @@ use App\Modules\Connections\ConnectionProvider;
 use App\Modules\Connections\ConnectionQuery;
 use App\Modules\Connections\Github\GithubForm;
 use App\Modules\Connections\Github\GithubQuery;
+use App\Modules\Memberships\MembershipQuery;
 use App\Modules\Organizations\Connections\ConnectionFields;
 use App\Modules\Organizations\Connections\ConnectionForm;
-use App\Modules\Organizations\MembershipQuery;
-use App\Routes\OrganizationRoute;
+use App\Routes\ContextRoute;
 use App\Sources\Db\App\Connections;
 use App\Sources\Db\App\Organizations;
 use App\Sources\Db\App\ProjectConnection;
@@ -59,11 +60,8 @@ test('a project opts into its enterprise connections, keeps the ones nothing ans
         Connections::provider->value => 'stripe',
     ]);
 
-    $parameters = [
-        OrganizationRoute::organizationParameter => 'acme',
-        OrganizationRoute::projectParameter => 'alpha',
-    ];
-    $connections = OrganizationRoute::connections->url($parameters);
+    $parameters = atProject($Project);
+    $connections = ContextRoute::connectionIndex->url($parameters);
 
     expect(ConnectionProvider::tryFromKey('stripe'))->toBeNull()
         ->and(collect(ConnectionQuery::enabledFor($Project))->pluck(Connections::slug->value)->all())
@@ -84,7 +82,7 @@ test('a project opts into its enterprise connections, keeps the ones nothing ans
     // A depth the address does not reach is left out of the trail rather than
     // emptied, so an organization page stops at the organization.
     $this->actingAs($User)
-        ->get(OrganizationRoute::index->url([OrganizationRoute::organizationParameter => 'acme']))
+        ->get(ContextRoute::organization->url(atOrganization($Organization)))
         ->assertOk()
         ->assertSee('data-breadcrumb', false);
 
@@ -98,7 +96,7 @@ test('a project opts into its enterprise connections, keeps the ones nothing ans
     // Naming a project reaches the third depth, and naming one of its connections
     // reaches the fourth: every containment the addresses express, and no more.
     $this->actingAs($User)
-        ->get(OrganizationRoute::project->url($parameters))
+        ->get(ContextRoute::project->url($parameters))
         ->assertOk();
 
     $Held = Breadcrumb::current();
@@ -108,9 +106,9 @@ test('a project opts into its enterprise connections, keeps the ones nothing ans
         ->and($Held->trail()[3]->label)->toBe('Select connection');
 
     $this->actingAs($User)
-        ->get(OrganizationRoute::connection->url([
+        ->get(ContextRoute::connection->url([
             ...$parameters,
-            OrganizationRoute::connectionParameter => 'primary-repo',
+            ContextRoute::connectionParameter => 'primary-repo',
         ]))
         ->assertOk();
 
@@ -126,19 +124,19 @@ test('a project opts into its enterprise connections, keeps the ones nothing ans
         ->and($trail[2]->label)->toBe('Website Redesign')
         ->and($trail[3]->label)->toBe('Primary Repo')
         ->and($trail[3]->entries())->toBeEmpty()
-        ->and($trail[3]->settingsUrl)->toBe(OrganizationRoute::connectionManage->url([
+        ->and($trail[3]->settingsUrl)->toBe(ContextRoute::connectionSettings->url([
             ...$parameters,
-            OrganizationRoute::connectionParameter => 'primary-repo',
+            ContextRoute::connectionParameter => 'primary-repo',
         ]))
-        ->and($trail[3]->createUrl)->toBe(OrganizationRoute::connectionCreate->url($parameters));
+        ->and($trail[3]->createUrl)->toBe(ContextRoute::connectionCreate->url($parameters));
 
     // Enabling and disabling is the pivot, and it is the caller's standing that
     // decides whether it may be written.
     $this->actingAs($User)
         ->from($connections)
-        ->post(OrganizationRoute::connectionEnabled->url([
+        ->post(ContextRoute::connectionEnabled->url([
             ...$parameters,
-            OrganizationRoute::connectionParameter => 'spare-repo',
+            ContextRoute::connectionParameter => 'spare-repo',
         ]))
         ->assertRedirect($connections)
         ->assertSessionHas('status', 'Connection enabled.');
@@ -150,9 +148,9 @@ test('a project opts into its enterprise connections, keeps the ones nothing ans
 
     $this->actingAs($User)
         ->from($connections)
-        ->delete(OrganizationRoute::connectionEnabled->url([
+        ->delete(ContextRoute::connectionEnabled->url([
             ...$parameters,
-            OrganizationRoute::connectionParameter => 'spare-repo',
+            ContextRoute::connectionParameter => 'spare-repo',
         ]))
         ->assertSessionHas('status', 'Connection disabled.');
 
@@ -163,7 +161,7 @@ test('a project opts into its enterprise connections, keeps the ones nothing ans
 
     // A plain member reads the page and is refused the write.
     $Member = User::factory()->createOne();
-    MembershipQuery::add($Organization, $Member, OrganizationRole::member);
+    MembershipQuery::grant(Depth::organization, $Organization, $Member, MemberRole::member);
 
     $this->forgetCredentials()
         ->actingAs($Member)
@@ -172,18 +170,18 @@ test('a project opts into its enterprise connections, keeps the ones nothing ans
         ->assertDontSee('data-connection-toggle', false);
 
     $this->actingAs($Member)
-        ->post(OrganizationRoute::connectionEnabled->url([
+        ->post(ContextRoute::connectionEnabled->url([
             ...$parameters,
-            OrganizationRoute::connectionParameter => 'spare-repo',
+            ContextRoute::connectionParameter => 'spare-repo',
         ]))
         ->assertForbidden();
 
     // The credentials are the owner's, so the depth that reaches them offers a
     // member neither door: both would answer with a refusal.
     $this->actingAs($Member)
-        ->get(OrganizationRoute::connection->url([
+        ->get(ContextRoute::connection->url([
             ...$parameters,
-            OrganizationRoute::connectionParameter => 'primary-repo',
+            ContextRoute::connectionParameter => 'primary-repo',
         ]))
         ->assertOk();
 
@@ -217,19 +215,19 @@ test('a project opts into its enterprise connections, keeps the ones nothing ans
 
     $this->forgetCredentials()
         ->actingAs($User)
-        ->post(OrganizationRoute::connectionEnabled->url([
+        ->post(ContextRoute::connectionEnabled->url([
             ...$parameters,
-            OrganizationRoute::connectionParameter => 'foreign',
+            ContextRoute::connectionParameter => 'foreign',
         ]))
         ->assertNotFound();
 
     // A caller sitting on a connection page when it stops being served is sent to
     // the project, not shown a failure.
-    $page = OrganizationRoute::connection->url([
+    $page = ContextRoute::connection->url([
         ...$parameters,
-        OrganizationRoute::connectionParameter => 'primary-repo',
+        ContextRoute::connectionParameter => 'primary-repo',
     ]);
-    $index = OrganizationRoute::project->url($parameters);
+    $index = ContextRoute::project->url($parameters);
 
     ConnectionQuery::disable($Project, $Enabled);
 
@@ -241,9 +239,9 @@ test('a project opts into its enterprise connections, keeps the ones nothing ans
     $this->actingAs($User)->get($page)->assertRedirect($index);
 
     $this->actingAs($User)
-        ->get(OrganizationRoute::connection->url([
+        ->get(ContextRoute::connection->url([
             ...$parameters,
-            OrganizationRoute::connectionParameter => $Unavailable->slug,
+            ContextRoute::connectionParameter => $Unavailable->slug,
         ]))
         ->assertRedirect($index);
 });
@@ -252,12 +250,10 @@ test('an owner picks a provider, splits one form into two columns, keeps a blank
     $Owner = User::factory()->createOne();
     $Organization = memberOrganization($Owner, attributes: [Organizations::slug->value => 'globex']);
     $Project = memberProject($Organization, [Projects::slug->value => 'alpha']);
-    $parameters = [
-        OrganizationRoute::organizationParameter => 'globex',
-        OrganizationRoute::projectParameter => 'alpha',
-    ];
-    $connections = OrganizationRoute::connections->url($parameters);
-    $create = OrganizationRoute::connectionCreate->url($parameters);
+    $enterprise = $Organization->enterprise;
+    $parameters = atProject($Project);
+    $connections = ContextRoute::connectionIndex->url($parameters);
+    $create = ContextRoute::connectionCreate->url($parameters);
     $GithubConnection = ConnectionProvider::github->plugin();
 
     // One stub answers for every address the provider is reached at, and what it
@@ -334,9 +330,9 @@ test('an owner picks a provider, splits one form into two columns, keeps a blank
 
     $this->assertDatabaseCount(Connections::table(), 0);
 
-    $manage = OrganizationRoute::connectionManage->url([
+    $manage = ContextRoute::connectionSettings->url([
         ...$parameters,
-        OrganizationRoute::connectionParameter => 'primary-repo',
+        ContextRoute::connectionParameter => 'primary-repo',
     ]);
 
     $this->actingAs($Owner)
@@ -371,13 +367,10 @@ test('an owner picks a provider, splits one form into two columns, keeps a blank
     // The slug is per enterprise, so the second enterprise may hold the same one,
     // and a second row of this enterprise may not.
     $Second = memberOrganization($Owner, attributes: [Organizations::slug->value => 'initech']);
-    memberProject($Second, [Projects::slug->value => 'beta']);
+    $Beta = memberProject($Second, [Projects::slug->value => 'beta']);
 
     $this->actingAs($Owner)
-        ->post(OrganizationRoute::connections->url([
-            OrganizationRoute::organizationParameter => 'initech',
-            OrganizationRoute::projectParameter => 'beta',
-        ]), [
+        ->post(ContextRoute::connectionIndex->url(atProject($Beta)), [
             Connections::provider->value => ConnectionProvider::github->name,
             ConnectionForm::name => 'Primary Repo',
             GithubForm::token => 'ghp_two',
@@ -421,9 +414,9 @@ test('an owner picks a provider, splits one form into two columns, keeps a blank
         ->and(Slug::reserved)->toContain('new');
 
     $this->actingAs($Owner)->get($create)->assertOk()->assertSee('data-connection-provider', false);
-    $this->actingAs($Owner)->get(OrganizationRoute::connectionManage->url([
+    $this->actingAs($Owner)->get(ContextRoute::connectionSettings->url([
         ...$parameters,
-        OrganizationRoute::connectionParameter => $Reserved->slug,
+        ContextRoute::connectionParameter => $Reserved->slug,
     ]))->assertOk()->assertSee('New');
 
     // The stored secret is said to exist and never rendered back.
@@ -495,9 +488,9 @@ test('an owner picks a provider, splits one form into two columns, keeps a blank
     Http::assertNotSent(static fn (Request $Request): bool => str_starts_with($Request->url(), GithubQuery::url));
 
     // Verification is a press, and its answer is the moment's.
-    $verify = OrganizationRoute::connectionVerify->url([
+    $verify = ContextRoute::connectionVerify->url([
         ...$parameters,
-        OrganizationRoute::connectionParameter => 'primary-repo',
+        ContextRoute::connectionParameter => 'primary-repo',
     ]);
 
     $this->actingAs($Owner)
@@ -523,9 +516,9 @@ test('an owner picks a provider, splits one form into two columns, keeps a blank
         Connections::credentials->value => [GithubForm::token => 'ghp_retired'],
         Connections::config->value => [GithubForm::owner => 'octocat'],
     ]);
-    $retired = OrganizationRoute::connectionManage->url([
+    $retired = ContextRoute::connectionSettings->url([
         ...$parameters,
-        OrganizationRoute::connectionParameter => 'retired',
+        ContextRoute::connectionParameter => 'retired',
     ]);
 
     $this->actingAs($Owner)
@@ -549,15 +542,15 @@ test('an owner picks a provider, splits one form into two columns, keeps a blank
         ->and($Retired->config)->toBe([GithubForm::owner => 'octocat']);
 
     $this->actingAs($Owner)
-        ->post(OrganizationRoute::connectionVerify->url([
+        ->post(ContextRoute::connectionVerify->url([
             ...$parameters,
-            OrganizationRoute::connectionParameter => 'retired',
+            ContextRoute::connectionParameter => 'retired',
         ]))
         ->assertNotFound();
 
     // Holding the credentials is not the same standing as opting into them.
     $Admin = User::factory()->createOne();
-    MembershipQuery::add($Organization, $Admin, OrganizationRole::admin);
+    MembershipQuery::grant(Depth::organization, $Organization, $Admin, MemberRole::admin);
 
     $this->forgetCredentials()->actingAs($Admin)->get($create)->assertForbidden();
     $this->actingAs($Admin)->get($manage)->assertForbidden();
@@ -568,22 +561,22 @@ test('an owner picks a provider, splits one form into two columns, keeps a blank
 
     $this->actingAs($Admin)
         ->from($connections)
-        ->delete(OrganizationRoute::connectionEnabled->url([
+        ->delete(ContextRoute::connectionEnabled->url([
             ...$parameters,
-            OrganizationRoute::connectionParameter => 'primary-repo',
+            ContextRoute::connectionParameter => 'primary-repo',
         ]))
         ->assertSessionHas('status', 'Connection disabled.');
 
     $this->actingAs($Admin)
         ->from($connections)
-        ->post(OrganizationRoute::connectionEnabled->url([
+        ->post(ContextRoute::connectionEnabled->url([
             ...$parameters,
-            OrganizationRoute::connectionParameter => 'primary-repo',
+            ContextRoute::connectionParameter => 'primary-repo',
         ]))
         ->assertSessionHas('status', 'Connection enabled.');
 
     $Member = User::factory()->createOne();
-    MembershipQuery::add($Organization, $Member, OrganizationRole::member);
+    MembershipQuery::grant(Depth::organization, $Organization, $Member, MemberRole::member);
 
     $this->forgetCredentials()->actingAs($Member)->get($create)->assertForbidden();
     $this->actingAs($Member)->post($connections, [Connections::provider->value => ConnectionProvider::github->name])->assertForbidden();
@@ -607,9 +600,9 @@ test('an owner picks a provider, splits one form into two columns, keeps a blank
 
     // Deleting is felt off this page: the pivot goes with the row, and a caller
     // sitting on the plugin's page is sent to the project on their next request.
-    $page = OrganizationRoute::connection->url([
+    $page = ContextRoute::connection->url([
         ...$parameters,
-        OrganizationRoute::connectionParameter => 'primary-repo',
+        ContextRoute::connectionParameter => 'primary-repo',
     ]);
 
     $this->actingAs($Owner)->get($page)->assertOk();
@@ -625,7 +618,7 @@ test('an owner picks a provider, splits one form into two columns, keeps a blank
         ProjectConnection::connection_id->value => $Connection->id,
     ]);
 
-    $this->actingAs($Owner)->get($page)->assertRedirect(OrganizationRoute::project->url($parameters));
+    $this->actingAs($Owner)->get($page)->assertRedirect(ContextRoute::project->url($parameters));
 
     // The row of the other enterprise is untouched, and is not this one's to reach.
     expect(Connection::query()->where(Connections::enterprise_id->value, $Second->enterprise_id)->count())->toBe(1);

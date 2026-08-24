@@ -1,7 +1,10 @@
 <?php
 
+use App\Helpers\Depth;
+use App\Helpers\SvgName;
+use App\Modules\Contexts\DepthQuery;
+use App\Routes\ContextRoute;
 use App\Models\User;
-use App\Modules\Settings\Organizations\OrganizationQuery;
 use App\Routes\Web;
 use App\View\DataModels\Avatar;
 use Illuminate\Support\Facades\Auth;
@@ -103,27 +106,20 @@ $structuredData = [
     @auth
         @php
             $User = Auth::user();
-            if ($User instanceof User) {
-                $Organizations = OrganizationQuery::get($User);
-                $organizationCards = array_map(static function (array $org): array {
-                    return [
-                        ...$org,
-                        'url' => '/o/' . $org['slug'],
-                    ];
-                }, $Organizations);
-            } else {
-                $organizationCards = [];
-            }
+            $Enterprises = $User instanceof User
+                ? DepthQuery::children(Depth::enterprise, null, $User)
+                : [];
         @endphp
-        @if ($organizationCards)
-            <nav aria-labelledby="organizations-title" class="mx-auto max-w-6xl px-6 pb-16 lg:px-10 lg:pb-20">
-                <h2 id="organizations-title" class="mb-4 text-xl font-bold">Your organizations</h2>
-                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    @foreach ($organizationCards as $card)
-                        <a href="{{ $card['url'] }}" class="group border border-base-300 bg-base-100 p-6 hover:border-primary">
+        @if ($Enterprises !== [])
+            <nav aria-labelledby="enterprises-title" class="mx-auto max-w-6xl px-6 pb-16 lg:px-10 lg:pb-20">
+                <h2 id="enterprises-title" class="mb-4 text-xl font-bold">Your enterprises</h2>
+                <div class="grid gap-4 lg:grid-cols-4">
+                    @foreach ($Enterprises as $Enterprise)
+                        <a data-home-enterprise class="group border border-base-300 bg-base-100 p-6 hover:border-primary"
+                           href="{{ContextRoute::enterprise->url([ContextRoute::enterpriseParameter => $Enterprise->slug])}}">
                             <div class="flex items-center gap-3">
-                                <x-avatar :avatar="[Avatar::name => $card['name'], Avatar::picture => $card['icon'], Avatar::size => 'w-10']"/>
-                                <span class="text-lg font-semibold text-primary group-hover:underline">{{ $card['name'] }}</span>
+                                <x-avatar :avatar="[Avatar::name => $Enterprise->name, Avatar::size => 'w-10', Avatar::fallback => SvgName::city]"/>
+                                <span class="text-lg font-semibold text-primary group-hover:underline" title="{{$Enterprise->name}}">{{$Enterprise->name}}</span>
                             </div>
                         </a>
                     @endforeach

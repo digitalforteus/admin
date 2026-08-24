@@ -22,15 +22,4 @@ readonly class EnterpriseForm
         TextInput::required => true,
     ])]
     public string $name;
-
-    public const string organization = 'organization';
-
-    #[TextInput([
-        TextInput::legend => 'First Organization Name',
-        TextInput::icon => SvgName::city,
-        TextInput::placeholder => 'Acme Inc.',
-        TextInput::title => 'The organization this enterprise starts with',
-        TextInput::required => true,
-    ])]
-    public string $organization;
 }

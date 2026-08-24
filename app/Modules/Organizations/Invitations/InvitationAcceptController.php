@@ -4,7 +4,7 @@ namespace App\Modules\Organizations\Invitations;
 
 use App\Models\User;
 use App\Modules\Organizations\InvitationQuery;
-use App\Routes\OrganizationRoute;
+use App\Routes\ContextRoute;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -22,8 +22,9 @@ readonly class InvitationAcceptController
             $Request->session()->regenerate();
         }
 
-        return redirect(OrganizationRoute::index->url([
-            OrganizationRoute::organizationParameter => $Accepted->Organization->slug,
+        return redirect(ContextRoute::organization->url([
+            ContextRoute::enterpriseParameter => $Accepted->Organization->enterprise->slug,
+            ContextRoute::organizationParameter => $Accepted->Organization->slug,
         ]));
     }
 }

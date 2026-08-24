@@ -2,10 +2,9 @@
 
 use App\Helpers\Disk;
 use App\Http\Middleware\CanonicalizeUrl;
-use App\Models\Project;
 use App\Models\User;
 use App\Modules\Projects\ProjectIconRequest;
-use App\Routes\OrganizationRoute;
+use App\Routes\ContextRoute;
 use App\Sources\Db\App\Organizations;
 use App\Sources\Db\App\Projects;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -16,14 +15,8 @@ test('uploading a project icon when storage does not retain it returns an error'
     Storage::fake(Disk::public->value);
     $User = User::factory()->createOne();
     $Organization = memberOrganization($User, attributes: [Organizations::slug->value => 'acme']);
-    $Project = Project::factory()->createOne([
-        Projects::organization_id->value => $Organization->id,
-        Projects::slug->value => 'website-redesign',
-    ]);
-    $parameters = [
-        OrganizationRoute::organizationParameter => $Organization->slug,
-        OrganizationRoute::projectParameter => $Project->slug,
-    ];
+    $Project = memberProject($Organization, [Projects::slug->value => 'website-redesign']);
+    $parameters = atProject($Project);
 
     $originalEnv = app()['env'];
     app()['env'] = 'production';
@@ -33,8 +26,8 @@ test('uploading a project icon when storage does not retain it returns an error'
 
     try {
         $this->actingAs($User)
-            ->from(OrganizationRoute::projectSettings->url($parameters))
-            ->post(OrganizationRoute::projectIcon->url($parameters), [
+            ->from(ContextRoute::projectSettings->url($parameters))
+            ->post(ContextRoute::projectIcon->url($parameters), [
                 ProjectIconRequest::icon => UploadedFile::fake()->image('icon.jpg'),
             ])
             ->assertRedirect()

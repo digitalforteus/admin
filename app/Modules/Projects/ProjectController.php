@@ -2,11 +2,12 @@
 
 namespace App\Modules\Projects;
 
+use App\Helpers\MemberRole;
 use App\Helpers\Slug;
 use App\Models\Project;
 use App\Models\User;
-use App\Modules\Organizations\Authorize;
-use App\Routes\OrganizationRoute;
+use App\Modules\Contexts\Authorize;
+use App\Routes\ContextRoute;
 use App\Sources\Db\App\Projects;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,7 +17,7 @@ readonly class ProjectController
 {
     public function __invoke(Request $Request): RedirectResponse
     {
-        $Organization = Authorize::manages($Request);
+        $Organization = Authorize::organization(MemberRole::admin);
 
         $ProjectRequest = ProjectRequest::from($Request->all());
         $Validator = Validator::make(...$ProjectRequest->validator());
@@ -40,10 +41,9 @@ readonly class ProjectController
         ]);
 
         return redirect()
-            ->to(OrganizationRoute::project->url([
-                OrganizationRoute::organizationParameter => $Organization->slug,
-                OrganizationRoute::projectParameter => $Project->slug,
-            ]))
+            ->to(ContextRoute::project->url(ContextRoute::parameters([
+                ContextRoute::projectParameter => $Project->slug,
+            ])))
             ->with('status', 'Project created.');
     }
 }

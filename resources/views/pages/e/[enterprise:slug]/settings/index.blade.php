@@ -1,7 +1,7 @@
 <?php
 
 use App\Modules\Enterprises\EnterpriseForm;
-use App\Routes\EnterpriseRoute;
+use App\Routes\ContextRoute;
 use App\View\DataModels\ContextCard;
 use App\View\DataModels\TextInput;
 use Laravel\Head\Facades\Head;
@@ -11,18 +11,19 @@ Head::title('Enterprise Settings')
     ->hiddenFromRobots();
 ?>
 @php
+    use App\Helpers\Depth;
+    use App\Helpers\MemberRole;
     use App\Models\User;
-    use App\Modules\Enterprises\EnterpriseContext;
-    use App\Modules\Enterprises\EnterpriseQuery;
+    use App\Modules\Contexts\Authorize;
+    use App\Modules\Contexts\DepthQuery;
 
-    $User = User::authenticated(request());
-    $Enterprise = EnterpriseQuery::owned($User, EnterpriseContext::enterprise()->slug);
-    $Organizations = EnterpriseQuery::organizations($Enterprise, $User);
-    $parameters = [EnterpriseRoute::enterpriseParameter => $Enterprise->slug];
+    $Enterprise = Authorize::enterprise(MemberRole::owner);
+    $Organizations = DepthQuery::children(Depth::organization, $Enterprise, User::authenticated(request()));
+    $parameters = ContextRoute::parameters();
 @endphp
 <x-context-card :contextCard="[ContextCard::heading => $Enterprise->name, ContextCard::title => 'Enterprise Settings']">
     <x-status-toast/>
-    <form class="mt-6 max-w-md space-y-4" method="POST" action="{{EnterpriseRoute::settings->url($parameters)}}" data-enterprise-form>
+    <form class="mt-6 max-w-md space-y-4" method="POST" action="{{ContextRoute::enterpriseSettings->url($parameters)}}" data-enterprise-form>
         @csrf
         <x-text-input :textInput="[
             ...EnterpriseForm::textInput(EnterpriseForm::name),

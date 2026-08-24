@@ -1,7 +1,5 @@
 <?php
 
-use App\Modules\Enterprises\EnterpriseController;
-use App\Modules\Enterprises\EnterpriseUpdateController;
 use App\Modules\Fortify\EmailVerificationNotificationController;
 use App\Modules\Fortify\RecoveryCodesRegenerateController;
 use App\Modules\Fortify\TwoFactorConfirmController;
@@ -18,18 +16,12 @@ use App\Modules\Settings\Authentication\PasswordController;
 use App\Modules\Settings\Credentials\TokenController;
 use App\Modules\Settings\Credentials\TokenDestroyController;
 use App\Modules\Settings\Credentials\TokenUpdateController;
-use App\Modules\Settings\Organizations\OrganizationController;
-use App\Modules\Settings\Organizations\OrganizationDestroyController;
-use App\Modules\Settings\Organizations\OrganizationIconController;
-use App\Modules\Settings\Organizations\OrganizationIconDestroyController;
-use App\Modules\Settings\Organizations\OrganizationUpdateController;
 use App\Modules\Settings\Profile\ProfileController;
 use App\Modules\Settings\Profile\ProfilePictureController;
 use App\Modules\Settings\Profile\ProfilePictureDestroyController;
 use App\Modules\Settings\Sessions\SessionDestroyController;
 use App\Modules\Settings\Sessions\SessionsDestroyController;
 use App\Routes\Auth;
-use App\Routes\EnterpriseRoute;
 use App\Routes\MiddlewareTag;
 use Illuminate\Support\Facades\Route;
 
@@ -76,13 +68,6 @@ Route::middleware(MiddlewareTag::verified->value)->group(function () {
     Route::post(Auth::settingsCredentials->value, TokenController::class);
     Route::post(Auth::settingsCredential->value, TokenUpdateController::class);
     Route::delete(Auth::settingsCredential->value, TokenDestroyController::class);
-    Route::post(EnterpriseRoute::create->value, EnterpriseController::class);
-    Route::post(EnterpriseRoute::settings->value, EnterpriseUpdateController::class);
-    Route::post(EnterpriseRoute::organizationCreate->value, OrganizationController::class);
-    Route::post(Auth::settingsOrganization->value, OrganizationUpdateController::class);
-    Route::delete(Auth::settingsOrganization->value, OrganizationDestroyController::class);
-    Route::post(Auth::settingsOrganizationIcon->value, OrganizationIconController::class);
-    Route::delete(Auth::settingsOrganizationIcon->value, OrganizationIconDestroyController::class);
     Route::post(Auth::settingsAppearance->value, AppearanceController::class);
     Route::get(Auth::dashboard->value, static fn () => response()->noContent());
 });

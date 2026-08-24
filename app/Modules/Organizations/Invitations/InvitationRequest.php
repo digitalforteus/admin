@@ -4,7 +4,7 @@ namespace App\Modules\Organizations\Invitations;
 
 use App\Helpers\DataModel;
 use App\Helpers\IsRequest;
-use App\Helpers\OrganizationRole;
+use App\Helpers\MemberRole;
 use App\Helpers\Request;
 use App\Helpers\Rule;
 use App\Sources\Db\App\OrganizationInvitations;
@@ -26,7 +26,7 @@ readonly class InvitationRequest
     public const string role = 'role';
 
     #[Request([Request::rules => static function (): array {
-        return [Rule::required->value, Rule::in(...OrganizationRole::values())];
+        return [Rule::required->value, Rule::in(...MemberRole::values())];
     }])]
     public string $role;
 }

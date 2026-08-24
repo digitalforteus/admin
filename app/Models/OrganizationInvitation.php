@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Helpers\OrganizationRole;
+use App\Helpers\MemberRole;
 use App\Sources\Db\App\OrganizationInvitations;
 use Database\Factories\OrganizationInvitationFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
@@ -15,7 +15,7 @@ use Illuminate\Support\Carbon;
  * @property string $id
  * @property string $organization_id
  * @property string $email
- * @property OrganizationRole $role
+ * @property MemberRole $role
  * @property string $token
  * @property Carbon $expires_at
  * @property string|null $invited_by
@@ -46,7 +46,7 @@ class OrganizationInvitation extends Model
     protected function casts(): array
     {
         return [
-            OrganizationInvitations::role->value => OrganizationRole::class,
+            OrganizationInvitations::role->value => MemberRole::class,
             OrganizationInvitations::expires_at->value => 'datetime',
         ];
     }

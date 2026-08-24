@@ -45,8 +45,10 @@ readonly class ConnectionQuery
         return $Builder->get();
     }
 
-    public static function find(Organization $Organization, string $slug): Connection
+    public static function find(Organization $Organization, Connection|string $connection): Connection
     {
+        $slug = $connection instanceof Connection ? $connection->slug : $connection;
+
         $Connection = Connection::query()
             ->where(Connections::enterprise_id->value, $Organization->enterprise_id)
             ->where(Connections::slug->value, $slug)

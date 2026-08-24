@@ -3,10 +3,7 @@
 namespace App\Providers;
 
 use App\Helpers\Role;
-use App\Http\Middleware\ResolveConnection;
-use App\Http\Middleware\ResolveEnterprise;
-use App\Http\Middleware\ResolveOrganization;
-use App\Http\Middleware\ResolveProject;
+use App\Http\Middleware\ResolveContext;
 use App\Routes\MiddlewareTag;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Folio\Folio;
@@ -20,19 +17,17 @@ class FolioServiceProvider extends ServiceProvider
             'admin/*' => [MiddlewareTag::auth->value, Role::admin->middleware()],
             'confirm-password' => [MiddlewareTag::auth->value, MiddlewareTag::verified->value],
             'confirm-password/*' => [MiddlewareTag::auth->value, MiddlewareTag::verified->value],
+            'e' => [
+                MiddlewareTag::auth->value,
+                MiddlewareTag::verified->value,
+                ResolveContext::class,
+            ],
             'e/*' => [
                 MiddlewareTag::auth->value,
                 MiddlewareTag::verified->value,
-                ResolveEnterprise::class,
+                ResolveContext::class,
             ],
             'email/verify/*' => [MiddlewareTag::auth->value],
-            'o/*' => [
-                MiddlewareTag::auth->value,
-                MiddlewareTag::verified->value,
-                ResolveOrganization::class,
-                ResolveProject::class,
-                ResolveConnection::class,
-            ],
             'settings' => [MiddlewareTag::auth->value, MiddlewareTag::verified->value],
             'settings/*' => [MiddlewareTag::auth->value, MiddlewareTag::verified->value],
             '*' => [

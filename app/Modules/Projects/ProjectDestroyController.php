@@ -2,29 +2,33 @@
 
 namespace App\Modules\Projects;
 
+use App\Helpers\Depth;
 use App\Helpers\Directory;
+use App\Helpers\MemberRole;
 use App\Helpers\Picture;
-use App\Modules\Organizations\Authorize;
-use App\Routes\OrganizationRoute;
+use App\Modules\Contexts\Authorize;
+use App\Modules\Memberships\MembershipQuery;
+use App\Routes\ContextRoute;
 use App\Sources\Db\App\Projects;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 readonly class ProjectDestroyController
 {
-    public function __invoke(Request $Request, string $organization, string $project): RedirectResponse
+    public function __invoke(Request $Request): RedirectResponse
     {
-        $Organization = Authorize::manages($Request);
-        $Project = ProjectQuery::find($Organization, $project);
+        $Project = Authorize::project(MemberRole::admin);
+        $parameters = ContextRoute::parameters();
 
         Picture::of($Project, Projects::icon, Directory::project_icons)->clear();
+        MembershipQuery::purge(Depth::project, $Project);
 
         $Project->delete();
 
+        unset($parameters[ContextRoute::projectParameter]);
+
         return redirect()
-            ->to(OrganizationRoute::projects->url([
-                OrganizationRoute::organizationParameter => $Organization->slug,
-            ]))
+            ->to(ContextRoute::organization->url($parameters))
             ->with('status', 'Project deleted.');
     }
 }

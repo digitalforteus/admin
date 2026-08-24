@@ -20,7 +20,6 @@ enum Auth: string
     public const string credentialParameter = 'credential';
     public const string passkeyParameter = 'passkey';
     public const string sessionParameter = 'session';
-    public const string organizationParameter = 'organization_id';
 
     case dashboard = '/dashboard';
     case confirmPassword = '/confirm-password';
@@ -33,9 +32,6 @@ enum Auth: string
     case settingsCredentials = '/settings/credentials';
     case settingsCredential = '/settings/credentials/{'.self::credentialParameter.'}';
     case settingsAppearance = '/settings/appearance';
-    case settingsOrganizations = '/settings/organizations';
-    case settingsOrganization = '/settings/organizations/{'.self::organizationParameter.'}';
-    case settingsOrganizationIcon = '/settings/organizations/{'.self::organizationParameter.'}/icon';
     case verificationNotice = '/email/verify';
     case verificationVerify = '/email/verify/{id}/{hash}';
     case verificationSend = '/email/verification-notification';

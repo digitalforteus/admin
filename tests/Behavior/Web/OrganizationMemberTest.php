@@ -1,14 +1,15 @@
 <?php
 
-use App\Helpers\OrganizationRole;
+use App\Helpers\Depth;
+use App\Helpers\MemberRole;
 use App\Models\OrganizationInvitation;
 use App\Models\User;
+use App\Modules\Memberships\LastOwnerException;
+use App\Modules\Memberships\MembershipQuery;
 use App\Modules\Organizations\InvitationQuery;
 use App\Modules\Organizations\Invitations\InvitationRequest;
-use App\Modules\Organizations\LastOwnerException;
 use App\Modules\Organizations\Members\MemberRequest;
-use App\Modules\Organizations\MembershipQuery;
-use App\Routes\OrganizationRoute;
+use App\Routes\ContextRoute;
 use App\Routes\Web;
 use App\Sources\Db\App\OrganizationInvitations;
 use App\Sources\Db\App\Organizations;
@@ -19,8 +20,8 @@ test('membership is invited, accepted once, changed by an owner, and never reduc
     $Owner = User::factory()->createOne([Users::name->value => 'Ada Lovelace']);
     $Organization = memberOrganization($Owner, attributes: [Organizations::slug->value => 'acme']);
 
-    $parameters = [OrganizationRoute::organizationParameter => 'acme'];
-    $members = OrganizationRoute::members->url($parameters);
+    $parameters = atOrganization($Organization);
+    $members = ContextRoute::members->url($parameters);
 
     $this->actingAs($Owner)
         ->get($members)
@@ -34,9 +35,9 @@ test('membership is invited, accepted once, changed by an owner, and never reduc
     // belongs to nobody here yet.
     $this->actingAs($Owner)
         ->from($members)
-        ->post(OrganizationRoute::invitations->url($parameters), [
+        ->post(ContextRoute::invitations->url($parameters), [
             InvitationRequest::email => '  NewColleague@Example.com ',
-            InvitationRequest::role => OrganizationRole::admin->value,
+            InvitationRequest::role => MemberRole::admin->value,
         ])
         ->assertRedirect($members)
         ->assertSessionHas('status', 'Invitation sent.');
@@ -44,15 +45,15 @@ test('membership is invited, accepted once, changed by an owner, and never reduc
     $Invitation = OrganizationInvitation::query()->sole();
 
     expect($Invitation->email)->toBe('newcolleague@example.com')
-        ->and($Invitation->role)->toBe(OrganizationRole::admin)
+        ->and($Invitation->role)->toBe(MemberRole::admin)
         ->and($Invitation->invited_by)->toBe($Owner->id)
         ->and($Invitation->inviter?->id)->toBe($Owner->id)
         ->and($Invitation->expired())->toBeFalse();
 
     $this->actingAs($Owner)
-        ->delete(OrganizationRoute::invitation->url([
+        ->delete(ContextRoute::invitation->url([
             ...$parameters,
-            OrganizationRoute::invitationParameter => 'missing',
+            ContextRoute::invitationParameter => 'missing',
         ]))
         ->assertNotFound();
 
@@ -64,18 +65,18 @@ test('membership is invited, accepted once, changed by an owner, and never reduc
 
     $this->actingAs($Owner)
         ->from($members)
-        ->post(OrganizationRoute::invitations->url($parameters), [InvitationRequest::email => 'not-an-email'])
+        ->post(ContextRoute::invitations->url($parameters), [InvitationRequest::email => 'not-an-email'])
         ->assertSessionHasErrors([InvitationRequest::email, InvitationRequest::role]);
 
     // An address with no account gets one on acceptance, and is signed in as it.
     $this->forgetCredentials()
         ->get(Web::invitation->url(['token' => $Invitation->token]))
-        ->assertRedirect(OrganizationRoute::index->url($parameters));
+        ->assertRedirect(ContextRoute::organization->url($parameters));
 
     $Invited = User::query()->where(Users::email->value, 'newcolleague@example.com')->sole();
 
     expect($Invited->email_verified_at)->not->toBeNull()
-        ->and(MembershipQuery::role($Organization, $Invited))->toBe(OrganizationRole::admin)
+        ->and(MembershipQuery::effective(Depth::organization, $Organization, $Invited))->toBe(MemberRole::admin)
         ->and(OrganizationInvitation::query()->count())->toBe(0)
         ->and(Auth::id())->toBe($Invited->id);
 
@@ -84,13 +85,13 @@ test('membership is invited, accepted once, changed by an owner, and never reduc
         ->get(Web::invitation->url(['token' => $Invitation->token]))
         ->assertNotFound();
 
-    expect($Organization->users()->whereKey($Invited->id)->count())->toBe(1);
+    expect(MembershipQuery::held(Depth::organization, $Organization, $Invited))->toBe(MemberRole::admin);
 
     // Re-inviting an address issues a fresh token rather than reviving the old one.
     $Existing = User::factory()->createOne([Users::email->value => 'colleague@example.com']);
 
-    $First = InvitationQuery::invite($Organization, $Existing->email, OrganizationRole::member, $Owner);
-    $Second = InvitationQuery::invite($Organization, $Existing->email, OrganizationRole::member, $Owner);
+    $First = InvitationQuery::invite($Organization, $Existing->email, MemberRole::member, $Owner);
+    $Second = InvitationQuery::invite($Organization, $Existing->email, MemberRole::member, $Owner);
 
     expect($Second->id)->toBe($First->id)
         ->and($Second->token)->not->toBe($First->token)
@@ -100,12 +101,12 @@ test('membership is invited, accepted once, changed by an owner, and never reduc
     $this->forgetCredentials()
         ->actingAs($Existing)
         ->get(Web::invitation->url(['token' => $Second->token]))
-        ->assertRedirect(OrganizationRoute::index->url($parameters));
+        ->assertRedirect(ContextRoute::organization->url($parameters));
 
-    expect(MembershipQuery::role($Organization, $Existing))->toBe(OrganizationRole::member);
+    expect(MembershipQuery::effective(Depth::organization, $Organization, $Existing))->toBe(MemberRole::member);
 
     // An expired invitation is not acceptable.
-    $Expired = InvitationQuery::invite($Organization, 'late@example.com', OrganizationRole::member, $Owner);
+    $Expired = InvitationQuery::invite($Organization, 'late@example.com', MemberRole::member, $Owner);
     $Expired->update([OrganizationInvitations::expires_at->value => now()->subDay()]);
 
     $this->forgetCredentials()
@@ -115,9 +116,9 @@ test('membership is invited, accepted once, changed by an owner, and never reduc
     $this->forgetCredentials()
         ->actingAs($Owner)
         ->from($members)
-        ->delete(OrganizationRoute::invitation->url([
+        ->delete(ContextRoute::invitation->url([
             ...$parameters,
-            OrganizationRoute::invitationParameter => $Expired->id,
+            ContextRoute::invitationParameter => $Expired->id,
         ]))
         ->assertRedirect($members)
         ->assertSessionHas('status', 'Invitation revoked.');
@@ -133,91 +134,91 @@ test('membership is invited, accepted once, changed by an owner, and never reduc
         ->assertDontSee('data-invite-member', false);
 
     $this->actingAs($Existing)
-        ->post(OrganizationRoute::member->url([
+        ->post(ContextRoute::member->url([
             ...$parameters,
-            OrganizationRoute::memberParameter => $Owner->id,
-        ]), [MemberRequest::role => OrganizationRole::member->value])
+            ContextRoute::memberParameter => $Owner->id,
+        ]), [MemberRequest::role => MemberRole::member->value])
         ->assertForbidden();
 
     $this->forgetCredentials()
         ->actingAs($Owner)
         ->from($members)
-        ->post(OrganizationRoute::member->url([
+        ->post(ContextRoute::member->url([
             ...$parameters,
-            OrganizationRoute::memberParameter => $Existing->id,
-        ]), [MemberRequest::role => OrganizationRole::admin->value])
+            ContextRoute::memberParameter => $Existing->id,
+        ]), [MemberRequest::role => MemberRole::admin->value])
         ->assertRedirect($members)
         ->assertSessionHas('status', 'Member updated.');
 
-    expect(MembershipQuery::role($Organization, $Existing))->toBe(OrganizationRole::admin);
+    expect(MembershipQuery::effective(Depth::organization, $Organization, $Existing))->toBe(MemberRole::admin);
 
     $this->actingAs($Owner)
         ->from($members)
-        ->post(OrganizationRoute::member->url([
+        ->post(ContextRoute::member->url([
             ...$parameters,
-            OrganizationRoute::memberParameter => $Existing->id,
+            ContextRoute::memberParameter => $Existing->id,
         ]), [MemberRequest::role => 'emperor'])
         ->assertSessionHasErrors(MemberRequest::role);
 
     $Outsider = User::factory()->createOne();
 
     $this->actingAs($Owner)
-        ->post(OrganizationRoute::member->url([
+        ->post(ContextRoute::member->url([
             ...$parameters,
-            OrganizationRoute::memberParameter => $Outsider->id,
-        ]), [MemberRequest::role => OrganizationRole::member->value])
+            ContextRoute::memberParameter => $Outsider->id,
+        ]), [MemberRequest::role => MemberRole::member->value])
         ->assertNotFound();
 
     $this->actingAs($Owner)
-        ->delete(OrganizationRoute::member->url([
+        ->delete(ContextRoute::member->url([
             ...$parameters,
-            OrganizationRoute::memberParameter => $Outsider->id,
+            ContextRoute::memberParameter => $Outsider->id,
         ]))
         ->assertNotFound();
 
     // An organization has to keep somebody able to administer it, and the database
     // cannot say so — it is a count across rows, not a constraint on one.
-    expect(MembershipQuery::owners($Organization))->toBe(1);
+    expect(MembershipQuery::owners(Depth::organization, $Organization))->toBe(1);
 
     $this->actingAs($Owner)
         ->from($members)
-        ->post(OrganizationRoute::member->url([
+        ->post(ContextRoute::member->url([
             ...$parameters,
-            OrganizationRoute::memberParameter => $Owner->id,
-        ]), [MemberRequest::role => OrganizationRole::admin->value])
+            ContextRoute::memberParameter => $Owner->id,
+        ]), [MemberRequest::role => MemberRole::admin->value])
         ->assertRedirect($members)
-        ->assertSessionHas('status', 'An organization must keep at least one owner.');
+        ->assertSessionHas('status', 'Organization must keep at least one owner.');
 
     $this->actingAs($Owner)
         ->from($members)
-        ->delete(OrganizationRoute::member->url([
+        ->delete(ContextRoute::member->url([
             ...$parameters,
-            OrganizationRoute::memberParameter => $Owner->id,
+            ContextRoute::memberParameter => $Owner->id,
         ]))
-        ->assertSessionHas('status', 'An organization must keep at least one owner.');
+        ->assertSessionHas('status', 'Organization must keep at least one owner.');
 
-    expect(MembershipQuery::role($Organization, $Owner))->toBe(OrganizationRole::owner)
-        ->and(static fn () => MembershipQuery::remove($Organization, $Owner))
+    expect(MembershipQuery::effective(Depth::organization, $Organization, $Owner))->toBe(MemberRole::owner)
+        ->and(static fn () => MembershipQuery::remove(Depth::organization, $Organization, $Owner))
         ->toThrow(LastOwnerException::class)
-        ->and(static fn () => MembershipQuery::changeRole($Organization, $Owner, OrganizationRole::member))
+        ->and(static fn () => MembershipQuery::change(Depth::organization, $Organization, $Owner, MemberRole::member))
         ->toThrow(LastOwnerException::class);
 
     // A second owner is what makes the first removable.
-    MembershipQuery::changeRole($Organization, $Existing, OrganizationRole::owner);
+    MembershipQuery::change(Depth::organization, $Organization, $Existing, MemberRole::owner);
 
-    expect(MembershipQuery::owners($Organization))->toBe(2);
+    expect(MembershipQuery::owners(Depth::organization, $Organization))->toBe(2);
 
     $this->actingAs($Owner)
         ->from($members)
-        ->delete(OrganizationRoute::member->url([
+        ->delete(ContextRoute::member->url([
             ...$parameters,
-            OrganizationRoute::memberParameter => $Owner->id,
+            ContextRoute::memberParameter => $Owner->id,
         ]))
         ->assertRedirect($members)
         ->assertSessionHas('status', 'Member removed.');
 
-    expect(MembershipQuery::role($Organization, $Owner))->toBeNull()
-        ->and(MembershipQuery::owners($Organization))->toBe(1);
+    expect(MembershipQuery::effective(Depth::organization, $Organization, $Owner))->toBeNull()
+        ->and(MembershipQuery::owners(Depth::organization, $Organization))->toBe(1);
 
     // Losing the membership loses the page with it.
     $this->forgetCredentials()

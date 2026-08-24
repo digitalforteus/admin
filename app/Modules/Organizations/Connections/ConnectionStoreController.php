@@ -2,13 +2,13 @@
 
 namespace App\Modules\Organizations\Connections;
 
+use App\Helpers\MemberRole;
 use App\Helpers\Slug;
 use App\Models\Connection;
 use App\Modules\Connections\ConnectionProvider;
 use App\Modules\Connections\ConnectionQuery;
-use App\Modules\Organizations\Authorize;
-use App\Modules\Projects\ProjectQuery;
-use App\Routes\OrganizationRoute;
+use App\Modules\Contexts\Authorize;
+use App\Routes\ContextRoute;
 use App\Sources\Db\App\Connections;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,18 +16,15 @@ use Illuminate\Support\Facades\Validator;
 
 readonly class ConnectionStoreController
 {
-    public function __invoke(Request $Request, string $organization, string $project): RedirectResponse
+    public function __invoke(Request $Request): RedirectResponse
     {
-        $Organization = Authorize::owns($Request);
-        $Project = ProjectQuery::find($Organization, $project);
-        $parameters = [
-            OrganizationRoute::organizationParameter => $Organization->slug,
-            OrganizationRoute::projectParameter => $Project->slug,
-        ];
+        $Project = Authorize::project(MemberRole::owner);
+        $Organization = $Project->organization;
+        $parameters = ContextRoute::parameters();
         $Provider = ConnectionProvider::tryFromKey($Request->string(Connections::provider->value)->value());
 
         if (! $Provider instanceof ConnectionProvider) {
-            return redirect()->to(OrganizationRoute::connectionCreate->url($parameters));
+            return redirect()->to(ContextRoute::connectionCreate->url($parameters));
         }
 
         $ConnectionPlugin = $Provider->plugin();
@@ -59,9 +56,9 @@ readonly class ConnectionStoreController
         ConnectionQuery::enable($Project, $Connection);
 
         return redirect()
-            ->to(OrganizationRoute::connectionManage->url([
+            ->to(ContextRoute::connectionSettings->url([
                 ...$parameters,
-                OrganizationRoute::connectionParameter => $Connection->slug,
+                ContextRoute::connectionParameter => $Connection->slug,
             ]))
             ->with('status', 'Connection created.');
     }

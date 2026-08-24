@@ -2,12 +2,13 @@
 
 namespace App\Modules\Enterprises;
 
+use App\Helpers\Depth;
+use App\Helpers\MemberRole;
 use App\Helpers\Slug;
 use App\Models\Enterprise;
-use App\Models\Organization;
 use App\Models\User;
-use App\Modules\Organizations\OrganizationCreator;
-use App\Routes\OrganizationRoute;
+use App\Modules\Memberships\MembershipQuery;
+use App\Routes\ContextRoute;
 use App\Sources\Db\App\Enterprises;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,35 +18,36 @@ readonly class EnterpriseController
 {
     public function __invoke(Request $Request): RedirectResponse
     {
-        $EnterpriseCreateRequest = EnterpriseCreateRequest::from($Request->all());
-        $Validator = Validator::make(...$EnterpriseCreateRequest->validator());
+        $EnterpriseRequest = EnterpriseRequest::from($Request->all());
+        $Validator = Validator::make(...$EnterpriseRequest->validator());
 
         if ($Validator->fails()) {
             return back()
                 ->withErrors($Validator)
-                ->withInput($EnterpriseCreateRequest->toArray());
+                ->withInput($EnterpriseRequest->toArray());
         }
 
         $User = User::authenticated($Request);
 
-        $Organization = Organization::query()->getConnection()->transaction(
-            static fn (): Organization => OrganizationCreator::create(
-                self::enterprise($EnterpriseCreateRequest->name),
-                $EnterpriseCreateRequest->organization,
-                $User,
-            ),
+        $Enterprise = Enterprise::query()->getConnection()->transaction(
+            static function () use ($EnterpriseRequest, $User): Enterprise {
+                $Enterprise = Enterprise::query()->create([
+                    Enterprises::name->value => $EnterpriseRequest->name,
+                    Enterprises::slug->value => Slug::unique(
+                        Enterprise::class,
+                        Enterprises::slug->value,
+                        $EnterpriseRequest->name,
+                    ),
+                ]);
+
+                MembershipQuery::grant(Depth::enterprise, $Enterprise, $User, MemberRole::owner);
+
+                return $Enterprise;
+            },
         );
 
         return redirect()
-            ->to(OrganizationRoute::index->url([OrganizationRoute::organizationParameter => $Organization->slug]))
+            ->to(ContextRoute::enterprise->url([ContextRoute::enterpriseParameter => $Enterprise->slug]))
             ->with('status', 'Enterprise created.');
-    }
-
-    private static function enterprise(string $name): Enterprise
-    {
-        return Enterprise::query()->create([
-            Enterprises::name->value => $name,
-            Enterprises::slug->value => Slug::unique(Enterprise::class, Enterprises::slug->value, $name),
-        ]);
     }
 }

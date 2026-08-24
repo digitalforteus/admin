@@ -2,20 +2,21 @@
 
 namespace App\Modules\Organizations\Members;
 
-use App\Helpers\OrganizationRole;
+use App\Helpers\Depth;
+use App\Helpers\MemberRole;
 use App\Models\User;
-use App\Modules\Organizations\Authorize;
-use App\Modules\Organizations\LastOwnerException;
-use App\Modules\Organizations\MembershipQuery;
+use App\Modules\Contexts\Authorize;
+use App\Modules\Memberships\LastOwnerException;
+use App\Modules\Memberships\MembershipQuery;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 readonly class MemberUpdateController
 {
-    public function __invoke(Request $Request, string $organization, string $member): RedirectResponse
+    public function __invoke(Request $Request, string $enterprise, string $organization, string $member): RedirectResponse
     {
-        $Organization = Authorize::owns($Request);
+        $Organization = Authorize::organization(MemberRole::owner);
 
         $MemberRequest = MemberRequest::from($Request->all());
         $Validator = Validator::make(...$MemberRequest->validator());
@@ -24,14 +25,14 @@ readonly class MemberUpdateController
             return back()->withErrors($Validator)->withInput($MemberRequest->toArray());
         }
 
-        $User = $Organization->users()->whereKey($member)->first();
+        $User = MembershipQuery::members(Depth::organization, $Organization)->firstWhere('id', $member);
 
         if (! $User instanceof User) {
             abort(404);
         }
 
         try {
-            MembershipQuery::changeRole($Organization, $User, OrganizationRole::from($MemberRequest->role));
+            MembershipQuery::change(Depth::organization, $Organization, $User, MemberRole::from($MemberRequest->role));
         } catch (LastOwnerException $Exception) {
             return back()->with('status', $Exception->getMessage());
         }

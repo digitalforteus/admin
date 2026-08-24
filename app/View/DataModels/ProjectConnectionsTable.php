@@ -3,22 +3,12 @@
 namespace App\View\DataModels;
 
 use App\Helpers\DataModel;
-use App\Routes\OrganizationRoute;
+use App\Routes\ContextRoute;
 use Zerotoprod\DataModel\Describe;
 
 readonly class ProjectConnectionsTable
 {
     use DataModel;
-
-    public const string organization = 'organization';
-
-    #[Describe([Describe::required => true])]
-    public string $organization;
-
-    public const string project = 'project';
-
-    #[Describe([Describe::required => true])]
-    public string $project;
 
     public const string manages = 'manages';
 
@@ -38,21 +28,14 @@ readonly class ProjectConnectionsTable
 
     public function createUrl(): string
     {
-        return OrganizationRoute::connectionCreate->url([
-            OrganizationRoute::organizationParameter => $this->organization,
-            OrganizationRoute::projectParameter => $this->project,
-        ]);
+        return ContextRoute::connectionCreate->url(ContextRoute::parameters());
     }
 
     /** @return list<ConnectionRow> */
     public function rows(): array
     {
         return array_map(
-            fn (array $connection): ConnectionRow => ConnectionRow::from([
-                ConnectionRow::organization => $this->organization,
-                ConnectionRow::project => $this->project,
-                ...$connection,
-            ]),
+            static fn (array $connection): ConnectionRow => ConnectionRow::from($connection),
             $this->connections,
         );
     }

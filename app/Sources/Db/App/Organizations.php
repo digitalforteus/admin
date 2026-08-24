@@ -27,8 +27,9 @@ use ZeroToProd\DbModel\Table;
             'organizations_created_by_foreign' => [
                 self::created_by,
             ],
-            'organizations_enterprise_id_foreign' => [
+            'organizations_enterprise_id_slug_unique' => [
                 self::enterprise_id,
+                self::slug,
             ],
         ],
     ])]
@@ -65,11 +66,10 @@ enum Organizations: string
 
     #[Column([
         Column::name => self::slug,
-        Column::comment => 'The url segment the organization is addressed by',
+        Column::comment => 'The url segment the organization is addressed by, inside its enterprise',
         Column::type => ColumnType::varchar->value,
         Column::length => 255,
         Column::nullable => false,
-        Column::unique => true,
     ])]
     case slug = 'slug';
 

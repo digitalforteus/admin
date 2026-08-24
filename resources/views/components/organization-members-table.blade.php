@@ -16,8 +16,8 @@
                 <x-text-input :textInput="$OrganizationMembersTable->emailInput()"/>
             </div>
             <select name="{{InvitationRequest::role}}" class="select mb-1" aria-label="Invitation role">
-                @foreach($OrganizationMembersTable->roles() as $OrganizationRole)
-                    <option value="{{$OrganizationRole->value}}" title="{{$OrganizationRole->label()}}">{{$OrganizationRole->label()}}</option>
+                @foreach($OrganizationMembersTable->roles() as $MemberRole)
+                    <option value="{{$MemberRole->value}}" title="{{$MemberRole->label()}}">{{$MemberRole->label()}}</option>
                 @endforeach
             </select>
             <button type="submit" class="btn btn-primary mb-1" data-invite-member>Invite</button>
@@ -48,8 +48,8 @@
                             <form method="POST" action="{{$MemberRow->url()}}" class="flex items-center gap-2">
                                 @csrf
                                 <select name="{{MemberRequest::role}}" class="select select-sm" aria-label="Role for {{$MemberRow->email}}">
-                                    @foreach($OrganizationMembersTable->roles() as $OrganizationRole)
-                                        <option value="{{$OrganizationRole->value}}" @selected($OrganizationRole === $MemberRow->role) title="{{$OrganizationRole->label()}}">{{$OrganizationRole->label()}}</option>
+                                    @foreach($OrganizationMembersTable->roles() as $MemberRole)
+                                        <option value="{{$MemberRole->value}}" @selected($MemberRole === $MemberRow->role) title="{{$MemberRole->label()}}">{{$MemberRole->label()}}</option>
                                     @endforeach
                                 </select>
                                 <button type="submit" class="btn btn-ghost btn-xs" data-member-update>Save</button>

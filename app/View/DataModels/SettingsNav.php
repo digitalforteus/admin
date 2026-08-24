@@ -13,9 +13,6 @@ enum SettingsNav implements DescribesNav
     #[NavItem([NavItem::label => 'Profile', NavItem::icon => SvgName::user, NavItem::route => Auth::settingsProfile])]
     case profile;
 
-    #[NavItem([NavItem::label => 'Organizations', NavItem::icon => SvgName::city, NavItem::route => Auth::settingsOrganizations, NavItem::nested => true])]
-    case organizations;
-
     #[NavItem([NavItem::label => 'Appearance', NavItem::icon => SvgName::swatch, NavItem::route => Auth::settingsAppearance])]
     case appearance;
 

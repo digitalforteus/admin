@@ -15,7 +15,7 @@ return new class extends Migration
                 ->restrictOnDelete()
                 ->comment('The enterprise the organization belongs to');
             $Blueprint->string('name')->comment('The organization name');
-            $Blueprint->string('slug')->unique()->comment('The url segment the organization is addressed by');
+            $Blueprint->string('slug')->comment('The url segment the organization is addressed by, inside its enterprise');
             $Blueprint->string('icon')->nullable()->comment('The path of the icon the organization uploaded');
             $Blueprint->foreignUlid('created_by')
                 ->nullable()
@@ -23,6 +23,7 @@ return new class extends Migration
                 ->nullOnDelete()
                 ->comment('The user who created the organization, for display only');
             $Blueprint->timestamps();
+            $Blueprint->unique(['enterprise_id', 'slug']);
         });
     }
 

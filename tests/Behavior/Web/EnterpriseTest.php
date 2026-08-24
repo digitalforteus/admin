@@ -1,143 +1,136 @@
 <?php
 
-use App\Helpers\OrganizationRole;
+use App\Helpers\Depth;
+use App\Helpers\MemberRole;
 use App\Helpers\Slug;
-use App\Http\Middleware\ResolveEnterprise;
 use App\Models\Enterprise;
 use App\Models\Organization;
 use App\Models\User;
-use App\Modules\Enterprises\EnterpriseContext;
 use App\Modules\Enterprises\EnterpriseForm;
-use App\Modules\Enterprises\EnterpriseQuery;
-use App\Modules\Organizations\MembershipQuery;
-use App\Modules\Settings\Organizations\OrganizationForm;
-use App\Routes\EnterpriseRoute;
-use App\Routes\OrganizationRoute;
+use App\Modules\Memberships\MembershipQuery;
+use App\Modules\Organizations\Organizations\OrganizationForm;
+use App\Routes\ContextRoute;
 use App\Routes\Web;
 use App\Sources\Db\App\Enterprises;
 use App\Sources\Db\App\Organizations;
-use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
 
-test('an enterprise is created with its first organization, addressed by slug, and reachable only through a membership inside it', function (): void {
-    $create = EnterpriseRoute::create->url();
+test('an enterprise is named once, owned by the account that named it, and holds organizations addressed inside it', function (): void {
+    $index = ContextRoute::enterpriseIndex->url();
+    $create = ContextRoute::enterpriseCreate->url();
 
-    $this->get($create)->assertRedirect(Web::login->value);
-    $this->post($create, [
-        EnterpriseForm::name => 'Acme Holdings',
-        EnterpriseForm::organization => 'Acme Inc.',
-    ])->assertRedirect(Web::login->value);
+    $this->get($index)->assertRedirect(Web::login->value);
+    $this->post($index, [EnterpriseForm::name => 'Acme Holdings'])->assertRedirect(Web::login->value);
 
     $this->assertDatabaseCount(Enterprises::table(), 0);
 
     $User = User::factory()->createOne();
 
     $this->actingAs($User)
+        ->get($index)
+        ->assertOk()
+        ->assertSee('data-enterprises-empty', false)
+        ->assertSee('data-enterprise-add', false)
+        ->assertSee($create);
+
+    $this->actingAs($User)
         ->get($create)
         ->assertOk()
         ->assertSee('data-enterprise-create', false)
-        ->assertSee('Enterprise Name')
-        ->assertSee('First Organization Name');
+        ->assertSee('Enterprise Name');
 
-    // An enterprise is never committed empty: standing at this depth is read from the
-    // organizations inside, so one holding none is unreachable by the account that
-    // asked for it — which is why naming the first organization is part of asking.
+    // Standing is held where it is granted, so an enterprise is reachable by the
+    // account that made it without anything else having to exist inside it first.
     $this->actingAs($User)
         ->from($create)
-        ->post($create, [
-            EnterpriseForm::name => 'Acme Holdings',
-            EnterpriseForm::organization => 'Acme Inc.',
-        ])
+        ->post($index, [EnterpriseForm::name => '  Acme   Holdings  '])
         ->assertSessionHas('status', 'Enterprise created.');
 
     $Enterprise = Enterprise::query()->sole();
-    $Organization = Organization::query()->sole();
 
     expect($Enterprise->name)->toBe('Acme Holdings')
         ->and($Enterprise->slug)->toBe('acme-holdings')
-        ->and($Organization->name)->toBe('Acme Inc.')
-        ->and($Organization->enterprise_id)->toBe($Enterprise->id)
-        ->and($Organization->created_by)->toBe($User->id)
-        ->and($Organization->creator?->id)->toBe($User->id)
-        ->and(MembershipQuery::role($Organization, $User))->toBe(OrganizationRole::owner)
-        ->and(EnterpriseQuery::manages($Enterprise, $User))->toBeTrue();
+        ->and(Organization::query()->count())->toBe(0)
+        ->and(MembershipQuery::held(Depth::enterprise, $Enterprise, $User))->toBe(MemberRole::owner);
 
-    $parameters = [EnterpriseRoute::enterpriseParameter => $Enterprise->slug];
-    $index = EnterpriseRoute::index->url($parameters);
+    $parameters = atEnterprise($Enterprise);
+    $enterprise = ContextRoute::enterprise->url($parameters);
+    $settings = ContextRoute::enterpriseSettings->url($parameters);
+    $organizations = ContextRoute::organizationIndex->url($parameters);
+    $organizationCreate = ContextRoute::organizationCreate->url($parameters);
 
     $this->actingAs($User)
-        ->get($index)
+        ->get($enterprise)
         ->assertOk()
         ->assertSee('Acme Holdings')
-        ->assertSee('data-enterprise-organization', false)
-        ->assertSee('data-enterprise-organization-add', false)
+        ->assertSee('data-organizations-empty', false)
+        ->assertSee('data-organization-add', false)
         ->assertSee('data-enterprise-settings', false)
-        ->assertSee(OrganizationRoute::index->url([
-            OrganizationRoute::organizationParameter => $Organization->slug,
-        ]));
+        ->assertSee($organizationCreate);
 
-    // A second organization is added inside the enterprise the address names, and the
-    // segment it is addressed by is settled against every name already taken.
-    $organizationCreate = EnterpriseRoute::organizationCreate->url($parameters);
-
+    // An organization is addressed inside its enterprise, so its segment is settled
+    // against the names taken there and nowhere else.
     $this->actingAs($User)
         ->get($organizationCreate)
         ->assertOk()
         ->assertSee('data-organization-create', false)
         ->assertSee('Organization Name');
 
-    $this->actingAs($User)
-        ->from($organizationCreate)
-        ->post($organizationCreate, [OrganizationForm::name => '  Globex   Corp.  '])
-        ->assertSessionHas('status', 'Organization created.');
-
-    $this->actingAs($User)
-        ->from($organizationCreate)
-        ->post($organizationCreate, [OrganizationForm::name => 'Globex Corp.'])
-        ->assertSessionHas('status', 'Organization created.');
-
-    $this->actingAs($User)
-        ->from($organizationCreate)
-        ->post($organizationCreate, [OrganizationForm::name => '???'])
-        ->assertSessionHas('status', 'Organization created.');
+    foreach (['Acme Inc.', 'Acme Inc.', '???'] as $name) {
+        $this->actingAs($User)
+            ->from($organizationCreate)
+            ->post($organizations, [OrganizationForm::name => $name])
+            ->assertSessionHas('status', 'Organization created.');
+    }
 
     expect(Organization::query()->pluck(Organizations::slug->value)->all())
-        ->toEqualCanonicalizing(['acme-inc', 'globex-corp', 'globex-corp-2', Slug::fallback])
-        ->and(Organization::query()->where(Organizations::slug->value, 'globex-corp')->sole()->name)
-        ->toBe('Globex Corp.')
-        ->and(EnterpriseQuery::organizations($Enterprise, $User))->toHaveCount(4);
+        ->toEqualCanonicalizing(['acme-inc', 'acme-inc-2', Slug::fallback]);
 
-    // Every write answers to the same rules the form declares, and a rejected one
-    // comes back to the form it was sent from with what was typed.
+    // A second enterprise may hold the same segment, because an organization is never
+    // addressed without naming the enterprise around it.
     $this->actingAs($User)
         ->from($create)
-        ->post($create, [EnterpriseForm::name => '', EnterpriseForm::organization => ''])
-        ->assertRedirect($create)
-        ->assertSessionHasErrors([EnterpriseForm::name, EnterpriseForm::organization]);
+        ->post($index, [EnterpriseForm::name => 'Globex Group'])
+        ->assertSessionHas('status', 'Enterprise created.');
+
+    $Second = Enterprise::query()->where(Enterprises::slug->value, 'globex-group')->sole();
 
     $this->actingAs($User)
-        ->from($create)
-        ->followingRedirects()
-        ->post($create, [EnterpriseForm::name => str_repeat('a', 256), EnterpriseForm::organization => 'Ok'])
-        ->assertOk()
-        ->assertSee('The name field must not be greater than 255 characters.');
+        ->from(ContextRoute::organizationCreate->url(atEnterprise($Second)))
+        ->post(ContextRoute::organizationIndex->url(atEnterprise($Second)), [
+            OrganizationForm::name => 'Acme Inc.',
+        ])
+        ->assertSessionHas('status', 'Organization created.');
+
+    expect(Organization::query()->where(Organizations::slug->value, 'acme-inc')->count())->toBe(2);
 
     $this->actingAs($User)
         ->from($organizationCreate)
-        ->post($organizationCreate, [OrganizationForm::name => str_repeat('a', 256)])
-        ->assertSessionHasErrors(OrganizationForm::name)
-        ->assertSessionHasInput(OrganizationForm::name, str_repeat('a', 256));
+        ->post($organizations, [OrganizationForm::name => ''])
+        ->assertRedirect($organizationCreate)
+        ->assertSessionHasErrors(OrganizationForm::name);
 
-    expect(Enterprise::query()->count())->toBe(1);
+    // Every write answers to the rules the form declares, and a rejection comes back
+    // to the form it was sent from.
+    $this->actingAs($User)
+        ->from($create)
+        ->post($index, [EnterpriseForm::name => ''])
+        ->assertRedirect($create)
+        ->assertSessionHasErrors(EnterpriseForm::name);
 
-    // The name is changed by an account holding the top standing inside, and by no
-    // other: standing is never held at this depth, only read from below it.
-    $settings = EnterpriseRoute::settings->url($parameters);
+    $this->actingAs($User)
+        ->from($create)
+        ->post($index, [EnterpriseForm::name => str_repeat('a', 256)])
+        ->assertSessionHasErrors(EnterpriseForm::name)
+        ->assertSessionHasInput(EnterpriseForm::name, str_repeat('a', 256));
 
+    expect(Enterprise::query()->count())->toBe(2);
+
+    // The name is changed by the standing held at this depth and by no other.
     $this->actingAs($User)
         ->get($settings)
         ->assertOk()
         ->assertSee('data-enterprise-form', false)
+        ->assertSee('data-enterprise-organization', false)
         ->assertSee('Acme Holdings');
 
     $this->actingAs($User)
@@ -152,67 +145,55 @@ test('an enterprise is created with its first organization, addressed by slug, a
         ->post($settings, [EnterpriseForm::name => ''])
         ->assertSessionHasErrors(EnterpriseForm::name);
 
+    // An account admitted below the top reads the enterprise and changes nothing.
     $Member = User::factory()->createOne();
-    MembershipQuery::add($Organization, $Member, OrganizationRole::member);
+    MembershipQuery::grant(Depth::enterprise, $Enterprise, $Member, MemberRole::member);
 
     $this->forgetCredentials()
         ->actingAs($Member)
-        ->get($index)
+        ->get($enterprise)
         ->assertOk()
-        ->assertDontSee('data-enterprise-settings', false);
+        ->assertDontSee('data-enterprise-settings', false)
+        ->assertDontSee('data-organization-add', false);
 
     $this->actingAs($Member)->get($settings)->assertForbidden();
+    $this->actingAs($Member)->post($settings, [EnterpriseForm::name => 'Theirs'])->assertForbidden();
+    $this->actingAs($Member)->get($organizationCreate)->assertForbidden();
     $this->actingAs($Member)
-        ->post($settings, [EnterpriseForm::name => 'Renamed'])
+        ->post($organizations, [OrganizationForm::name => 'Theirs'])
         ->assertForbidden();
 
-    expect(EnterpriseQuery::manages($Enterprise, $Member))->toBeFalse()
-        ->and($Enterprise->refresh()->name)->toBe('Acme Group');
+    expect($Enterprise->refresh()->name)->toBe('Acme Group');
 
-    // Existence is not public either: an account with no membership inside is told
-    // there is nothing there rather than that it may not have it.
+    // Existence is not public: an account holding nothing inside is told there is
+    // nothing there rather than that it may not have it.
     $Stranger = User::factory()->createOne();
 
     $this->forgetCredentials()
         ->actingAs($Stranger)
-        ->get($index)
+        ->get($enterprise)
         ->assertNotFound();
 
     $this->actingAs($Stranger)->get($settings)->assertNotFound();
     $this->actingAs($Stranger)->get($organizationCreate)->assertNotFound();
     $this->actingAs($Stranger)
-        ->post($organizationCreate, [OrganizationForm::name => 'Sneaky'])
+        ->post($organizations, [OrganizationForm::name => 'Sneaky'])
         ->assertNotFound();
 
     $this->actingAs($User)
-        ->get(EnterpriseRoute::index->url([EnterpriseRoute::enterpriseParameter => 'missing']))
+        ->get(ContextRoute::enterprise->url([ContextRoute::enterpriseParameter => 'missing']))
         ->assertNotFound();
 
-    expect(EnterpriseQuery::forUser($Stranger))->toBeEmpty()
-        ->and(collect(EnterpriseQuery::forUser($User))->pluck(Enterprises::slug->value)->all())
-        ->toBe(['acme-holdings']);
+    $this->actingAs($Stranger)
+        ->get($index)
+        ->assertOk()
+        ->assertSee('data-enterprises-empty', false)
+        ->assertDontSee('Acme Group');
 
-    // A path naming no enterprise resolves none, and every reader of the context is
-    // required to cope with that rather than assume one is always present.
-    $this->forgetCredentials();
-
-    $Request = Request::create('/nowhere');
-    app()->instance('request', $Request);
-
-    $Passed = new ResolveEnterprise()->handle($Request, static fn (): Response => new Response('passed'));
-
-    expect($Passed->getContent())->toBe('passed')
-        ->and(EnterpriseContext::enterprise())->toBeNull()
-        ->and(EnterpriseContext::active())->toBeFalse();
-
-    // An account holding a membership reads the enterprise its organization sits in
-    // without the address ever naming it.
     $this->actingAs($User)
-        ->get(OrganizationRoute::index->url([
-            OrganizationRoute::organizationParameter => $Organization->slug,
-        ]))
-        ->assertOk();
-
-    expect(EnterpriseContext::enterprise()?->id)->toBe($Enterprise->id)
-        ->and(EnterpriseContext::active())->toBeTrue();
+        ->get($index)
+        ->assertOk()
+        ->assertSee('data-enterprise-row', false)
+        ->assertSee('Acme Group')
+        ->assertSee('Globex Group');
 });

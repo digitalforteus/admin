@@ -3,8 +3,8 @@
 namespace App\View\DataModels;
 
 use App\Helpers\DataModel;
-use App\Helpers\OrganizationRole;
-use App\Routes\OrganizationRoute;
+use App\Helpers\MemberRole;
+use App\Routes\ContextRoute;
 use Illuminate\Support\Carbon;
 use Zerotoprod\DataModel\Describe;
 
@@ -12,11 +12,6 @@ use Zerotoprod\DataModel\Describe;
 readonly class InvitationRow
 {
     use DataModel;
-
-    public const string organization = 'organization';
-
-    #[Describe([Describe::required => true])]
-    public string $organization;
 
     public const string id = 'id';
 
@@ -31,7 +26,7 @@ readonly class InvitationRow
     public const string role = 'role';
 
     #[Describe([Describe::required => true])]
-    public OrganizationRole $role;
+    public MemberRole $role;
 
     public const string expires_at = 'expires_at';
 
@@ -44,9 +39,6 @@ readonly class InvitationRow
 
     public function url(): string
     {
-        return OrganizationRoute::invitation->url([
-            OrganizationRoute::organizationParameter => $this->organization,
-            OrganizationRoute::invitationParameter => $this->id,
-        ]);
+        return ContextRoute::invitation->url(ContextRoute::parameters([ContextRoute::invitationParameter => $this->id]));
     }
 }

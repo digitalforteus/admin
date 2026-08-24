@@ -4,8 +4,9 @@ namespace App\Modules\Projects;
 
 use App\Helpers\Directory;
 use App\Helpers\Disk;
+use App\Helpers\MemberRole;
 use App\Helpers\Picture;
-use App\Modules\Organizations\Authorize;
+use App\Modules\Contexts\Authorize;
 use App\Sources\Db\App\Projects;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,9 +14,9 @@ use Illuminate\Support\Facades\Validator;
 
 readonly class ProjectIconController
 {
-    public function __invoke(Request $Request, string $organization, string $project): RedirectResponse
+    public function __invoke(Request $Request): RedirectResponse
     {
-        $Project = ProjectQuery::find(Authorize::manages($Request), $project);
+        $Project = Authorize::project(MemberRole::admin);
 
         if (! Disk::retains()) {
             return back()->withErrors([

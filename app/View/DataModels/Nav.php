@@ -19,7 +19,7 @@ enum Nav: string
     case admin = AdminNav::class;
     case settings = SettingsNav::class;
     case docs = DocsNav::class;
-    case organization = OrganizationNav::class;
+    case context = ContextNav::class;
     case left = LeftNav::class;
 
     public static function active(): ?self

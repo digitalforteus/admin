@@ -3,19 +3,14 @@
 namespace App\View\DataModels;
 
 use App\Helpers\DataModel;
-use App\Helpers\OrganizationRole;
+use App\Helpers\MemberRole;
 use App\Modules\Organizations\Invitations\InvitationForm;
-use App\Routes\OrganizationRoute;
+use App\Routes\ContextRoute;
 use Zerotoprod\DataModel\Describe;
 
 readonly class OrganizationMembersTable
 {
     use DataModel;
-
-    public const string organization = 'organization';
-
-    #[Describe([Describe::required => true])]
-    public string $organization;
 
     public const string manages = 'manages';
 
@@ -44,7 +39,6 @@ readonly class OrganizationMembersTable
     {
         return array_map(
             fn (array $member): MemberRow => MemberRow::from([
-                MemberRow::organization => $this->organization,
                 ...$member,
             ]),
             $this->members,
@@ -56,24 +50,21 @@ readonly class OrganizationMembersTable
     {
         return array_map(
             fn (array $invitation): InvitationRow => InvitationRow::from([
-                InvitationRow::organization => $this->organization,
                 ...$invitation,
             ]),
             $this->invitations,
         );
     }
 
-    /** @return list<OrganizationRole> */
+    /** @return list<MemberRole> */
     public function roles(): array
     {
-        return OrganizationRole::cases();
+        return MemberRole::cases();
     }
 
     public function action(): string
     {
-        return OrganizationRoute::invitations->url([
-            OrganizationRoute::organizationParameter => $this->organization,
-        ]);
+        return ContextRoute::invitations->url(ContextRoute::parameters());
     }
 
     /** @return array<string, mixed> */

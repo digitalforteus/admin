@@ -7,7 +7,7 @@ use App\Helpers\SvgName;
 use App\Models\Connection;
 use App\Models\Project;
 use App\Modules\Connections\ConnectionPlugin;
-use App\Routes\OrganizationRoute;
+use App\Routes\ContextRoute;
 use App\View\DataModels\NavItem;
 use App\View\DataModels\RunsTable;
 use Illuminate\Contracts\Validation\Validator as ValidatorContract;
@@ -64,8 +64,6 @@ readonly class GithubConnection implements ConnectionPlugin
 
         return view('Github.page', [
             'runsTable' => [
-                RunsTable::organization => $Project->organization->slug,
-                RunsTable::project => $Project->slug,
                 RunsTable::connection => $Connection->slug,
                 RunsTable::ok => $Runs->ok,
                 RunsTable::status => $Runs->status,
@@ -83,12 +81,10 @@ readonly class GithubConnection implements ConnectionPlugin
             NavItem::from([
                 NavItem::label => 'Workflow Runs',
                 NavItem::icon => $this->icon(),
-                NavItem::route => OrganizationRoute::connection,
-                NavItem::parameters => [
-                    OrganizationRoute::organizationParameter => $Project->organization->slug,
-                    OrganizationRoute::projectParameter => $Project->slug,
-                    OrganizationRoute::connectionParameter => $Connection->slug,
-                ],
+                NavItem::route => ContextRoute::connection,
+                NavItem::parameters => ContextRoute::parameters([
+                    ContextRoute::connectionParameter => $Connection->slug,
+                ]),
             ]),
         ];
     }

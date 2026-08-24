@@ -6,22 +6,12 @@ use App\Helpers\DataModel;
 use App\Helpers\SvgName;
 use App\Modules\Connections\ConnectionPlugin;
 use App\Modules\Connections\ConnectionProvider;
-use App\Routes\OrganizationRoute;
+use App\Routes\ContextRoute;
 use Zerotoprod\DataModel\Describe;
 
 readonly class ConnectionRow
 {
     use DataModel;
-
-    public const string organization = 'organization';
-
-    #[Describe([Describe::required => true])]
-    public string $organization;
-
-    public const string project = 'project';
-
-    #[Describe([Describe::required => true])]
-    public string $project;
 
     public const string name = 'name';
 
@@ -66,27 +56,23 @@ readonly class ConnectionRow
 
     public function url(): string
     {
-        return OrganizationRoute::connection->url($this->parameters());
+        return ContextRoute::connection->url($this->parameters());
     }
 
     public function manageUrl(): string
     {
-        return OrganizationRoute::connectionManage->url($this->parameters());
+        return ContextRoute::connectionSettings->url($this->parameters());
     }
 
     public function enabledUrl(): string
     {
-        return OrganizationRoute::connectionEnabled->url($this->parameters());
+        return ContextRoute::connectionEnabled->url($this->parameters());
     }
 
-    /** @return array<string, string> */
+    /** @return array<string, string|int> */
     private function parameters(): array
     {
-        return [
-            OrganizationRoute::organizationParameter => $this->organization,
-            OrganizationRoute::projectParameter => $this->project,
-            OrganizationRoute::connectionParameter => $this->slug,
-        ];
+        return ContextRoute::parameters([ContextRoute::connectionParameter => $this->slug]);
     }
 
     private function plugin(): ?ConnectionPlugin

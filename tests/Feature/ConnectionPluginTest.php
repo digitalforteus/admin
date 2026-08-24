@@ -4,7 +4,7 @@ use App\Models\User;
 use App\Modules\Connections\ConnectionPlugin;
 use App\Modules\Connections\ConnectionProvider;
 use App\Modules\Connections\Github\GithubForm;
-use App\Routes\OrganizationRoute;
+use App\Routes\ContextRoute;
 use App\Sources\Db\App\Connections;
 use App\Sources\Db\App\Projects;
 use App\View\DataModels\ConnectionRow;
@@ -62,11 +62,9 @@ test('the registry answers for the keys it names, answers nothing for the rest, 
             expect($NavItem)->toBeInstanceOf(NavItem::class)
                 ->and(ViewDirectory::svg->has($NavItem->icon))->toBeTrue()
                 ->and($NavItem->parameters)->toBe([
-                    OrganizationRoute::organizationParameter => $Organization->slug,
-                    OrganizationRoute::projectParameter => $Project->slug,
-                    OrganizationRoute::connectionParameter => $Connection->slug,
+                    ContextRoute::connectionParameter => $Connection->slug,
                 ])
-                ->and($NavItem->url())->toContain($Organization->slug, $Project->slug, $Connection->slug)
+                ->and($NavItem->url())->toContain($Connection->slug)
                 // A secret must not reach a plugin's own navigation.
                 ->and($NavItem->url())->not->toContain('secret-token')
                 ->and($NavItem->label)->not->toContain('secret-token');
@@ -89,8 +87,6 @@ test('the registry answers for the keys it names, answers nothing for the rest, 
         ->and(json_encode($Connection))->not->toContain('secret-token');
 
     $Row = ConnectionRow::from([
-        ConnectionRow::organization => $Organization->slug,
-        ConnectionRow::project => $Project->slug,
         ConnectionRow::name => 'Retired Provider',
         ConnectionRow::slug => 'retired',
         ConnectionRow::provider => 'stripe',
@@ -102,8 +98,6 @@ test('the registry answers for the keys it names, answers nothing for the rest, 
         ->and(ViewDirectory::svg->has($Row->icon()))->toBeTrue();
 
     $Known = ConnectionRow::from([
-        ConnectionRow::organization => $Organization->slug,
-        ConnectionRow::project => $Project->slug,
         ConnectionRow::name => 'Primary',
         ConnectionRow::slug => 'primary',
         ConnectionRow::provider => ConnectionProvider::github->name,
@@ -112,9 +106,9 @@ test('the registry answers for the keys it names, answers nothing for the rest, 
 
     expect($Known->available())->toBeTrue()
         ->and($Known->label())->toBe('GitHub')
-        ->and($Known->url())->toContain($Organization->slug, $Project->slug, 'primary')
-        ->and($Known->enabledUrl())->toContain('connections', 'enabled')
-        ->and($Known->manageUrl())->toContain('connections', 'primary');
+        ->and($Known->url())->toContain('primary')
+        ->and($Known->enabledUrl())->toContain('/c/', 'enabled')
+        ->and($Known->manageUrl())->toContain('/c/primary/settings');
 });
 
 function GithubConnectionClass(): string

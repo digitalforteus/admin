@@ -5,7 +5,7 @@ use App\Modules\Connections\ConnectionProvider;
 use App\Modules\Connections\ConnectionQuery;
 use App\Modules\Connections\Github\GithubForm;
 use App\Modules\Connections\Github\GithubQuery;
-use App\Routes\OrganizationRoute;
+use App\Routes\ContextRoute;
 use App\Sources\Db\App\Connections;
 use App\Sources\Db\App\Organizations;
 use App\Sources\Db\App\Projects;
@@ -61,14 +61,11 @@ test('the run list renders what the provider reports, states a refusal and an em
         Connections::credentials->value => [GithubForm::token => 'secret-token'],
     ]);
 
-    $parameters = [
-        OrganizationRoute::organizationParameter => 'acme',
-        OrganizationRoute::projectParameter => 'alpha',
-    ];
-    $index = OrganizationRoute::project->url($parameters);
-    $page = OrganizationRoute::connection->url([
+    $parameters = atProject($Project);
+    $index = ContextRoute::project->url($parameters);
+    $page = ContextRoute::connection->url([
         ...$parameters,
-        OrganizationRoute::connectionParameter => 'hello-world',
+        ContextRoute::connectionParameter => 'hello-world',
     ]);
 
     // The transport is the framework's, which is the whole reason this is fakeable.
@@ -205,8 +202,6 @@ test('the run list renders what the provider reports, states a refusal and an em
     // The page is a query parameter on the connection's own address, so a link back
     // to a page keeps the whole context rather than only the number.
     $Paged = RunsTable::from([
-        RunsTable::organization => 'acme',
-        RunsTable::project => 'alpha',
         RunsTable::connection => 'hello-world',
         RunsTable::total => 45,
         RunsTable::page => 2,
@@ -215,11 +210,7 @@ test('the run list renders what the provider reports, states a refusal and an em
 
     expect($Paged->previousUrl())->toBe($page.'?'.RunsTable::page.'=1')
         ->and($Paged->nextUrl())->toBe($page.'?'.RunsTable::page.'=3')
-        ->and(RunsTable::from([
-            RunsTable::organization => 'acme',
-            RunsTable::project => 'alpha',
-            RunsTable::connection => 'hello-world',
-        ])->nextUrl())->toBeNull();
+        ->and(RunsTable::from([RunsTable::connection => 'hello-world'])->nextUrl())->toBeNull();
 
     // The package wraps only its own transport's responses, so both shapes are read
     // and anything else is a refusal rather than a crash.
@@ -252,7 +243,7 @@ test('the run list renders what the provider reports, states a refusal and an em
     $this->actingAs($User)->get($page)->assertRedirect($index);
 
     $this->actingAs($User)
-        ->get(OrganizationRoute::connections->url($parameters))
+        ->get(ContextRoute::connectionIndex->url($parameters))
         ->assertOk()
         ->assertSee('Hello World')
         ->assertSee('data-connection-unavailable', false);

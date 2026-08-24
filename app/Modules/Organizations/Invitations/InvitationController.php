@@ -2,9 +2,9 @@
 
 namespace App\Modules\Organizations\Invitations;
 
-use App\Helpers\OrganizationRole;
+use App\Helpers\MemberRole;
 use App\Models\User;
-use App\Modules\Organizations\Authorize;
+use App\Modules\Contexts\Authorize;
 use App\Modules\Organizations\InvitationQuery;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -12,9 +12,9 @@ use Illuminate\Support\Facades\Validator;
 
 readonly class InvitationController
 {
-    public function __invoke(Request $Request, string $organization): RedirectResponse
+    public function __invoke(Request $Request): RedirectResponse
     {
-        $Organization = Authorize::manages($Request);
+        $Organization = Authorize::organization(MemberRole::admin);
 
         $InvitationRequest = InvitationRequest::from($Request->all());
         $Validator = Validator::make(...$InvitationRequest->validator());
@@ -26,7 +26,7 @@ readonly class InvitationController
         InvitationQuery::invite(
             $Organization,
             $InvitationRequest->email,
-            OrganizationRole::from($InvitationRequest->role),
+            MemberRole::from($InvitationRequest->role),
             User::authenticated($Request),
         );
 
