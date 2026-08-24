@@ -66,6 +66,8 @@ Call `mcp__project__scaffold-endpoint` — it writes the route case, request DTO
 
 The DTOs have no constructor: properties are declared with `#[Request]`/`#[Response]` plus the `DataModel` and `Has*Schema` traits, built with `::from($array)`, returned through `api_response()->created(...)`. Declare only the statuses a test reaches — `openapi:coverage` fails a declared response nothing exercises.
 
+phpstan at max, the two rules a new module trips: a `readonly` property may not carry a default value, and every `array` in a signature needs a generic (`@return array<string, mixed>`, `@param`). Fix both before the first `check`, not after.
+
 ## During Turn Procedure
 1. `sail pest --filter=<ClassName>`: scope testing, cheap. Pick the class that actually covers what changed — an admin page is `AdminTest`, an API endpoint is its own `tests/Behavior/Api/` file. Skip this run entirely if `check` is next: `check` runs the whole suite.
 2. `sail composer test`: fast project-wide testing, cheap
