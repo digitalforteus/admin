@@ -136,7 +136,10 @@ test('an organization page is addressed by slug, scoped to membership, and carri
     $Breadcrumb = Breadcrumb::current() ?? throw new RuntimeException('An organization page carries a trail.');
     $trail = $Breadcrumb->trail();
 
-    expect($trail)->toHaveCount(2)
+    expect($trail)->toHaveCount(3)
+        ->and($trail[2]->settled())->toBeFalse()
+        ->and($trail[2]->label)->toBe('Select project')
+        ->and($trail[0]->settled())->toBeTrue()
         ->and($trail[0]->label)->toBe('Acme Holdings')
         ->and($trail[0]->url)->toBe(EnterpriseRoute::index->url([
             EnterpriseRoute::enterpriseParameter => $Enterprise->slug,

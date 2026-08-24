@@ -12,10 +12,13 @@ use App\Models\Project;
 use App\Models\User;
 use App\Modules\Connections\ConnectionQuery;
 use App\Modules\Enterprises\EnterpriseContext;
+use App\Modules\Enterprises\EnterpriseForm;
 use App\Modules\Enterprises\EnterpriseQuery;
 use App\Modules\Organizations\MembershipQuery;
 use App\Modules\Organizations\OrganizationContext;
+use App\Modules\Projects\ProjectForm;
 use App\Modules\Projects\ProjectQuery;
+use App\Modules\Settings\Organizations\OrganizationForm;
 use App\Routes\EnterpriseRoute;
 use App\Routes\OrganizationRoute;
 use Illuminate\Support\Facades\Auth;
@@ -40,14 +43,176 @@ readonly class Breadcrumb
             return null;
         }
 
-        $segments = array_values(array_filter([
-            self::enterprise($User),
-            self::organization($User),
-            self::project($User),
-            self::connection($User),
-        ]));
+        return self::from([self::segments => self::cascade($User)]);
+    }
 
-        return $segments === [] ? null : self::from([self::segments => $segments]);
+    /** @return list<array<string, mixed>> */
+    private static function cascade(User $User): array
+    {
+        $Enterprise = EnterpriseContext::enterprise();
+
+        if (! $Enterprise instanceof Enterprise) {
+            return [self::unsettledEnterprise($User)];
+        }
+
+        $segments = [self::enterprise($Enterprise, $User)];
+        $Organization = OrganizationContext::organization();
+
+        if (! $Organization instanceof Organization) {
+            return [...$segments, self::unsettledOrganization($Enterprise, $User)];
+        }
+
+        $segments[] = self::organization($Organization, $Enterprise, $User);
+        $Project = OrganizationContext::project();
+
+        if (! $Project instanceof Project) {
+            return [...$segments, self::unsettledProject($Organization, $User)];
+        }
+
+        $segments[] = self::project($Project, $Organization, $User);
+        $Connection = OrganizationContext::connection();
+
+        if (! $Connection instanceof Connection) {
+            return [...$segments, self::unsettledConnection($Organization, $Project, $User)];
+        }
+
+        return [...$segments, self::connection($Connection, $Project, $Organization, $User)];
+    }
+
+    /** @return array<string, mixed> */
+    private static function unsettledEnterprise(User $User): array
+    {
+        return [
+            BreadcrumbSegment::label => 'Select enterprise',
+            BreadcrumbSegment::url => null,
+            BreadcrumbSegment::picture => null,
+            BreadcrumbSegment::fallback => SvgName::city,
+            BreadcrumbSegment::switchLabel => 'Enterprises',
+            BreadcrumbSegment::settingsUrl => null,
+            BreadcrumbSegment::settingsLabel => '',
+            BreadcrumbSegment::createUrl => null,
+            BreadcrumbSegment::createAction => EnterpriseRoute::create->url(),
+            BreadcrumbSegment::createFields => [
+                BreadcrumbField::of(EnterpriseForm::textInput(EnterpriseForm::name)),
+                BreadcrumbField::of(EnterpriseForm::textInput(EnterpriseForm::organization)),
+            ],
+            BreadcrumbSegment::createLabel => 'New enterprise',
+            BreadcrumbSegment::items => array_map(
+                static fn (Enterprise $Each): array => [
+                    BreadcrumbItem::label => $Each->name,
+                    BreadcrumbItem::url => EnterpriseRoute::index->url([
+                        EnterpriseRoute::enterpriseParameter => $Each->slug,
+                    ]),
+                    BreadcrumbItem::picture => null,
+                    BreadcrumbItem::fallback => SvgName::city,
+                ],
+                EnterpriseQuery::forUser($User),
+            ),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private static function unsettledOrganization(Enterprise $Enterprise, User $User): array
+    {
+        return [
+            BreadcrumbSegment::label => 'Select organization',
+            BreadcrumbSegment::url => null,
+            BreadcrumbSegment::picture => null,
+            BreadcrumbSegment::fallback => SvgName::building,
+            BreadcrumbSegment::switchLabel => 'Organizations',
+            BreadcrumbSegment::settingsUrl => null,
+            BreadcrumbSegment::settingsLabel => '',
+            BreadcrumbSegment::createUrl => null,
+            BreadcrumbSegment::createAction => EnterpriseRoute::organizationCreate->url([
+                EnterpriseRoute::enterpriseParameter => $Enterprise->slug,
+            ]),
+            BreadcrumbSegment::createFields => [
+                BreadcrumbField::of(OrganizationForm::textInput(OrganizationForm::name)),
+            ],
+            BreadcrumbSegment::createLabel => 'New organization',
+            BreadcrumbSegment::items => array_map(
+                static fn (Organization $Each): array => [
+                    BreadcrumbItem::label => $Each->name,
+                    BreadcrumbItem::url => OrganizationRoute::index->url([
+                        OrganizationRoute::organizationParameter => $Each->slug,
+                    ]),
+                    BreadcrumbItem::picture => $Each->iconUrl(),
+                    BreadcrumbItem::fallback => SvgName::building,
+                ],
+                EnterpriseQuery::organizations($Enterprise, $User),
+            ),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private static function unsettledProject(Organization $Organization, User $User): array
+    {
+        $parameters = [OrganizationRoute::organizationParameter => $Organization->slug];
+        $manages = MembershipQuery::role($Organization, $User)?->manages() ?? false;
+
+        return [
+            BreadcrumbSegment::label => 'Select project',
+            BreadcrumbSegment::url => null,
+            BreadcrumbSegment::picture => null,
+            BreadcrumbSegment::fallback => SvgName::folder,
+            BreadcrumbSegment::switchLabel => 'Projects',
+            BreadcrumbSegment::settingsUrl => null,
+            BreadcrumbSegment::settingsLabel => '',
+            BreadcrumbSegment::createUrl => null,
+            BreadcrumbSegment::createAction => self::projectAction($manages, $parameters),
+            BreadcrumbSegment::createFields => [
+                BreadcrumbField::of(ProjectForm::textInput(ProjectForm::name)),
+            ],
+            BreadcrumbSegment::createLabel => 'New project',
+            BreadcrumbSegment::items => array_map(
+                static fn (Project $Each): array => [
+                    BreadcrumbItem::label => $Each->name,
+                    BreadcrumbItem::url => OrganizationRoute::project->url([
+                        ...$parameters,
+                        OrganizationRoute::projectParameter => $Each->slug,
+                    ]),
+                    BreadcrumbItem::picture => $Each->iconUrl(),
+                    BreadcrumbItem::fallback => SvgName::folder,
+                ],
+                ProjectQuery::forOrganization($Organization),
+            ),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private static function unsettledConnection(Organization $Organization, Project $Project, User $User): array
+    {
+        $parameters = [
+            OrganizationRoute::organizationParameter => $Organization->slug,
+            OrganizationRoute::projectParameter => $Project->slug,
+        ];
+        $owns = MembershipQuery::role($Organization, $User) === OrganizationRole::owner;
+
+        return [
+            BreadcrumbSegment::label => 'Select connection',
+            BreadcrumbSegment::url => null,
+            BreadcrumbSegment::picture => null,
+            BreadcrumbSegment::fallback => SvgName::link,
+            BreadcrumbSegment::switchLabel => 'Connections',
+            BreadcrumbSegment::settingsUrl => null,
+            BreadcrumbSegment::settingsLabel => '',
+            BreadcrumbSegment::createUrl => self::connectionCreate($owns, $parameters),
+            BreadcrumbSegment::createAction => null,
+            BreadcrumbSegment::createFields => [],
+            BreadcrumbSegment::createLabel => 'New connection',
+            BreadcrumbSegment::items => array_map(
+                static fn (Connection $Each): array => [
+                    BreadcrumbItem::label => $Each->name,
+                    BreadcrumbItem::url => OrganizationRoute::connection->url([
+                        ...$parameters,
+                        OrganizationRoute::connectionParameter => $Each->slug,
+                    ]),
+                    BreadcrumbItem::picture => null,
+                    BreadcrumbItem::fallback => SvgName::link,
+                ],
+                ConnectionQuery::enabledFor($Project),
+            ),
+        ];
     }
 
     /** @return list<BreadcrumbSegment> */
@@ -65,15 +230,9 @@ readonly class Breadcrumb
         return $this->collect()->all();
     }
 
-    /** @return array<string, mixed>|null */
-    private static function enterprise(User $User): ?array
+    /** @return array<string, mixed> */
+    private static function enterprise(Enterprise $Enterprise, User $User): array
     {
-        $Enterprise = EnterpriseContext::enterprise();
-
-        if (! $Enterprise instanceof Enterprise) {
-            return null;
-        }
-
         $parameters = [EnterpriseRoute::enterpriseParameter => $Enterprise->slug];
 
         return [
@@ -100,16 +259,9 @@ readonly class Breadcrumb
         ];
     }
 
-    /** @return array<string, mixed>|null */
-    private static function organization(User $User): ?array
+    /** @return array<string, mixed> */
+    private static function organization(Organization $Organization, Enterprise $Enterprise, User $User): array
     {
-        $Organization = OrganizationContext::organization();
-        $Enterprise = EnterpriseContext::enterprise();
-
-        if (! $Organization instanceof Organization || ! $Enterprise instanceof Enterprise) {
-            return null;
-        }
-
         $parameters = [OrganizationRoute::organizationParameter => $Organization->slug];
 
         return [
@@ -174,16 +326,9 @@ readonly class Breadcrumb
         return OrganizationRoute::settings->url($parameters);
     }
 
-    /** @return array<string, mixed>|null */
-    private static function project(User $User): ?array
+    /** @return array<string, mixed> */
+    private static function project(Project $Project, Organization $Organization, User $User): array
     {
-        $Organization = OrganizationContext::organization();
-        $Project = OrganizationContext::project();
-
-        if (! $Organization instanceof Organization || ! $Project instanceof Project) {
-            return null;
-        }
-
         $parameters = [OrganizationRoute::organizationParameter => $Organization->slug];
         $manages = MembershipQuery::role($Organization, $User)?->manages() ?? false;
 
@@ -229,6 +374,16 @@ readonly class Breadcrumb
     }
 
     /** @param  array<string, string|int>  $parameters */
+    private static function projectAction(bool $manages, array $parameters): ?string
+    {
+        if (! $manages) {
+            return null;
+        }
+
+        return OrganizationRoute::projects->url($parameters);
+    }
+
+    /** @param  array<string, string|int>  $parameters */
     private static function projectCreate(bool $manages, array $parameters): ?string
     {
         if (! $manages) {
@@ -238,21 +393,9 @@ readonly class Breadcrumb
         return OrganizationRoute::projectCreate->url($parameters);
     }
 
-    /** @return array<string, mixed>|null */
-    private static function connection(User $User): ?array
+    /** @return array<string, mixed> */
+    private static function connection(Connection $Connection, Project $Project, Organization $Organization, User $User): array
     {
-        $Organization = OrganizationContext::organization();
-        $Project = OrganizationContext::project();
-        $Connection = OrganizationContext::connection();
-
-        if (! $Organization instanceof Organization || ! $Project instanceof Project) {
-            return null;
-        }
-
-        if (! $Connection instanceof Connection) {
-            return null;
-        }
-
         $parameters = [
             OrganizationRoute::organizationParameter => $Organization->slug,
             OrganizationRoute::projectParameter => $Project->slug,

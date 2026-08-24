@@ -708,7 +708,7 @@ test('every rail, dropdown and head is built from route cases, active on its own
 
     $trail = $Breadcrumb?->trail() ?? [];
 
-    expect($trail)->toHaveCount(2)
+    expect($trail)->toHaveCount(3)
         ->and($trail[0]->label)->toBe($OrgToSwitch->enterprise->name)
         ->and($trail[0]->picture)->toBeNull()
         ->and($trail[1]->label)->toBe($OrgToSwitch->name)
@@ -730,10 +730,18 @@ test('every rail, dropdown and head is built from route cases, active on its own
         ->and(static fn () => BreadcrumbItem::from([]))->toThrow(PropertyRequiredException::class)
         ->and(static fn () => BreadcrumbSegment::from([]))->toThrow(PropertyRequiredException::class);
 
-    // A trail is built for a reader and an address, so a page naming nothing has none.
+    // A trail is built for a reader, not for an address: a page that names nothing
+    // still offers the widest depth to choose, and only a stranger is offered none.
     app()->instance('request', Request::create(Web::home->value));
 
-    expect(Breadcrumb::current())->toBeNull();
+    $Offered = Breadcrumb::current();
+
+    $offered = $Offered?->trail() ?? [];
+
+    expect($Offered)->not->toBeNull()
+        ->and($offered)->toHaveCount(1)
+        ->and($offered[0]->settled())->toBeFalse()
+        ->and($offered[0]->label)->toBe('Select enterprise');
 
     $this->forgetCredentials();
     app()->instance('request', Request::create(Web::home->value));

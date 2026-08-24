@@ -567,7 +567,7 @@ test('the admin pages belong to the one role there is, and list, edit, delete an
         ->assertOk();
 
     expect($detailQueries)
-        ->toHaveCount(5)
+        ->toHaveCount(6)
         ->toHaveSameSize(array_unique(array_map(serialize(...), $detailQueries)));
 
     $User = User::factory()->createOne([Users::email->value => 'matching@example.com']);

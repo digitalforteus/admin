@@ -146,7 +146,9 @@ test('a project is addressed inside the organization that holds it, named unique
 
     $trail = (Breadcrumb::current() ?? throw new RuntimeException('A project page carries a trail.'))->trail();
 
-    expect($trail)->toHaveCount(3)
+    expect($trail)->toHaveCount(4)
+        ->and($trail[3]->settled())->toBeFalse()
+        ->and($trail[3]->label)->toBe('Select connection')
         ->and($trail[2]->label)->toBe('Website Redesign')
         ->and($trail[2]->url)->toBe($page)
         ->and($trail[2]->fallback)->toBe(SvgName::folder)
@@ -243,7 +245,8 @@ test('a project is addressed inside the organization that holds it, named unique
     $held = $Reading->trail();
 
     expect($held[2]->settingsUrl)->toBeNull()
-        ->and($held[2]->createUrl)->toBeNull();
+        ->and($held[2]->createUrl)->toBeNull()
+        ->and($held[3]->createAction)->toBeNull();
 
     $this->actingAs($Member)->get($create)->assertForbidden();
     $this->actingAs($Member)->get($settings)->assertForbidden();

@@ -90,9 +90,10 @@ test('a project opts into its enterprise connections, keeps the ones nothing ans
 
     $trail = (Breadcrumb::current() ?? throw new RuntimeException('No trail inside an organization.'))->trail();
 
-    expect($trail)->toHaveCount(2)
+    expect($trail)->toHaveCount(3)
         ->and($trail[0]->label)->toBe($Organization->enterprise->name)
-        ->and($trail[1]->label)->toBe($Organization->name);
+        ->and($trail[1]->label)->toBe($Organization->name)
+        ->and($trail[2]->label)->toBe('Select project');
 
     // Naming a project reaches the third depth, and naming one of its connections
     // reaches the fourth: every containment the addresses express, and no more.
@@ -103,7 +104,8 @@ test('a project opts into its enterprise connections, keeps the ones nothing ans
     $Held = Breadcrumb::current();
 
     expect($Held)->not->toBeNull()
-        ->and($Held->trail())->toHaveCount(3);
+        ->and($Held->trail())->toHaveCount(4)
+        ->and($Held->trail()[3]->label)->toBe('Select connection');
 
     $this->actingAs($User)
         ->get(OrganizationRoute::connection->url([

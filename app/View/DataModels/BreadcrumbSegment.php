@@ -18,8 +18,7 @@ readonly class BreadcrumbSegment
 
     public const string url = 'url';
 
-    #[Describe([Describe::required => true])]
-    public string $url;
+    public ?string $url;
 
     public const string picture = 'picture';
 
@@ -53,11 +52,35 @@ readonly class BreadcrumbSegment
     #[Describe([Describe::default => ''])]
     public string $createLabel;
 
+    public const string createAction = 'createAction';
+
+    public ?string $createAction;
+
+    public const string createFields = 'createFields';
+
+    /** @var list<array<string, mixed>> */
+    #[Describe([Describe::default => []])]
+    public array $createFields;
+
     public const string items = 'items';
 
     /** @var list<array<string, mixed>> */
     #[Describe([Describe::default => []])]
     public array $items;
+
+    public function settled(): bool
+    {
+        return $this->url !== null;
+    }
+
+    /** @return list<BreadcrumbField> */
+    public function fields(): array
+    {
+        return array_map(
+            static fn (array $field): BreadcrumbField => BreadcrumbField::from($field),
+            $this->createFields,
+        );
+    }
 
     /** @return list<BreadcrumbItem> */
     public function entries(): array
