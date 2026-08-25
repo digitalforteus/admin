@@ -28,3 +28,4 @@ yarn-error.log
 /.playwright-mcp/
 /.secret/
 /coverage-source/
+/.codex/
