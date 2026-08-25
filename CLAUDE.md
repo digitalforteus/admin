@@ -14,6 +14,7 @@ Always `./vendor/bin/sail …` — bare `sail` is a human shell alias and is not
 ## Layout
 
 Don't search for files — paths are deterministic:
+
 - Views: `resources/views/pages/<route>/index.blade.php` (`pages/index.blade.php` = home). None in views root.
 - Shared: `resources/views/components/`, `svg/`, `emails/`.
 - Routes: `app/Routes/Web.php` (public pages), `Auth.php`, `Admin.php`, `ApiRoute.php`.
@@ -28,8 +29,7 @@ Don't search for files — paths are deterministic:
 - Every page wraps in `<x-main>`; Tailwind + DaisyUI classes only, no custom CSS.
 - phpstan runs at max: `config('x')` and `env('x')` return mixed and fail the gate. Use the typed accessor — `Config::string('app.url')`, `Config::array(...)`.
 
-Go straight to the file: read it, then edit. Skip find/ls/glob unless a direct read misses. Every command starts at the project root, so `pwd` answers nothing. Never probe to learn whether something exists — `Write` creates what is missing and `Read` reports what is not there, while a directory left empty by earlier work answers nothing.
-A successful edit is confirmation — never re-read to verify, and never re-read after a slow command. Anchor `old_string` on the single line being changed, not a block of neighbours — a rejected edit costs the retry plus the re-read that follows it.
+Go straight to the file: read it, then edit. Skip find/ls/glob unless a direct read misses. Every command starts at the project root, so `pwd` answers nothing. Never probe to learn whether something exists — `Write` creates what is missing and `Read` reports what is not there, while a directory left empty by earlier work answers nothing. A successful edit is confirmation — never re-read to verify, and never re-read after a slow command. Anchor `old_string` on the single line being changed, not a block of neighbours — a rejected edit costs the retry plus the re-read that follows it.
 
 ## Adding a page
 
@@ -46,19 +46,78 @@ Verify with `sail pest --filter=CrawlerTest` — one run covers the route, the s
 
 When a suite fails, read the failure that is already on screen. Do not re-run pest to look for it, and do not re-run a passing test to prove the failure was not yours — `check` names the file and line; act on that.
 
+## DataModels
+
+```php
+#[\Zerotoprod\DataModel\Describe([
+    'from'     => 'key',                          // Remap: read this context key instead of property name
+    'pre'      => [self::class, 'hook'],           // Pre-hook: void callable, runs before cast
+    'cast'     => [self::class, 'method'],         // Cast: callable, returns resolved value
+    'post'     => [self::class, 'hook'],           // Post-hook: void callable, runs after cast
+    'default'  => 'value',                         // Default: used when context key absent. Callable OK
+    'assign'   => 'value',                         // Assign: always set; context ignored. Callable OK
+    'required' => true,                            // Required: throws PropertyRequiredException when key absent
+    'nullable' => true,                            // Nullable: set null when key absent
+    'ignore'   => true,                            // Ignore: skip property entirely
+    'via'      => [Class::class, 'staticMethod'],  // Via: custom instantiation callable (default: 'from')
+    'my_key'   => 'my_value',                      // Custom: unrecognized keys captured in Describe::$extra
+])]
+```
+
 ## Which layer
 
-A form on an admin page posts to an admin form action and redirects — that is `app/Modules/Admin/`, below. A JSON endpoint is `app/Modules/Api/`. Pick from the deliverable and build only that one; reading the other layer to compare is what turns a 6-call task into a 15-call one.
+A form on an admin page posts to an admin form action and redirects — that is `app/Modules/Admin/`, below. A JSON endpoint is `app/Modules/Api/`. A form a guest reaches on a public page (registration, login, profile picture, or any new guest-facing action) posts to a plain invokable controller under `app/Modules/<Feature>/`, bound in `routes/web.php` (not `web_admin.php`, not `api*.php`), returning `back()->with(...)`/`withErrors(...)` exactly like an admin action — `RegisterController` and `ProfilePictureController` are the shape to copy, and the route's `Web` enum case wants `#[ExcludeFromSitemap]` if it's an action rather than a page. Pick from the deliverable and build only that one; reading the other layers to compare is what turns a 6-call task into a 15-call one.
 
-## Adding an admin form action
+## Adding a form action
 
-Five files, and no others: `app/Routes/Admin.php`, `routes/web_admin.php`, the new page, the new controller and request, `tests/Behavior/Web/AdminTest.php`.
+Guest = request + controller + route case + tests. Admin = same, plus page + POST binding. Touch nothing else.
 
-1. `resources/views/pages/admin/<slug>/index.blade.php` — the form posts to `Admin::<case>->url()` with `@csrf`.
-2. **One** case in `app/Routes/Admin.php`, serving both verbs: Folio renders the page on GET, `web_admin.php` binds the POST to the same path. A second case for the action (`/cache/add` beside `/cache`) is the wrong shape — `#[AdminLink]` if an admin should find it.
-3. `app/Modules/Admin/<Thing>/<Action>Controller.php`: validate, act, `return back()->with('status', '…')`. It is always `back()`, never `redirect(<case>)`, so the test asserts a bare `assertRedirect()` with no argument — asserting a URL against `back()` fails with the app root as the actual value.
-4. Bind it in `routes/web_admin.php`.
-5. Cover it in `tests/Behavior/Web/AdminTest.php`, in the same turn — guest redirects, non-admin forbidden, admin succeeds, and the effect asserted, addressing fields as `<Action>Request::<field>` rather than raw strings. `Cache::forget()` every key the test sets, in the test as you write it — pest runs parallel against one shared cache store, and a key left behind fails an unrelated assertion in another worker. Coverage cannot flag its absence while Tia is broken here, so this checklist is the only thing standing between you and shipping an untested action.
+|            | Guest                                          | Admin                                                |
+|------------|------------------------------------------------|------------------------------------------------------|
+| Request    | `app/Modules/<Feature>/<Action>Request.php`    | `app/Modules/Admin/<Thing>/<Action>Request.php`      |
+| Controller | `app/Modules/<Feature>/<Action>Controller.php` | `app/Modules/Admin/<Thing>/<Action>Controller.php`   |
+| Route      | `app/Routes/Web.php` (case exists)             | `app/Routes/Admin.php` (add one case)                |
+| Page       | —                                              | `resources/views/pages/admin/<slug>/index.blade.php` |
+| POST       | —                                              | `routes/web_admin.php`                               |
+| Tests      | `tests/Behavior/Web/<Feature>Test.php`         | `tests/Behavior/Web/AdminTest.php`                   |
+
+### Rules — each passes static analysis, fails later
+
+1. **Property name = wire field name, snake_case.** No camelCase, no `#[Describe(['from' => …])]`. `IsRequest::rules()` keys by property name via reflection; `validator()` data comes from `toArray()`. Mismatch → every field validates as required-and-missing. `RegisterRequest` isn't naming-free; its properties already equal their wire keys.
+2. **Declare the concrete return type.** `Response` here is Symfony's. `download()` → `BinaryFileResponse`; redirects → `RedirectResponse`. The parent class type-checks and breaks at runtime.
+3. **Admin returns `back()`, never `redirect(<case>)`.** Test asserts bare `assertRedirect()`; a URL argument fails with app root as actual.
+4. **Admin: one case, both verbs** — Folio GET, `web_admin.php` POST, same path. `/cache/add` beside `/cache` is the wrong shape.
+5. **`Cache::forget()` every key a test sets, in that test.** Parallel pest, one shared store; leftovers fail other workers. Tia is broken, so nothing else catches this.
+
+### Request
+
+- `readonly class`, `use DataModel; use IsRequest;`
+- Per property: `#[Request([Request::rules => static function () { return [...]; }])]`
+- Limits as `public const`, cf. `App\Helpers\Picture::kilobytes`
+- `UploadedFile` → override `toArray()` per `ProfilePictureRequest`: return the raw file, all keys snake_case
+
+### Controller
+
+- `readonly`, `__invoke(Request $Request): Response`, narrowed per rule 2
+- `Validator::make(...$Request->validator())`
+- Fail → `back()->withErrors($Validator)`; success → response (guest) or `back()->with('status', '…')` (admin)
+- Copy `ProfilePictureController`'s structure
+
+### Route
+
+- Guest: case exists; verify `#[ExcludeFromSitemap]`
+- Admin: one case, `#[AdminLink]` if admins need to find it, POST bound in `routes/web_admin.php`
+
+### Page (admin)
+
+Posts to `Admin::<case>->url()`, with `@csrf`.
+
+### Tests — same turn
+
+Fields as `<Action>Request::<field>`, never strings.
+
+- Guest: all fields missing; each field's rejection; one success
+- Admin: guest redirects; non-admin forbidden; admin succeeds; effect asserted
 
 ## Adding an API endpoint
 
@@ -70,7 +129,12 @@ The DTOs have no constructor: properties are declared with `#[Request]`/`#[Respo
 
 phpstan at max, the two rules a new module trips: a `readonly` property may not carry a default value, and every `array` in a signature needs a generic (`@return array<string, mixed>`, `@param`). Fix both before the first `check`, not after.
 
+## Built-in PHP classes
+
+Never `use` built-in PHP classes like `Imagick`, `ZipArchive`, `Exception`, etc. Always fully qualify them: `new \Imagick()`, `new \ZipArchive()`, `catch (\ImagickException)`. Bare `use` statements for built-in classes have no effect and trigger linting errors (`use X has no effect`).
+
 ## During Turn Procedure
+
 1. `sail pest --filter=<ClassName>`: scope testing, cheap. Pick the class that actually covers what changed — an admin page is `AdminTest`, an API endpoint is its own `tests/Behavior/Api/` file. Skip this run entirely if `check` is next: `check` runs the whole suite.
 2. `sail composer test`: fast project-wide testing, cheap
 
