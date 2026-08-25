@@ -51,7 +51,17 @@ the working tree:
 - copies `.env.example` to `.env`, then runs `composer update`, `sail up -d`,
   `sail npm install`, `key:generate`, `composer fix`, `sail npm run build` and
   `composer check`, stopping at the first failure;
+- points `<slug>.test` at `127.0.0.1` in `/etc/hosts` and proxies it to the
+  project's first published port with `valet proxy`;
 - offers to delete itself, commit the result and push it.
+
+The url it proposes is `http://<slug>.test`, and every port the clone publishes —
+the site, Vite, MySQL and Mailpit's two — comes out of one contiguous block
+reserved for that slug. That is what lets several projects run at once: the block
+is derived from the slug and probed for a free one, so a second clone never binds
+a port the first is holding, and Valet's nginx is the only thing on port 80. The
+ports live together at the top of `.env`; move one and the collision it causes is
+silent, because the port another project holds simply answers as that project.
 
 It classifies remotes by url rather than by name, so it will not offer to push a project
 onto this repository even in a clone whose remotes are wired the wrong way round. Running

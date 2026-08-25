@@ -588,6 +588,8 @@ test('every rail, dropdown and head is built from route cases, active on its own
             ->assertSee("method: '$method'", false);
     }
 
+    app()->instance('request', Request::create(Config::string('app.url')));
+
     foreach ([
         Web::termsOfService->value,
         Web::privacyPolicy->value,

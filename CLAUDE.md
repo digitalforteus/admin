@@ -1,320 +1,147 @@
 # CLAUDE.md
 
+Three rules that this project's transcripts show being broken every time:
+
+- **Never probe.** No `find`, `ls`, `glob` or `grep` to learn whether a path exists or what lives near it. `Read` reports a missing file, `Write` creates one, and an empty directory left by earlier work tells you nothing. A directory path is not a file: `Read` on one is an error, never a listing.
+- **Green gates end the turn.** After `check` passes there is no pest run, no `composer test`, no `artisan route:list`, no read-back of your own writes.
+
 ## Commands
 
-Run inside Sail via `./vendor/bin/sail` (aliased `sail`).
+Always `./vendor/bin/sail …` — bare `sail` is a human shell alias and is not on your PATH.
+`composer fix` and `composer check` are slow by design. Give them a 600000 ms timeout and let them finish; a timeout is not a failure to work around.
+`check` = lint, rector-lint, analyse, openapi-validate, coverage — in that order. The first four are the gates that matter. The phpstan script is `analyse`; `analyze` is not a script. When coverage dies on `[Tia mode] requires [git]`, re-run the four in one call rather than four: `sail composer lint && sail composer rector-lint && sail composer analyse && sail composer openapi-validate`.
 
-```bash
-sail up -d / sail down
-sail composer dev                  # dev server
-sail composer fix                  # refactor + format
-sail composer check                # validate
-sail pest --filter=ApiUser         # the test you are writing
+## Layout
+
+Don't search for files — paths are deterministic:
+
+- Views: `resources/views/pages/<route>/index.blade.php` (`pages/index.blade.php` = home). None in views root.
+- Shared: `resources/views/components/`, `svg/`, `emails/`.
+- Routes: `app/Routes/Web.php` (public pages), `Auth.php`, `Admin.php`, `ApiRoute.php`.
+- Admin pages: `resources/views/pages/admin/<slug>/index.blade.php`, case in `app/Routes/Admin.php` as `self::prefix.'/<slug>'`, tagged `#[AdminLink]` to appear in the admin link index. Not sitemapped — `CrawlerTest` never reaches them; `AdminTest` covers them.
+- API endpoints: one directory per operation, `app/Modules/Api/<Api>/<Thing>/<Action>/` holding Controller, Request, Response, Schema. Bound in `routes/api.php`, `api_auth.php` or `api_admin.php` as `Route::<verb>(<Enum>::<case>->value, Controller::class)`.
+- Admin form actions: `app/Modules/Admin/<Thing>/<Action>Controller.php` (`__invoke`, `readonly`, returns `RedirectResponse`), bound in `routes/web_admin.php` as `Route::<verb>(Admin::<case>->value, Controller::class)`.
+- Column schemas: `app/Sources/Db/App/<Table>.php` — a case per column, `->value` for the name, `->schema()` for the API schema. One per table in the app database, so the file for a table exists without looking.
+- Test helpers: `tests/Pest.php` — `adminUser()` and friends live there, not in the test file using them.
+- `app/Helpers/CacheKey.php` enumerates the cache keys the app owns; a key a user supplies is a plain string and belongs to no enum.
+- Migrations answer nothing a `Sources` enum does not; read `app/Sources/Db/App/<Table>.php` instead.
+- Tests: `tests/Behavior/{Web,Api}/`, `tests/Feature/`, `tests/Unit/`. `--filter` takes the class name (`CrawlerTest`, `NavigationTest`, `ComponentTest`), never a guessed one. A file's existing coverage is one long `test()` — that is how it is read, not a rule to extend it.
+- Every page wraps in `<x-main>`; Tailwind + DaisyUI classes only, no custom CSS.
+- phpstan runs at max: `config('x')` and `env('x')` return mixed and fail the gate. Use the typed accessor — `Config::string('app.url')`, `Config::array(...)`.
+
+Go straight to the file: read it, then edit. Skip find/ls/glob unless a direct read misses. Every command starts at the project root, so `pwd` answers nothing. Never probe to learn whether something exists — `Write` creates what is missing and `Read` reports what is not there, while a directory left empty by earlier work answers nothing. A successful edit is confirmation — never re-read to verify, and never re-read after a slow command. Anchor `old_string` on the single line being changed, not a block of neighbours — a rejected edit costs the retry plus the re-read that follows it.
+
+## Adding a page
+
+A page is a standalone Blade file — no controller, no `routes/web.php` entry. Folio routes it by path.
+
+Title and description are required — `Head::defaults()` supplies canonical, og and robots. That skeleton is complete; don't read a sibling page to confirm it.
+
+1. Create `resources/views/pages/<slug>/index.blade.php`.
+2. Add `case <name> = '/<slug>';` to `app/Routes/Web.php`. Folio derives the URL from the directory name, so the two `<slug>`s are one decision — pick it once and spell it identically, or the route 404s. A case there is sitemapped unless tagged `#[ExcludeFromSitemap]`, and `CrawlerTest` GETs every sitemapped URL expecting 200 — so the view must exist and render for a guest.
+3. Link with `Web::<name>->url()`, never a hardcoded path.
+4. The home page carries links in two places — the `$siteLinks` array and the Explore card grid. Update both, or neither.
+
+Verify with `sail pest --filter=CrawlerTest` — one run covers the route, the sitemap and the render.
+
+When a suite fails, read the failure that is already on screen. Do not re-run pest to look for it, and do not re-run a passing test to prove the failure was not yours — `check` names the file and line; act on that.
+
+## DataModels
+
+```php
+#[\Zerotoprod\DataModel\Describe([
+    'from'     => 'key',                          // Remap: read this context key instead of property name
+    'pre'      => [self::class, 'hook'],           // Pre-hook: void callable, runs before cast
+    'cast'     => [self::class, 'method'],         // Cast: callable, returns resolved value
+    'post'     => [self::class, 'hook'],           // Post-hook: void callable, runs after cast
+    'default'  => 'value',                         // Default: used when context key absent. Callable OK
+    'assign'   => 'value',                         // Assign: always set; context ignored. Callable OK
+    'required' => true,                            // Required: throws PropertyRequiredException when key absent
+    'nullable' => true,                            // Nullable: set null when key absent
+    'ignore'   => true,                            // Ignore: skip property entirely
+    'via'      => [Class::class, 'staticMethod'],  // Via: custom instantiation callable (default: 'from')
+    'my_key'   => 'my_value',                      // Custom: unrecognized keys captured in Describe::$extra
+])]
 ```
 
-- Iterate with `pest --filter=<Test>` at end of turn.
+## Which layer
 
-## MCP Servers
+A form on an admin page posts to an admin form action and redirects — that is `app/Modules/Admin/`, below. A JSON endpoint is `app/Modules/Api/`. A form a guest reaches on a public page (registration, login, profile picture, or any new guest-facing action) posts to a plain invokable controller under `app/Modules/<Feature>/`, bound in `routes/web.php` (not `web_admin.php`, not `api*.php`), returning `back()->with(...)`/`withErrors(...)` exactly like an admin action — `RegisterController` and `ProfilePictureController` are the shape to copy, and the route's `Web` enum case wants `#[ExcludeFromSitemap]` if it's an action rather than a page. Pick from the deliverable and build only that one; reading the other layers to compare is what turns a 6-call task into a 15-call one.
 
-| Working on                            | Server             |
-|---------------------------------------|--------------------|
-| Developing this project               | `project`          |
-| Rector rules, `rector.php`            | `laravel-rector`   |
-| OpenAPI attributes, endpoint coverage | `laravel-openapi`  |
-| DB enums, `Sources/Db`                | `db-model`         |
-| Schema assertions                     | `schema-validator` |
+## Adding a form action
 
-`project` is this app's own server ([app/Mcp](app/Mcp), registered in
-[routes/ai.php](routes/ai.php)). Its `scaffold-endpoint` writes a whole endpoint
-module — prefer it to hand-writing.
+Guest = request + controller + route case + tests. Admin = same, plus page + POST binding. Touch nothing else.
 
-## Architecture
+|            | Guest                                          | Admin                                                |
+|------------|------------------------------------------------|------------------------------------------------------|
+| Request    | `app/Modules/<Feature>/<Action>Request.php`    | `app/Modules/Admin/<Thing>/<Action>Request.php`      |
+| Controller | `app/Modules/<Feature>/<Action>Controller.php` | `app/Modules/Admin/<Thing>/<Action>Controller.php`   |
+| Route      | `app/Routes/Web.php` (case exists)             | `app/Routes/Admin.php` (add one case)                |
+| Page       | —                                              | `resources/views/pages/admin/<slug>/index.blade.php` |
+| POST       | —                                              | `routes/web_admin.php`                               |
+| Tests      | `tests/Behavior/Web/<Feature>Test.php`         | `tests/Behavior/Web/AdminTest.php`                   |
 
-Ranked; higher entries constrain lower.
+### Rules — each passes static analysis, fails later
 
-### 1. Module layout — one directory per operation
+1. **Property name = wire field name, snake_case.** No camelCase, no `#[Describe(['from' => …])]`. `IsRequest::rules()` keys by property name via reflection; `validator()` data comes from `toArray()`. Mismatch → every field validates as required-and-missing. `RegisterRequest` isn't naming-free; its properties already equal their wire keys.
+2. **Declare the concrete return type.** `Response` here is Symfony's. `download()` → `BinaryFileResponse`; redirects → `RedirectResponse`. The parent class type-checks and breaks at runtime.
+3. **Admin returns `back()`, never `redirect(<case>)`.** Test asserts bare `assertRedirect()`; a URL argument fails with app root as actual.
+4. **Admin: one case, both verbs** — Folio GET, `web_admin.php` POST, same path. `/cache/add` beside `/cache` is the wrong shape.
+5. **`Cache::forget()` every key a test sets, in that test.** Parallel pest, one shared store; leftovers fail other workers. Tia is broken, so nothing else catches this.
 
-`app/Modules/Api/<Concept>[/<Sub>]/<Verb>/` holds four files:
-`<Concept><Verb>{Controller,Request,Response,Schema}`. Verbs: `Index`, `Show`,
-`Store`, `Update`, `Destroy`; `Request` omitted when there is no body. Canonical:
-[Public/User/Show](app/Modules/Api/Public/User/Show). Path parameters sit one level up,
-beside the verbs, as a shared parameter class the scaffolder writes.
-Non-API modules are `app/Modules/<Concept>/` with `Controller` + `Request` +
-`Form` (+ `FormFactory`).
+### Request
 
-### 2. Column enums are the source of truth
+- `readonly class`, `use DataModel; use IsRequest;`
+- Per property: `#[Request([Request::rules => static function () { return [...]; }])]`
+- Limits as `public const`, cf. `App\Helpers\Picture::kilobytes`
+- `UploadedFile` → override `toArray()` per `ProfilePictureRequest`: return the raw file, all keys snake_case
 
-[app/Sources/Db/App](app/Sources/Db/App): one `enum` per table, `#[Column]` per
-field. Everything reads off it — `Users::name->schema()` (OpenAPI),
-`->rules()` (Laravel), `->value` (column name), `Users::table()`. Never restate a
-type, length or nullability. Owned by the `db-model` server.
+### Controller
 
-### 3. Controller
+- `readonly`, `__invoke(Request $Request): Response`, narrowed per rule 2
+- `Validator::make(...$Request->validator())`
+- Fail → `back()->withErrors($Validator)`; success → response (guest) or `back()->with('status', '…')` (admin)
+- Copy `ProfilePictureController`'s structure
 
-1. `#[ApiSchema(static fn () => <Concept><Verb>Schema::schema())]` on `__invoke`.
-2. `$Validator = XRequest::validator($Request->all())` → `api_response()->unprocessableEntity($Validator)` on failure.
-3. Do the work, keyed by column enums.
-4. `api_response()->ok(...)` / `->created(...)` with an `<Concept><Verb>Response`.
+### Route
 
-`api_response()` → [Api](app/Modules/Api/Api.php): `ok`, `created`,
-`unprocessableEntity`, `unauthorized`, `notFound`, `conflict`,
-`unsupportedMediaType`. Errors take an
-[ErrorCode](app/Modules/Api/Support/ErrorCode.php) case, never a literal.
-Envelope `success`/`message`/`data`/`type` is
-[ApiResponse](app/Modules/Api/Support/ApiResponse.php); `type` is the response
-class basename, so tests assert `class_basename(XResponse::class)`.
+- Guest: case exists; verify `#[ExcludeFromSitemap]`
+- Admin: one case, `#[AdminLink]` if admins need to find it, POST bound in `routes/web_admin.php`
 
-### 4. Request DTO
+### Page (admin)
 
-`readonly class` + `use DataModel; use HasRequestSchema;`. Per field, a
-`public const string <field> = '<field>';` directly above a
-`#[Request([Request::schema => static fn () => <Table>::<col>->schema(), Request::required => true])]`
-property. Reference the const, never a string literal. `schema()` builds the
-OpenAPI object; `validator()` validates against it, then runs `Request::checks` —
-[ValueCheck](app/Modules/Api/Support/ValueCheck.php) implementations
-([Unique](app/Modules/Api/Support/Unique.php),
-[Confirmed](app/Modules/Api/Support/Confirmed.php)) for what a schema cannot express.
+Posts to `Admin::<case>->url()`, with `@csrf`.
 
-Web side instead: `use DataModel; use IsRequest;` with `Request::rules` (plus
-`messages`, `attributes`), consumed as `Validator::make(...$XRequest->validator())`
-— [ProfileRequest](app/Modules/Settings/Profile/ProfileRequest.php).
+### Tests — same turn
 
-### 5. Response DTO
+Fields as `<Action>Request::<field>`, never strings.
 
-`use DataModel; use HasResponseSchema;`, same const-above-property pairing with
-`#[Response([Response::schema => ...])]`. All public properties are required;
-schema falls back to the PHP type. Compose, don't restate: an index response
-declares items as `XShowResponse::data()` and pagination as
-[PaginationResponse](app/Modules/Api/Support/PaginationResponse.php)`::data()`.
+- Guest: all fields missing; each field's rejection; one success
+- Admin: guest redirects; non-admin forbidden; admin succeeds; effect asserted
 
-### 6. Schema
+## Adding an API endpoint
 
-`implements DescribesOperation`, one `static schema()` returning
-`['components' => SharedSchema::components, 'paths' => [ApiRoute::x->value => [...]]]`.
-Paths key off [ApiRoute](app/Routes/ApiRoute.php), never a literal; bodies and
-responses reference `XRequest::schema()` / `XResponse::schema()`. Shared refs in
-[SharedSchema](app/Modules/Api/Support/SharedSchema.php): `api_error`,
-`api_validation_error`, `middleware_error` (the `auth:sanctum` 401), `bearer`.
-Index operations add `PaginationParameters::schema()`.
+Call `mcp__project__scaffold-endpoint` — it writes the route case, request DTO, response DTO, schema, controller and test together, already matching the conventions, with a marker where a decision is left. Fill in the action body and the test assertions; that is the whole job. Hand-writing the four files instead is the mistake that costs the most: it reads a sibling module to copy the shape, then pays several `check` cycles for what the generator gets right the first time. `dry_run` shows the artifacts without writing them. `Write` creates missing directories — never `mkdir` first.
 
-### 7. Routing
+Without scaffolding: add a case to `app/Routes/Admin.php` (or `ApiRoute.php`), create `Request.php` and `Response.php` in `app/Modules/Api/<Layer>/<Thing>/<Action>/` with `DataModel` and `Has*Schema` traits, create `Schema.php` implementing `DescribesOperation`, and create `Controller.php` with the `__invoke` method; bind in the matching `routes/api*.php` file. Rector enforces PascalCase parameter names in the controller method (e.g., `$Request` not `$request`), so name it correctly the first time to avoid a gate retry.
 
-Paths are cases on [ApiRoute](app/Routes/ApiRoute.php) /
-[Web](app/Routes/Web.php) / [Auth](app/Routes/Auth.php) /
-[Admin](app/Routes/Admin.php); route files bind
-`ApiRoute::x->value` to an invokable controller and nothing else.
-[api.php](routes/api.php) (public), [api_auth.php](routes/api_auth.php)
-(`auth:sanctum`), [web.php](routes/web.php), [web_auth.php](routes/web_auth.php).
-A new endpoint = a case *and* a line. Which web enum a path belongs to follows
-the route file it is bound in: `web.php` and the public Folio pages are `Web`,
-`web_auth.php` and the auth globs are `Auth`. `Web` cases are listed in the
-sitemap unless marked [ExcludeFromSitemap](app/Routes/ExcludeFromSitemap.php);
-`Auth` cases never are. `/sitemap.xml` is a
-[sitemap index](app/Modules/Sitemap/SitemapController.php) over numbered
-`/sitemap-{page}.xml` [pages](app/Modules/Sitemap/SitemapPageController.php);
-[Sitemap](app/Modules/Sitemap/Sitemap.php) owns the split, the protocol's 50,000-url
-cap and the `lastmod` each page reports. Nothing under `web.php` may carry a shared
-`throttle` — the crawler reads the index and then every page it names in one visit,
-and the limit is keyed by ip, not by path.
+The DTOs have no constructor: properties are declared with `#[Request]`/`#[Response]` plus the `DataModel` and `Has*Schema` traits, built with `::from($array)`, returned through `api_response()->created(...)`. Declare only the statuses a test reaches — `openapi:coverage` fails a declared response nothing exercises.
 
-### 7a. Roles
+phpstan at max, the two rules a new module trips: a `readonly` property may not carry a default value, and every `array` in a signature needs a generic (`@return array<string, mixed>`, `@param`). Fix both before the first `check`, not after.
 
-spatie/laravel-permission, one role: [Role](app/Helpers/Role.php)`::admin`, the
-source of truth for the name. `Role::admin->middleware()` builds the
-`role:admin` string from [MiddlewareTag](app/Routes/MiddlewareTag.php)`::role`,
-and is what the `admin`/`admin/*` Folio globs are guarded with. Every
-[Admin](app/Routes/Admin.php) case is prefixed `/admin` and never reaches the
-sitemap. A registered user holds no role: `admin` is granted only by
-[the migration](database/migrations/2026_08_13_125200_create_admin_role.php) that
-creates the role, to the `ADMIN_EMAIL`/`ADMIN_PASSWORD` account
-([config/admin.php](config/admin.php)) — with either unset it creates the role
-alone. The five permission tables are mirrored by table enums like every other
-table. The admin pages carry their own rail,
-[AdminNav](app/View/DataModels/AdminNav.php) — a case on the navigation registry
-declared ahead of the authed default, so the default stands down under `/admin`
-without knowing it exists (see Navigation, below). /admin/links
-lists the cases tagged [AdminLink](app/Routes/AdminLink.php), whose optional
-`$order` sorts them across every index; untagged-order cases follow, in
-declaration order. `AdminLink::routes()` returns `name`/`url` pairs rather than
-cases, so a tagged case cannot carry a path parameter.
+## Built-in PHP classes
 
-Which enums it reads is a separate question, answered by
-[RouteIndex](app/Routes/RouteIndex.php) — the registry of this application's route
-indexes, one case per enum, backed by its `::class` — and the query
-[AppConfig](app/AppConfig.php)`::routeIndexes()`, which is `RouteIndex::cases()`
-in the order they are declared. A case is the whole of registering an index, so
-the registry is a declaration the compiler reads: no directory scan, no classmap,
-no class loaded to answer, nothing to rebuild. An enum absent from it is not one
-of this application's routes, wherever it lives.
+Never `use` built-in PHP classes like `Imagick`, `ZipArchive`, `Exception`, etc. Always fully qualify them: `new \Imagick()`, `new \ZipArchive()`, `catch (\ImagickException)`. Bare `use` statements for built-in classes have no effect and trigger linting errors (`use X has no effect`).
 
-### 8. Tests
+## During Turn Procedure
 
-One `test('...')` per file, and one file per subject: the api under
-[tests/Behavior/Api](tests/Behavior/Api), the pages under
-[tests/Behavior/Web](tests/Behavior/Web), everything else under
-[tests/Feature](tests/Feature) and [tests/Unit](tests/Unit). Booting a test is
-what a test costs; an assertion is free. A new endpoint or page joins the test
-that already covers its subject rather than starting one — a second `test()` in a
-file is for the case the first genuinely cannot reach.
+1. `sail pest --filter=<ClassName>`: scope testing, cheap. Pick the class that actually covers what changed — an admin page is `AdminTest`, an API endpoint is its own `tests/Behavior/Api/` file. Skip this run entirely if `check` is next: `check` runs the whole suite.
+2. `sail composer test`: fast project-wide testing, cheap
 
-That makes one test many visits in one process, so a guard, the default guard an
-authenticating middleware left behind, a token on the wire, a session, a facade
-swapped for a mock, a rate limiter and every row written all outlive the visit
-that made them. `$this->forgetCredentials()` ([TestCase](tests/TestCase.php))
-returns the client to what a stranger holds; a mocked facade is swapped back for a
-real instance before anything fakes it again; and a segment that must be the first
-to use an address uses one of its own.
+## End of Turn Procedure
 
-Wrap every api response in `$this->assertMatchesSchema(...)` — runs the body
-through the league validator *and* the request-rule validator, and fails if the
-operation declares no such status. Assert with class consts (`XRequest::name`,
-`ApiResponse::data`) and `Users::table()`. A declared response no test reaches
-fails `openapi:coverage`.
+1. `sail composer fix`
+2. `sail composer check`
+3. Stop. Report what you built and what the gates said, from what you wrote rather than from reading it back.
 
-### 9. Scaffolding
-
-`mcp__project__scaffold-endpoint` writes all six artifacts (four files + route
-case + test), leaving `@todo` where a decision is owed; `composer check` fails
-until they are gone. The test it writes is its own file — fold it into the one
-that already covers the concept, per §8, and delete it.
-
-## Comments — evergreen only
-
-A comment in `app/` or `tests/` states a rule, not a mechanism. Evergreen means a
-rename, a move, or a reshuffle cannot falsify it, so **name no code**: no class,
-method, property, case or constant names, no attribute syntax, no `{@see}`, no
-paths, no url or middleware literals, no `$parameter`, no backticked identifiers.
-Refer to things by their role — "the registry", "the sibling registry", "a case",
-"the query that answers it", "the component for them", "the migration that creates
-it". `@param`/`@return`/`@var`/`@method` are code, not prose: leave them alone.
-
-Say what is load-bearing and what breaks when it is not honoured — especially what
-breaks *silently*. Never restate what the signature already says.
-
-Shape: a one-line statement of what the thing is, a blank line, then one paragraph
-of invariant and consequence. Present tense, declarative, ~4–8 lines.
-
-Who gets one: **attribute classes** and **enum classes** — registries and
-vocabularies whose whole point is off-site. Also anything whose reason is invisible
-where it stands. Not the module artifacts; §1–§9 are their comment.
-
-The generated column enums get none — regeneration overwrites the file whole. Prose
-about them lives in the hand-written trait; a column's own description belongs in a
-database column comment, which regenerates into the schema.
-
-Check yourself with a fixed-string sweep for `::`, `{@`, `#[`, `x-`, `.php`, `$` and
-backticks over comment lines. This file is the exception: it links code on purpose.
-
-## Blade
-
-Tailwind 4 + daisyUI 5 utility classes (`btn`, `card`, `input-error`, `toast`) —
-no custom CSS layer.
-
-### Responsive breakpoint
-
-Use `lg:` as the only responsive breakpoint in Blade templates and in classes
-generated for Blade components. Do not use `sm:`, `md:`, `xl:`, `2xl:`, or
-arbitrary responsive breakpoint variants. Layouts have one transition: the
-base mobile layout below `lg`, and the expanded layout at `lg` and above.
-
-### Dynamic data titles
-
-Every HTML element that displays dynamic application data carries a `title`
-attribute containing that data. Use the raw nullable value for the title while
-keeping any presentation fallback in the element body:
-
-```blade
-<td title="{{$session->user_agent}}">{{$session->user_agent ?? '—'}}</td>
-```
-
-Apply this to visible data rendered in headings, paragraphs, spans, table cells,
-list items, code blocks, and links. It does not apply to dynamic values used only
-as URLs, form attributes, validation messages, component slots, scripts, or SVG
-configuration. Preserve an existing meaningful `title` rather than adding a
-second one.
-
-### Pages — Folio
-
-`resources/views/pages/**/index.blade.php`, routed by file path via Laravel Folio
-([FolioServiceProvider](app/Providers/FolioServiceProvider.php)); no route-file
-entry. Auth is attached there by path glob. Each page opens with a `<?php ?>`
-block holding imports and `Head::title()->description()` (defaults in
-[AppServiceProvider](app/Providers/AppServiceProvider.php)), then renders one
-layout/card component. URLs come from [Web](app/Routes/Web.php) /
-[Auth](app/Routes/Auth.php) cases (`Auth::settingsProfile->value`), never
-literals.
-
-That block holds imports and `Head` **only**. Folio requires the raw page file a
-second time to read inline metadata, so the block runs twice per request — a query
-there is a silent duplicate. Anything that touches the database goes in an `@php`
-block in the body, which only the compiled render executes
-([credentials/index](resources/views/pages/settings/credentials/index.blade.php)).
-Pass the resulting variable to the component: Blade compiles a bound attribute
-expression into both `resolve()` and `withAttributes()`, so a call written inline in
-`:prop="[...]"` also runs twice.
-
-### Two component kinds
-
-1. **Class** — [app/View/Components](app/View/Components), PHP class and blade
-   **co-located** (`Main.php` + `main.blade.php`); resolved because
-   `AppServiceProvider::register()` calls
-   `View::addLocation(app/View/Components)`, so the name is flat, no
-   `components.` prefix. Only for render-time state (auth, theme): `x-main`
-   (layout) is the one. It renders through
-   [ViewName](app/View/ViewName.php)`::main->render($data)` and passes a single
-   props array, like every anonymous component.
-2. **Anonymous** — [resources/views/components](resources/views/components),
-   markup only. The default; prefer it.
-
-### Anonymous component contract
-
-One prop — an array named after the component in camelCase — hydrated into a
-DataModel, then read as typed properties:
-
-```blade
-@props(['textInput'])
-@php
-    use App\View\DataModels\TextInput;
-    $TextInput = TextInput::from($textInput);
-@endphp
-```
-
-- Backing model in [app/View/DataModels](app/View/DataModels): `use DataModel;`,
-  const-above-property, `#[Describe([Describe::required => true])]` for required,
-  PHP defaults for optional, `Describe::default => [self::class, 'method']` for
-  computed (`TextInput::oldValue` reads `old()`).
-- Callers pass const keys, never strings:
-  `:svg="[Svg::name => 'x-mark', Svg::classname => 'h-4 w-4']"`.
-- Components compose through projection methods on the model —
-  `$TextInput->fieldset()`, `->svg()` return the child's props array, so a parent
-  never restates a child's keys.
-- Named slots (`<x-slot:note>`) for optional markup; `{{ $slot }}` last.
-- A menu entry is a [NavItem](app/View/DataModels/NavItem.php) —
-  `label`/`icon`/`route`, with `url()`, `active()` and `svg()`. Every rail,
-  dropdown and settings list returns `list<NavItem>`, so a blade never reads
-  `$item['route']` or restates the icon classes.
-
-### Navigation
-
-Every rail and dropdown reads one registry: [Nav](app/View/DataModels/Nav.php). A
-case is the whole of registering a navigation, and where it sits is its precedence:
-the first that reports itself visible answers, so one that must yield to another is
-declared after it and nothing negates a sibling. Two conditions that overlap in the
-wrong order render the wrong rail, silently. Every case is visible under its own root
-route case, never a path literal and never a bare authentication check — so a page no
-case claims carries no rail, which is what the public pages are.
-
-The rail and the topnav dropdown can disagree: the dropdown is the only navigation a
-narrow screen has, so it falls back to the default for a signed-in reader where no
-case claims the page. Adding a navigation is an enum and a case, and touches no
-blade. The test loops the registry, so a new case owes it only the order it claims.
-
-### Form fields
-
-A `Form` DataModel declares `#[TextInput([...])]` per property and
-`use HasTextInput;` ([ProfileForm](app/Modules/Settings/Profile/ProfileForm.php)).
-The page reads the attribute back with `ProfileForm::textInput(ProfileForm::name)`,
-spreads it, and overrides `TextInput::value` with `old(...)`. Errors render via
-`TextInput::error` (defaults to the field name) + `TextInput::bag`, consumed by
-`x-field`'s `@error`.
-
+`fix` first, always: `check` opening with a pint style failure is five minutes spent on what `fix` resolves silently. Run both bare — piping either through `grep -A` throws away the verdict. `check`'s coverage step demands 100%, so an API endpoint without its test fails there; `Pest\Exceptions\MissingDependency: [Tia mode] requires [git]` is that step failing on the container rather than on your change, and the four gates before it are the verdict. Once they pass you are done — unless `composer test` is red, which the gates do not cover and coverage cannot report while Tia is broken. A red parallel suite is unfinished work, not an environment quirk.

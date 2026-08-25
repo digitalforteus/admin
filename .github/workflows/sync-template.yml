@@ -1,0 +1,180 @@
+name: sync-template
+
+on:
+  schedule:
+    - cron: '17 6 * * 1-5'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-template
+  cancel-in-progress: false
+
+env:
+  TEMPLATE_URL: https://github.com/digitalforteus/laravel-template.git
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check for sync token
+        id: guard
+        run: |
+          set -euo pipefail
+          if [ -z "$TOKEN" ]; then
+            echo "::notice::TEMPLATE_SYNC_TOKEN is not set — skipping template sync."
+            echo "token_present=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "token_present=true" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          TOKEN: ${{ secrets.TEMPLATE_SYNC_TOKEN }}
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.guard.outputs.token_present == 'true'
+        with:
+          fetch-depth: 0
+          ref: main
+          token: ${{ secrets.TEMPLATE_SYNC_TOKEN }}
+
+      - name: Configure git
+        if: steps.guard.outputs.token_present == 'true'
+        run: |
+          set -euo pipefail
+          git config user.name "template-sync[bot]"
+          git config user.email "template-sync[bot]@users.noreply.github.com"
+          git config merge.keepours.driver true
+
+      - name: Fetch template
+        if: steps.guard.outputs.token_present == 'true'
+        run: |
+          set -euo pipefail
+          git remote add template "$TEMPLATE_URL"
+          git fetch template main
+
+      - name: Determine sync target
+        id: determine
+        if: steps.guard.outputs.token_present == 'true'
+        run: |
+          set -euo pipefail
+          if git merge-base --is-ancestor template/main HEAD; then
+            echo "Already up to date with template/main."
+            echo "up_to_date=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          new_sha=$(git rev-parse template/main)
+          old_sha=$(git merge-base HEAD template/main)
+          short_sha=$(git rev-parse --short template/main)
+          {
+            echo "up_to_date=false"
+            echo "new_sha=$new_sha"
+            echo "old_sha=$old_sha"
+            echo "branch=template-sync/$short_sha"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Check for existing sync branch
+        id: check-branch
+        if: steps.guard.outputs.token_present == 'true' && steps.determine.outputs.up_to_date != 'true'
+        run: |
+          set -euo pipefail
+          branch="${{ steps.determine.outputs.branch }}"
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+            echo "Branch $branch already exists on origin — a sync PR is already open."
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Merge template into sync branch
+        id: sync
+        if: steps.guard.outputs.token_present == 'true' && steps.determine.outputs.up_to_date != 'true' && steps.check-branch.outputs.exists != 'true'
+        run: |
+          set -euo pipefail
+          branch="${{ steps.determine.outputs.branch }}"
+          git checkout -b "$branch"
+
+          set +e
+          git merge --no-ff --no-edit template/main
+          status=$?
+          set -e
+
+          if [ "$status" -eq 0 ]; then
+            echo "conflict=false" >> "$GITHUB_OUTPUT"
+          else
+            conflicts=$(git diff --name-only --diff-filter=U)
+            git add -A
+            git commit --no-edit
+            {
+              echo "conflict=true"
+              echo "conflicts<<EOF"
+              echo "$conflicts"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+          git push origin "$branch"
+
+      - name: Open pull request
+        id: open-pr
+        if: steps.guard.outputs.token_present == 'true' && steps.determine.outputs.up_to_date != 'true' && steps.check-branch.outputs.exists != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.TEMPLATE_SYNC_TOKEN }}
+        run: |
+          set -euo pipefail
+          branch="${{ steps.determine.outputs.branch }}"
+          old_sha="${{ steps.determine.outputs.old_sha }}"
+          new_sha="${{ steps.determine.outputs.new_sha }}"
+          compare_url="https://github.com/digitalforteus/laravel-template/compare/${old_sha}...${new_sha}"
+          commits=$(git log --oneline --no-decorate "${old_sha}..${new_sha}")
+
+          gh label create template-sync --color 0E8A16 \
+            --description "Incoming update from laravel-template" --force
+          gh label create template-sync-conflict --color D93F0B \
+            --description "Template sync needs manual conflict resolution" --force
+
+          policy_note="Merge this with a merge commit — squash or rebase drops the merge base and the next sync will re-conflict on everything already merged here."
+
+          if [ "${{ steps.sync.outputs.conflict }}" = "true" ]; then
+            body=$(printf '%s\n\n%s\n\n%s\n%s\n\n%s\n```\n%s\n```\n\n%s\n' \
+              "Template updated from \`${old_sha}\` to \`${new_sha}\`." \
+              "Compare: $compare_url" \
+              "Incoming commits:" "$(printf '%s\n' "$commits" | sed 's/^/- /')" \
+              "This merge has unresolved conflicts in:" \
+              "${{ steps.sync.outputs.conflicts }}" \
+              "$policy_note Resolve the conflicts on this branch, then mark the PR ready for review.")
+            pr_url=$(gh pr create --base main --head "$branch" \
+              --title "[Conflict] Sync from laravel-template@$(git rev-parse --short "$new_sha")" \
+              --body "$body" --draft --label template-sync-conflict)
+          else
+            body=$(printf '%s\n\n%s\n\n%s\n%s\n\n%s\n' \
+              "Template updated from \`${old_sha}\` to \`${new_sha}\`." \
+              "Compare: $compare_url" \
+              "Incoming commits:" "$(printf '%s\n' "$commits" | sed 's/^/- /')" \
+              "$policy_note")
+            pr_url=$(gh pr create --base main --head "$branch" \
+              --title "Sync from laravel-template@$(git rev-parse --short "$new_sha")" \
+              --body "$body" --label template-sync)
+          fi
+
+          echo "pr_number=$(basename "$pr_url")" >> "$GITHUB_OUTPUT"
+
+      - name: Close superseded sync PRs
+        if: steps.guard.outputs.token_present == 'true' && steps.determine.outputs.up_to_date != 'true' && steps.check-branch.outputs.exists != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.TEMPLATE_SYNC_TOKEN }}
+        run: |
+          set -euo pipefail
+          new_pr="${{ steps.open-pr.outputs.pr_number }}"
+          branch="${{ steps.determine.outputs.branch }}"
+
+          gh pr list --state open --json number,headRefName \
+            --jq ".[] | select(.headRefName | startswith(\"template-sync/\")) | select(.headRefName != \"$branch\")" \
+            | jq -c '.' | while read -r pr; do
+              old_number=$(echo "$pr" | jq -r '.number')
+              old_branch=$(echo "$pr" | jq -r '.headRefName')
+              gh pr close "$old_number" --comment "Superseded by #$new_pr."
+              git push origin --delete "$old_branch" || true
+            done

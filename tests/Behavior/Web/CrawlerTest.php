@@ -10,6 +10,7 @@ use App\Routes\Web;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 
@@ -243,7 +244,7 @@ test('what a crawler reads is published whole, dated, within the protocol cap, c
 
     app()->instance('env', 'local');
 
-    $insecure = $passthrough('http://localhost:8080/path', 'localhost:8080', 'http');
+    $insecure = $passthrough(Config::string('app.url').'/path', 'localhost:8080', 'http');
 
     expect($insecure->getContent())->toBe('pass through')
         ->and($insecure->headers->get(HttpHeader::StrictTransportSecurity->value))->toBeNull();

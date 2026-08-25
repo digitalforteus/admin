@@ -40,13 +40,28 @@ const TEMPLATE = [
 ];
 
 /*
+ * The published host ports, named by the environment value that carries each and
+ * ordered by its place in the block. Everything a clone exposes to the machine is
+ * here, so a clone that holds a block of its own collides with no other clone;
+ * one that publishes a port from outside the block collides silently, because a
+ * port another project already holds simply answers as that project.
+ *
+ * The first entry is the port the site is proxied to. The block is contiguous, so
+ * only its base is ever chosen, and the template's own base is what the tracked
+ * environment carries and therefore what the rewrite matches on.
+ */
+const PORTS = ['APP_PORT', 'VITE_PORT', 'DB_PORT', 'FORWARD_MAILPIT_PORT', 'FORWARD_MAILPIT_DASHBOARD_PORT'];
+const PORT_TEMPLATE_BASE = 8080;
+const PORT_FLOOR = 8100;
+const PORT_BLOCKS = 190;
+
+/*
  * What to propose. These are only ever offered as the answer in brackets, so
  * they are free to be anything; the ones the questions derive from the clone
  * itself are computed where they are asked.
  */
 const DEFAULTS = [
     'description' => '',
-    'url' => 'http://localhost',
     'email' => 'admin@digitalforte.us',
     'organisation' => 'digitalforte',
 ];
@@ -118,11 +133,14 @@ if (confirm('Install dependencies and bring the application up', true) && ! buil
     exit(1);
 }
 
+serve_site($answers);
+
 if (confirm('Delete init', true)) {
     remove_self($root);
 }
 
 commit($answers);
+graft_history();
 
 if ($origin === null) {
     writeln('');
@@ -156,8 +174,9 @@ function ask_all(string $root, array $previous = []): array
     return [
         'slug' => $slug,
         'title' => $title,
+        'ports' => (string) reserve_ports($slug),
         'description' => ask('Description', $was('description', DEFAULTS['description'])),
-        'url' => ask('Application URL', $was('url', DEFAULTS['url'])),
+        'url' => ask('Application URL', $was('url', 'http://'.$slug.'.'.tld())),
         'database' => database_name(ask('Database name', $was('database', str_replace('-', '_', $slug)))) ?: TEMPLATE['database'],
         'admin_email' => ask('Admin email', $was('admin_email', DEFAULTS['email'])),
         'support_email' => ask('Support email', $was('support_email', git('config user.email') ?: DEFAULTS['email'])),
@@ -179,6 +198,7 @@ function summarise(array $answers): void
         'Slug' => $answers['slug'],
         'Description' => $answers['description'],
         'URL' => $answers['url'],
+        'Ports' => $answers['ports'].'-'.((int) $answers['ports'] + count(PORTS) - 1),
         'Database' => $answers['database'],
         'Admin email' => $answers['admin_email'],
         'Support email' => $answers['support_email'],
@@ -199,8 +219,15 @@ function summarise(array $answers): void
  */
 function replacements(array $answers): array
 {
-    return [
+    $ports = [];
+
+    foreach (PORTS as $offset => $name) {
+        $ports[$name.'='.(PORT_TEMPLATE_BASE + $offset)] = $name.'='.((int) $answers['ports'] + $offset);
+    }
+
+    return $ports + [
         '"name": "project"' => '"name": "'.$answers['slug'].'"',
+        'COMPOSE_PROJECT_NAME='.TEMPLATE['slug'] => 'COMPOSE_PROJECT_NAME='.$answers['slug'],
         'APP_NAME='.TEMPLATE['slug'] => 'APP_NAME="'.$answers['title'].'"',
         'APP_URL='.TEMPLATE['url'] => 'APP_URL='.$answers['url'],
         'DB_DATABASE='.TEMPLATE['database'] => 'DB_DATABASE='.$answers['database'],
@@ -248,6 +275,111 @@ function rewrite(string $root, array $replacements, array $answers): int
     return $changed + 1;
 }
 
+
+/*
+ * The base of a block of published ports this machine is not already serving.
+ *
+ * Derived from the slug so that re-running leaves a configured project on the
+ * ports it already holds, and probed forward so that two slugs landing on the
+ * same base do not both take it. A port only looks free while nothing is bound
+ * to it, so a project that is currently down is invisible here: the derivation
+ * is what keeps its block reserved, and the probe is only the tie-break.
+ */
+function reserve_ports(string $slug): int
+{
+    $first = crc32($slug) % PORT_BLOCKS;
+
+    for ($attempt = 0; $attempt < PORT_BLOCKS; $attempt++) {
+        $base = PORT_FLOOR + (($first + $attempt) % PORT_BLOCKS) * 10;
+
+        for ($offset = 0; $offset < count(PORTS); $offset++) {
+            if (! port_is_free($base + $offset)) {
+                continue 2;
+            }
+        }
+
+        return $base;
+    }
+
+    return PORT_FLOOR + $first * 10;
+}
+
+function port_is_free(int $port): bool
+{
+    $socket = @stream_socket_server('tcp://127.0.0.1:'.$port, $code, $message);
+
+    if ($socket === false) {
+        return false;
+    }
+
+    fclose($socket);
+
+    return true;
+}
+
+/*
+ * Give the site a name on this machine and something answering to it.
+ *
+ * The name resolves and the proxy forwards it to this clone's first published
+ * port; neither is this repository's to carry, so both are offered rather than
+ * done, and a machine that already answers is left alone. Nothing here is
+ * load-bearing for the application, which is reachable on that port regardless.
+ *
+ * @param  array<string, string>  $answers
+ */
+function serve_site(array $answers): void
+{
+    $host = (string) parse_url($answers['url'], PHP_URL_HOST);
+
+    if ($host === '' || ! str_ends_with($host, '.'.tld())) {
+        return;
+    }
+
+    if (gethostbyname($host) === $host && confirm('Point '.$host.' at 127.0.0.1 in /etc/hosts', true)) {
+        step('Adding the host entry', 'printf '.escapeshellarg('127.0.0.1 '.$host."\n").' | sudo tee -a /etc/hosts > /dev/null');
+    }
+
+    if (! installed('valet')) {
+        writeln('');
+        writeln('  valet not found, so '.$host.' is not proxied. The application is on port '.$answers['ports'].'.');
+
+        return;
+    }
+
+    $site = substr($host, 0, -strlen('.'.tld()));
+
+    if (is_file(valet_path().'/Nginx/'.$host)) {
+        writeln('');
+        writeln('  '.$host.' is already proxied.');
+
+        return;
+    }
+
+    if (confirm('Proxy '.$host.' to 127.0.0.1:'.$answers['ports'], true)) {
+        step('Proxying the site', 'valet proxy '.escapeshellarg($site).' '.escapeshellarg('http://127.0.0.1:'.$answers['ports']));
+    }
+}
+
+function valet_path(): string
+{
+    $home = (string) ($_SERVER['HOME'] ?? '');
+
+    return is_dir($home.'/.config/valet') ? $home.'/.config/valet' : $home.'/.valet';
+}
+
+/** The local top-level domain this machine serves, which is what a site may be named under. */
+function tld(): string
+{
+    $configuration = valet_path().'/config.json';
+
+    if (! is_file($configuration)) {
+        return 'test';
+    }
+
+    $decoded = json_decode((string) file_get_contents($configuration), true);
+
+    return is_array($decoded) && is_string($decoded['tld'] ?? null) ? $decoded['tld'] : 'test';
+}
 
 /*
  * Every clone must set the merge driver named by the project-owned entries, and
@@ -355,6 +487,74 @@ function create_origin(array $answers): void
     }
 
     step('Creating the repository', $command);
+}
+
+/*
+ * Give this clone and the template a commit in common.
+ *
+ * A project started from this template by copying rather than forking shares no
+ * commit with it, and every pull from the upstream then stops on unrelated
+ * histories before the merge driver is ever consulted. One merge that keeps this
+ * side's tree wholesale records the ancestry without touching a file, and pulls
+ * merge normally from then on. Nothing is grafted when the histories already
+ * meet, and a tree with uncommitted work is left alone, because the graft is a
+ * merge commit and a merge commit cannot be recorded over it.
+ */
+function graft_history(): void
+{
+    $remote = upstream_remote();
+
+    if ($remote === null || git('rev-parse --verify --quiet HEAD') === '') {
+        return;
+    }
+
+    $branch = branch();
+
+    if (git('status --porcelain') !== '') {
+        writeln('');
+        writeln('  Uncommitted changes, so the history is not grafted. Commit, then:');
+        writeln('    git fetch '.$remote.' && git merge -s ours --allow-unrelated-histories '.$remote.'/'.$branch.' -m "Graft template history"');
+
+        return;
+    }
+
+    if (! confirm('Graft the template history so pulls from '.$remote.' merge', true)) {
+        return;
+    }
+
+    if (! step('Fetching the template', 'git fetch '.$remote)) {
+        return;
+    }
+
+    $tip = git('rev-parse --verify --quiet '.$remote.'/'.$branch);
+
+    if ($tip === '') {
+        writeln('');
+        writeln('  No '.$remote.'/'.$branch.', so there is nothing to graft from.');
+
+        return;
+    }
+
+    if (git('merge-base HEAD '.$tip) !== '') {
+        writeln('');
+        writeln('  The histories already meet, so nothing is grafted.');
+
+        return;
+    }
+
+    step('Grafting the template history', 'git merge -s ours --allow-unrelated-histories '.$tip.' -m '.escapeshellarg('Graft template history'));
+}
+
+/** The remote pointing at the template, whatever it is called here. */
+function upstream_remote(): ?string
+{
+    foreach (remotes() as $name => $url) {
+        if (is_upstream($url)) {
+            return $name;
+        }
+    }
+
+    return null;
 }
 
 /** @param array<string, string> $answers */
