@@ -133,6 +133,10 @@ phpstan at max, the two rules a new module trips: a `readonly` property may not 
 
 Never `use` built-in PHP classes like `Imagick`, `ZipArchive`, `Exception`, etc. Always fully qualify them: `new \Imagick()`, `new \ZipArchive()`, `catch (\ImagickException)`. Bare `use` statements for built-in classes have no effect and trigger linting errors (`use X has no effect`).
 
+**ELIMINATE defensive code after validation** — checks like `if (!$validated->field)` after Validator::fails () are dead code; remove them.
+**REPLACE unreachable defensive checks with type assertions** — use `@var` doc blocks to tell type checkers the value is safe, not conditional logic.
+For 100% coverage, distinguish testable paths from unreachable defensive logic—remove the latter rather than contorting tests around it.
+
 ## During Turn Procedure
 
 1. `sail pest --filter=<ClassName>`: scope testing, cheap. Pick the class that actually covers what changed — an admin page is `AdminTest`, an API endpoint is its own `tests/Behavior/Api/` file. Skip this run entirely if `check` is next: `check` runs the whole suite.

@@ -27,3 +27,5 @@ yarn-error.log
 /docs/repos/
 /.playwright-mcp/
 /.secret/
+/coverage-source/
+/.codex/
