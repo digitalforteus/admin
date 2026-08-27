@@ -5,8 +5,7 @@
 ## Commands
 
 Always `./vendor/bin/sail …` — bare `sail` is a human shell alias and is not on your PATH.
-`composer fix` and `composer check` are slow by design. Give them a 600000 ms timeout and let them finish; a timeout is not a failure to work around.
-`check` = lint, rector-lint, analyse, openapi-validate, coverage — in that order. The first four are the gates that matter. The phpstan script is `analyse`; `analyze` is not a script. When coverage dies on `[Tia mode] requires [git]`, re-run the four in one call rather than four: `sail composer lint && sail composer rector-lint && sail composer analyse && sail composer openapi-validate`.
+`composer fix` runs automated refactoring and `composer check` gates the whole project from deployment.
 
 ## Layout
 
