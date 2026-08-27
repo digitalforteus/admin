@@ -18,6 +18,7 @@ use ZeroToProd\LaravelRector\Rector\ForbidBladeAttributeValueRector;
 use ZeroToProd\LaravelRector\Rector\ForbidClassUsageRector;
 use ZeroToProd\LaravelRector\Rector\ForbidCommentPhraseRector;
 use ZeroToProd\LaravelRector\Rector\ForbidDuplicateBladeElementRector;
+use ZeroToProd\LaravelRector\Rector\ForbidKeywordUsageRector;
 use ZeroToProd\LaravelRector\Rector\RenameParamToMatchTypeExactCaseRector;
 
 return RectorConfig::configure()
@@ -62,6 +63,13 @@ return RectorConfig::configure()
         ForbidCommentPhraseRector::PHRASES => [
             '/@?todo\b/i',
         ],
+    ])
+    ->withConfiguredRule(ForbidKeywordUsageRector::class, [
+        'keywords' => [
+            'match',
+        ],
+        'leave_todo' => true,
+        'todo_comment' => '// TODO: replace this match expression with a PHP attribute',
     ])
     ->withSets([
         PestSetList::CODING_STYLE,

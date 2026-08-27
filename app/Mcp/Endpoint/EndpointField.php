@@ -39,13 +39,7 @@ readonly class EndpointField
 
     public function placeholder(): string
     {
-        return match ($this->type) {
-            'int' => '1',
-            'float' => '1.0',
-            'bool' => 'true',
-            'array' => '[]',
-            default => "'example'",
-        };
+        return EndpointFieldType::fromName($this->type)->placeholder();
     }
 
     public function reachesValidationError(): bool

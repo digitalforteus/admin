@@ -2,6 +2,7 @@
 
 use App\Models\User;
 use App\Modules\Settings\Authentication\PasswordForm;
+use App\Modules\Settings\Security\SecurityStatus;
 use App\Routes\Auth;
 use App\View\DataModels\Avatar;
 use App\View\DataModels\SettingsCard;
@@ -14,16 +15,7 @@ $OauthProviders = $User instanceof User ? $User->oauthProviders : collect();
 $Passkeys = $User instanceof User ? $User->passkeys()->latest()->get() : collect();
 $passwordConfirmed = Date::now()->unix() - (int) session('auth.password_confirmed_at', 0)
     < (int) config('auth.password_timeout', 10800);
-$status = session('status');
-$statusMessage = match ($status) {
-    'two-factor-authentication-enabled' => 'Two-factor authentication setup started.',
-    'two-factor-authentication-confirmed' => 'Two-factor authentication enabled.',
-    'two-factor-authentication-disabled' => 'Two-factor authentication disabled.',
-    'recovery-codes-generated' => 'New recovery codes generated.',
-    'passkey-registered' => 'Passkey registered.',
-    'passkey-deleted' => 'Passkey deleted.',
-    default => is_string($status) ? $status : null,
-};
+$statusMessage = SecurityStatus::messageFor(session('status'));
 
 Head::title('Security')
     ->description('Review your sign-in methods and update your password.')

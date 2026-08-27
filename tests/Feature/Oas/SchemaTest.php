@@ -1,5 +1,6 @@
 <?php
 
+use App\Helpers\PhpTypeSchema;
 use App\Models\User;
 use App\Modules\Api\Public\Authenticated\AuthenticatedResponse;
 use App\Modules\Api\Public\User\Show\UserShowResponse;
@@ -94,13 +95,7 @@ function placeholderFor(ReflectionProperty $ReflectionProperty): mixed
 {
     $Type = $ReflectionProperty->getType();
 
-    return match ($Type instanceof ReflectionNamedType ? $Type->getName() : '') {
-        'int' => 0,
-        'float' => 0.0,
-        'bool' => false,
-        'array' => [],
-        default => '',
-    };
+    return PhpTypeSchema::fromName($Type instanceof ReflectionNamedType ? $Type->getName() : '')->example();
 }
 
 // Layer 1: keyword and format expressibility. `make()` builds the rules eagerly,

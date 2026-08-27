@@ -2,6 +2,7 @@
 
 namespace App\Sources\Db;
 
+use App\Helpers\PhpTypeSchema;
 use ReflectionClass;
 use ZeroToProd\DbModel\Column;
 use ZeroToProd\DbModel\HasColumnAttribute;
@@ -30,11 +31,7 @@ trait HasColumn
         $length = $arguments[Column::length] ?? null;
         $comment = $arguments[Column::comment] ?? null;
 
-        $schema = match ($php) {
-            PhpType::int => [Property::type => Property::integer],
-            PhpType::DateTimeInterface => [Property::type => Property::string, Property::format => Property::date_time],
-            default => [Property::type => Property::string],
-        };
+        $schema = PhpTypeSchema::fromName($php)->schema();
 
         if ($php === PhpType::string && is_int($length)) {
             $schema[Property::maxLength] = $length;

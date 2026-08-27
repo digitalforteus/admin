@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Endpoint;
 
+use App\Helpers\HasEnumAttributes;
 use App\Modules\Api\Support\AdminApiSchema;
 use App\Modules\Api\Support\PublicApiSchema;
 use App\Routes\Admin;
@@ -9,48 +10,51 @@ use App\Routes\ApiRoute;
 
 enum EndpointApi: string
 {
+    use HasEnumAttributes;
+
+    #[RoutePrefix(ApiRoute::prefix)]
+    #[EndpointConfiguration(
+        prefix: ApiRoute::prefix,
+        route: ApiRoute::class,
+        schemaAttribute: PublicApiSchema::class,
+        routesFile: 'routes/api.php',
+        authenticatedRoutesFile: 'routes/api_auth.php',
+    )]
     case public = 'public';
+
+    #[RoutePrefix(Admin::prefix)]
+    #[EndpointConfiguration(
+        prefix: Admin::prefix.'/api',
+        route: Admin::class,
+        schemaAttribute: AdminApiSchema::class,
+        routesFile: 'routes/api_admin.php',
+    )]
     case admin = 'admin';
 
     public function prefix(): string
     {
-        return match ($this) {
-            self::public => ApiRoute::prefix,
-            self::admin => Admin::prefix.'/api',
-        };
+        return $this->enumAttribute(EndpointConfiguration::class)->prefix;
     }
 
     public function routePrefix(): string
     {
-        return match ($this) {
-            self::public => ApiRoute::prefix,
-            self::admin => Admin::prefix,
-        };
+        return $this->enumAttribute(RoutePrefix::class)->prefix;
     }
 
     /** @return class-string */
     public function route(): string
     {
-        return match ($this) {
-            self::public => ApiRoute::class,
-            self::admin => Admin::class,
-        };
+        return $this->enumAttribute(EndpointConfiguration::class)->route;
     }
 
     /** @return class-string */
     public function schemaAttribute(): string
     {
-        return match ($this) {
-            self::public => PublicApiSchema::class,
-            self::admin => AdminApiSchema::class,
-        };
+        return $this->enumAttribute(EndpointConfiguration::class)->schemaAttribute;
     }
 
     public function routesFile(bool $authenticated): string
     {
-        return match ($this) {
-            self::public => $authenticated ? 'routes/api_auth.php' : 'routes/api.php',
-            self::admin => 'routes/api_admin.php',
-        };
+        return $this->enumAttribute(EndpointConfiguration::class)->routesFile($authenticated);
     }
 }
