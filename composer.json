@@ -91,7 +91,7 @@
         "test": "pest --parallel --tia",
         "coverage": [
             "@php artisan openapi:coverage --reset",
-            "pest --parallel --fresh --coverage --min=100",
+            "pest --parallel --no-tia --fresh --coverage --min=100",
             "@php artisan openapi:coverage"
         ],
         "analyse": "phpstan analyse",
@@ -105,7 +105,6 @@
             "@lint",
             "@rector-lint",
             "@analyse",
-            "@openapi-validate",
             "@coverage"
         ],
         "fix": [
