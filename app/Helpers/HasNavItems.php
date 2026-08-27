@@ -3,10 +3,11 @@
 namespace App\Helpers;
 
 use App\View\DataModels\NavItem;
-use ReflectionEnumUnitCase;
 
 trait HasNavItems
 {
+    use HasEnumAttributes;
+
     /** @return list<NavItem> */
     public static function items(): array
     {
@@ -21,8 +22,6 @@ trait HasNavItems
 
     public function item(): NavItem
     {
-        $attributes = new ReflectionEnumUnitCase(self::class, $this->name)->getAttributes(NavItem::class);
-
-        return $attributes[0]->newInstance();
+        return $this->enumAttribute(NavItem::class);
     }
 }

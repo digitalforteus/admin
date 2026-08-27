@@ -598,13 +598,7 @@ readonly class EndpointRenderer
 
     private function literalType(EndpointField $EndpointField): string
     {
-        return match ($EndpointField->type) {
-            'int' => "                Property::type => Property::integer,\n",
-            'float' => "                Property::type => Property::number,\n",
-            'bool' => "                Property::type => Property::boolean,\n",
-            'array' => "                Schema::type => Schema::array,\n                Schema::items => [Property::type => Property::string],\n",
-            default => "                Property::type => Property::string,\n",
-        };
+        return EndpointFieldType::fromName($EndpointField->type)->literal();
     }
 
     private function errorResponse(int $status, string $description, string $ref): string

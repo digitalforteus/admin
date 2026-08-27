@@ -16,8 +16,24 @@ namespace App\Helpers;
  */
 enum Theme: string
 {
+    use HasEnumAttributes;
+
+    #[ThemeLabel('Light')]
+    #[ThemeDescription('Always use the light theme.')]
+    #[ThemeColor('#fafcfe')]
+    #[ThemeIcon(SvgName::sun)]
     case light = 'light';
+
+    #[ThemeLabel('Dark')]
+    #[ThemeDescription('Always use the dark theme.')]
+    #[ThemeColor('#1b2025')]
+    #[ThemeIcon(SvgName::moon)]
     case dark = 'dark';
+
+    #[ThemeLabel('Auto')]
+    #[ThemeDescription('Match the theme your device is set to.')]
+    #[ThemeColor('#fafcfe')]
+    #[ThemeIcon(SvgName::desktop)]
     case auto = 'auto';
 
     public function attribute(): ?string
@@ -27,36 +43,21 @@ enum Theme: string
 
     public function label(): string
     {
-        return match ($this) {
-            self::light => 'Light',
-            self::dark => 'Dark',
-            self::auto => 'Auto',
-        };
+        return $this->enumAttribute(ThemeLabel::class)->label;
     }
 
     public function description(): string
     {
-        return match ($this) {
-            self::light => 'Always use the light theme.',
-            self::dark => 'Always use the dark theme.',
-            self::auto => 'Match the theme your device is set to.',
-        };
+        return $this->enumAttribute(ThemeDescription::class)->description;
     }
 
     public function color(): string
     {
-        return match ($this) {
-            self::light, self::auto => '#fafcfe',
-            self::dark => '#1b2025',
-        };
+        return $this->enumAttribute(ThemeColor::class)->color;
     }
 
     public function icon(): SvgName
     {
-        return match ($this) {
-            self::light => SvgName::sun,
-            self::dark => SvgName::moon,
-            self::auto => SvgName::desktop,
-        };
+        return $this->enumAttribute(ThemeIcon::class)->icon;
     }
 }

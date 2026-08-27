@@ -15,30 +15,30 @@ namespace App\Helpers;
  */
 enum SortDirection: string
 {
+    use HasEnumAttributes;
+
+    #[OppositeDirection(self::desc)]
+    #[SortIcon(SvgName::chevron_up)]
+    #[SortAria('ascending')]
     case asc = 'asc';
+
+    #[OppositeDirection(self::asc)]
+    #[SortIcon(SvgName::chevron_down)]
+    #[SortAria('descending')]
     case desc = 'desc';
 
     public function opposite(): self
     {
-        return match ($this) {
-            self::asc => self::desc,
-            self::desc => self::asc,
-        };
+        return $this->enumAttribute(OppositeDirection::class)->direction;
     }
 
     public function icon(): SvgName
     {
-        return match ($this) {
-            self::asc => SvgName::chevron_up,
-            self::desc => SvgName::chevron_down,
-        };
+        return $this->enumAttribute(SortIcon::class)->icon;
     }
 
     public function aria(): string
     {
-        return match ($this) {
-            self::asc => 'ascending',
-            self::desc => 'descending',
-        };
+        return $this->enumAttribute(SortAria::class)->aria;
     }
 }
