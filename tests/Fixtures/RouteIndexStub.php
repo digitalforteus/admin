@@ -2,7 +2,7 @@
 
 namespace Tests\Fixtures;
 
-use App\Routes\AdminLink;
+use App\Plugins\AdminLink\AdminLink;
 
 /**
  * A route enum the registry does not name, with one tagged case giving no order.

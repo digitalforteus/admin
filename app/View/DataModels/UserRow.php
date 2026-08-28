@@ -9,11 +9,11 @@ use App\Routes\Admin;
 use App\Sources\Db\App\Users;
 use Illuminate\Support\Carbon;
 use Zerotoprod\DataModel\Describe;
-use ZeroToProd\DbModel\ColumnType;
 
 readonly class UserRow
 {
     use DataModel;
+    use FormatsTableCell;
 
     public const string id = 'id';
 
@@ -96,12 +96,6 @@ readonly class UserRow
 
     public function cell(Users $Users): string
     {
-        $value = $this->collect()->get($Users->value);
-
-        return match (true) {
-            ! is_string($value) || $value === '' => '—',
-            $Users->type() === ColumnType::timestamp->value => Carbon::parse($value)->toFormattedDateString(),
-            default => $value,
-        };
+        return $this->formattedCell($this->collect()->get($Users->value), $Users->type());
     }
 }

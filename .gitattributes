@@ -11,6 +11,8 @@
 CHANGELOG.md export-ignore
 .styleci.yml export-ignore
 
+README.md                              merge=keepours
+composer.lock                          merge=keepours
 public/site.webmanifest                merge=keepours
 resources/css/app.css                  merge=keepours
 resources/llms.txt                     merge=keepours

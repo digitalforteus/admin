@@ -1,24 +1,19 @@
 # CLAUDE.md
 
-Three rules that this project's transcripts show being broken every time:
-
-- **Never probe.** No `find`, `ls`, `glob` or `grep` to learn whether a path exists or what lives near it. `Read` reports a missing file, `Write` creates one, and an empty directory left by earlier work tells you nothing. A directory path is not a file: `Read` on one is an error, never a listing.
 - **Green gates end the turn.** After `check` passes there is no pest run, no `composer test`, no `artisan route:list`, no read-back of your own writes.
 
 ## Commands
 
 Always `./vendor/bin/sail …` — bare `sail` is a human shell alias and is not on your PATH.
-`composer fix` and `composer check` are slow by design. Give them a 600000 ms timeout and let them finish; a timeout is not a failure to work around.
-`check` = lint, rector-lint, analyse, openapi-validate, coverage — in that order. The first four are the gates that matter. The phpstan script is `analyse`; `analyze` is not a script. When coverage dies on `[Tia mode] requires [git]`, re-run the four in one call rather than four: `sail composer lint && sail composer rector-lint && sail composer analyse && sail composer openapi-validate`.
+`composer fix` runs automated refactoring and `composer check` gates the whole project from deployment.
 
 ## Layout
-
-Don't search for files — paths are deterministic:
 
 - Views: `resources/views/pages/<route>/index.blade.php` (`pages/index.blade.php` = home). None in views root.
 - Shared: `resources/views/components/`, `svg/`, `emails/`.
 - Routes: `app/Routes/Web.php` (public pages), `Auth.php`, `Admin.php`, `ApiRoute.php`.
 - Admin pages: `resources/views/pages/admin/<slug>/index.blade.php`, case in `app/Routes/Admin.php` as `self::prefix.'/<slug>'`, tagged `#[AdminLink]` to appear in the admin link index. Not sitemapped — `CrawlerTest` never reaches them; `AdminTest` covers them.
+- Plugins: `app/Plugins/<Name>/` — an attribute plus a `DescribesPlugin` class, installed by a case on `app/Plugins/PluginIndex.php`. `RouteTags` is the one sweep over the registered route indexes; a plugin declares its attribute and never reflects itself. `AdminLink` is the shape to copy.
 - API endpoints: one directory per operation, `app/Modules/Api/<Api>/<Thing>/<Action>/` holding Controller, Request, Response, Schema. Bound in `routes/api.php`, `api_auth.php` or `api_admin.php` as `Route::<verb>(<Enum>::<case>->value, Controller::class)`.
 - Admin form actions: `app/Modules/Admin/<Thing>/<Action>Controller.php` (`__invoke`, `readonly`, returns `RedirectResponse`), bound in `routes/web_admin.php` as `Route::<verb>(Admin::<case>->value, Controller::class)`.
 - Column schemas: `app/Sources/Db/App/<Table>.php` — a case per column, `->value` for the name, `->schema()` for the API schema. One per table in the app database, so the file for a table exists without looking.
@@ -28,8 +23,6 @@ Don't search for files — paths are deterministic:
 - Tests: `tests/Behavior/{Web,Api}/`, `tests/Feature/`, `tests/Unit/`. `--filter` takes the class name (`CrawlerTest`, `NavigationTest`, `ComponentTest`), never a guessed one. A file's existing coverage is one long `test()` — that is how it is read, not a rule to extend it.
 - Every page wraps in `<x-main>`; Tailwind + DaisyUI classes only, no custom CSS.
 - phpstan runs at max: `config('x')` and `env('x')` return mixed and fail the gate. Use the typed accessor — `Config::string('app.url')`, `Config::array(...)`.
-
-Go straight to the file: read it, then edit. Skip find/ls/glob unless a direct read misses. Every command starts at the project root, so `pwd` answers nothing. Never probe to learn whether something exists — `Write` creates what is missing and `Read` reports what is not there, while a directory left empty by earlier work answers nothing. A successful edit is confirmation — never re-read to verify, and never re-read after a slow command. Anchor `old_string` on the single line being changed, not a block of neighbours — a rejected edit costs the retry plus the re-read that follows it.
 
 ## Adding a page
 
@@ -129,9 +122,9 @@ The DTOs have no constructor: properties are declared with `#[Request]`/`#[Respo
 
 phpstan at max, the two rules a new module trips: a `readonly` property may not carry a default value, and every `array` in a signature needs a generic (`@return array<string, mixed>`, `@param`). Fix both before the first `check`, not after.
 
-## Built-in PHP classes
+## Enum metadata attributes
 
-Never `use` built-in PHP classes like `Imagick`, `ZipArchive`, `Exception`, etc. Always fully qualify them: `new \Imagick()`, `new \ZipArchive()`, `catch (\ImagickException)`. Bare `use` statements for built-in classes have no effect and trigger linting errors (`use X has no effect`).
+When a forbidden `match` maps enum cases to static metadata, replace the mapping with a class-constant PHP attribute. Follow `Image` and `AdminLink`: import `Attribute` and `ReflectionEnumBackedCase`, mark the attribute with `#[Attribute(Attribute::TARGET_CLASS_CONSTANT)]`, tag every case, then resolve the case's attribute with `getAttributes(...)[0]->newInstance()`. Store only the static differences on the attribute; keep configuration-derived URL and query construction in one generic consumer.
 
 **ELIMINATE defensive code after validation** — checks like `if (!$validated->field)` after Validator::fails () are dead code; remove them.
 **REPLACE unreachable defensive checks with type assertions** — use `@var` doc blocks to tell type checkers the value is safe, not conditional logic.

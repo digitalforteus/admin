@@ -14,20 +14,51 @@ namespace App\Helpers;
  */
 enum RunStatus: string
 {
+    use HasEnumAttributes;
+
+    #[RunStatusBadge('badge-success')]
     case success = 'success';
+
+    #[RunStatusBadge('badge-error')]
     case failure = 'failure';
+
+    #[RunStatusBadge('badge-ghost')]
     case cancelled = 'cancelled';
+
+    #[RunStatusBadge('badge-ghost')]
     case skipped = 'skipped';
+
+    #[RunStatusBadge('badge-ghost')]
     case neutral = 'neutral';
+
+    #[RunStatusBadge('badge-error')]
     case timed_out = 'timed_out';
+
+    #[RunStatusBadge('badge-warning')]
     case action_required = 'action_required';
+
+    #[RunStatusBadge('badge-warning')]
     case stale = 'stale';
+
+    #[RunStatusBadge('badge-error')]
     case startup_failure = 'startup_failure';
+
+    #[RunStatusBadge('badge-info')]
     case queued = 'queued';
+
+    #[RunStatusBadge('badge-info')]
     case pending = 'pending';
+
+    #[RunStatusBadge('badge-info')]
     case waiting = 'waiting';
+
+    #[RunStatusBadge('badge-info')]
     case requested = 'requested';
+
+    #[RunStatusBadge('badge-info')]
     case in_progress = 'in_progress';
+
+    #[RunStatusBadge('badge-ghost')]
     case completed = 'completed';
 
     /** The conclusion when the run has one, and where it got to when it does not. */
@@ -40,13 +71,7 @@ enum RunStatus: string
 
     public function badge(): string
     {
-        return match ($this) {
-            self::success => 'badge-success',
-            self::failure, self::timed_out, self::startup_failure => 'badge-error',
-            self::action_required, self::stale => 'badge-warning',
-            self::in_progress, self::queued, self::pending, self::waiting, self::requested => 'badge-info',
-            self::cancelled, self::skipped, self::neutral, self::completed => 'badge-ghost',
-        };
+        return $this->enumAttribute(RunStatusBadge::class)->badge;
     }
 
     public function label(): string

@@ -6,6 +6,7 @@ use App\Helpers\Depth;
 use App\Helpers\RendersRoute;
 use App\Modules\Contexts\Context;
 use Illuminate\Database\Eloquent\Model;
+use ReflectionEnumBackedCase;
 
 /**
  * The paths served inside the hierarchy, one chain of containment.
@@ -39,76 +40,114 @@ enum ContextRoute: string
     public const string connections = self::oneProject.'/c';
     public const string oneConnection = self::connections.'/{'.self::connectionParameter.'}';
 
+    #[ContextRouteFor(Depth::enterprise, ContextRouteRole::collection)]
     case enterpriseIndex = self::enterprises;
+
+    #[ContextRouteFor(Depth::enterprise, ContextRouteRole::create)]
     case enterpriseCreate = self::enterprises.'/new';
+
+    #[ContextRouteFor(Depth::enterprise, ContextRouteRole::of)]
     case enterprise = self::oneEnterprise;
+
+    #[ContextRouteFor(Depth::enterprise, ContextRouteRole::settings)]
     case enterpriseSettings = self::oneEnterprise.'/settings';
 
+    #[ContextRouteFor(Depth::organization, ContextRouteRole::collection)]
     case organizationIndex = self::organizations;
+
+    #[ContextRouteFor(Depth::organization, ContextRouteRole::create)]
     case organizationCreate = self::organizations.'/new';
+
+    #[ContextRouteFor(Depth::organization, ContextRouteRole::of)]
     case organization = self::oneOrganization;
+
+    #[ContextRouteFor(Depth::organization, ContextRouteRole::settings)]
     case organizationSettings = self::oneOrganization.'/settings';
+
     case organizationIcon = self::oneOrganization.'/icon';
     case members = self::oneOrganization.'/members';
     case member = self::oneOrganization.'/members/{'.self::memberParameter.'}';
     case invitations = self::oneOrganization.'/invitations';
     case invitation = self::oneOrganization.'/invitations/{'.self::invitationParameter.'}';
 
+    #[ContextRouteFor(Depth::project, ContextRouteRole::collection)]
     case projectIndex = self::projects;
+
+    #[ContextRouteFor(Depth::project, ContextRouteRole::create)]
     case projectCreate = self::projects.'/new';
+
+    #[ContextRouteFor(Depth::project, ContextRouteRole::of)]
     case project = self::oneProject;
+
+    #[ContextRouteFor(Depth::project, ContextRouteRole::settings)]
     case projectSettings = self::oneProject.'/settings';
+
     case projectIcon = self::oneProject.'/icon';
 
+    #[ContextRouteFor(Depth::connection, ContextRouteRole::collection)]
     case connectionIndex = self::connections;
+
+    #[ContextRouteFor(Depth::connection, ContextRouteRole::create)]
     case connectionCreate = self::connections.'/new';
+
+    #[ContextRouteFor(Depth::connection, ContextRouteRole::of)]
     case connection = self::oneConnection;
+
+    #[ContextRouteFor(Depth::connection, ContextRouteRole::settings)]
     case connectionSettings = self::oneConnection.'/settings';
+
     case connectionEnabled = self::oneConnection.'/enabled';
     case connectionVerify = self::oneConnection.'/verify';
 
     /** The path one subject of a depth is addressed at. */
     public static function of(Depth $Depth): self
     {
-        return match ($Depth) {
-            Depth::enterprise => self::enterprise,
-            Depth::organization => self::organization,
-            Depth::project => self::project,
-            Depth::connection => self::connection,
-        };
+        return self::tagged($Depth, ContextRouteRole::of);
     }
 
     /** The path every subject of a depth is listed at, inside the one containing them. */
     public static function collection(Depth $Depth): self
     {
-        return match ($Depth) {
-            Depth::enterprise => self::enterpriseIndex,
-            Depth::organization => self::organizationIndex,
-            Depth::project => self::projectIndex,
-            Depth::connection => self::connectionIndex,
-        };
+        return self::tagged($Depth, ContextRouteRole::collection);
     }
 
     /** The form a new subject of a depth is named on. */
     public static function create(Depth $Depth): self
     {
-        return match ($Depth) {
-            Depth::enterprise => self::enterpriseCreate,
-            Depth::organization => self::organizationCreate,
-            Depth::project => self::projectCreate,
-            Depth::connection => self::connectionCreate,
-        };
+        return self::tagged($Depth, ContextRouteRole::create);
     }
 
     /** The path a subject of a depth is configured at. */
     public static function settings(Depth $Depth): self
     {
-        return match ($Depth) {
-            Depth::enterprise => self::enterpriseSettings,
-            Depth::organization => self::organizationSettings,
-            Depth::project => self::projectSettings,
-            Depth::connection => self::connectionSettings,
-        };
+        return self::tagged($Depth, ContextRouteRole::settings);
+    }
+
+    /** The one case tagged as the given role for the given depth. */
+    private static function tagged(Depth $Depth, ContextRouteRole $ContextRouteRole): self
+    {
+        $matches = array_values(array_filter(
+            self::cases(),
+            static fn (self $Case): bool => self::taggedAs($Case, $Depth, $ContextRouteRole),
+        ));
+
+        /** @var self $Match Every depth carries a case for every role, so a match always exists. */
+        $Match = $matches[0];
+
+        return $Match;
+    }
+
+    private static function taggedAs(self $self, Depth $Depth, ContextRouteRole $ContextRouteRole): bool
+    {
+        $Attributes = new ReflectionEnumBackedCase(self::class, $self->name)->getAttributes(ContextRouteFor::class);
+
+        if ($Attributes === []) {
+            return false;
+        }
+
+        $For = $Attributes[0]->newInstance();
+
+        return $For->depth === $Depth && $For->role === $ContextRouteRole;
     }
 
     /**

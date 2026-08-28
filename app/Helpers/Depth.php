@@ -6,6 +6,10 @@ use App\Models\Connection;
 use App\Models\Enterprise;
 use App\Models\Organization;
 use App\Models\Project;
+use App\Modules\Enterprises\EnterpriseForm;
+use App\Modules\Organizations\Organizations\OrganizationForm;
+use App\Modules\Projects\ProjectForm;
+use App\Routes\ContextRoute;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -22,9 +26,34 @@ use Illuminate\Database\Eloquent\Model;
  */
 enum Depth: string
 {
+    use HasEnumAttributes;
+
+    #[DepthModel(Enterprise::class)]
+    #[DepthIcon(SvgName::city)]
+    #[DepthBreadcrumbForm(EnterpriseForm::class)]
+    #[DepthNav(overview: true)]
+    #[DepthAncestry]
     case enterprise = 'enterprise';
+
+    #[DepthModel(Organization::class)]
+    #[DepthIcon(SvgName::building)]
+    #[DepthBreadcrumbForm(OrganizationForm::class)]
+    #[DepthNav(overview: true, extra: new DepthNavExtra('Members', SvgName::user, ContextRoute::members))]
+    #[DepthAncestry(['enterprise' => 'enterprise_id'])]
     case organization = 'organization';
+
+    #[DepthModel(Project::class)]
+    #[DepthIcon(SvgName::folder)]
+    #[DepthBreadcrumbForm(ProjectForm::class)]
+    #[DepthNav(overview: true, extra: new DepthNavExtra('Connections', SvgName::link, ContextRoute::connectionIndex))]
+    #[DepthAncestry(['organization' => 'organization_id', 'enterprise' => 'organization.enterprise_id'])]
     case project = 'project';
+
+    #[DepthModel(Connection::class)]
+    #[DepthIcon(SvgName::link)]
+    #[DepthBreadcrumbForm]
+    #[DepthNav(overview: false, extra: new DepthNavExtra('Connections', SvgName::link, ContextRoute::connectionIndex), trailingIsPlugin: true)]
+    #[DepthAncestry]
     case connection = 'connection';
 
     /** @return list<self> */
@@ -77,22 +106,29 @@ enum Depth: string
     /** @return class-string<Model> */
     public function model(): string
     {
-        return match ($this) {
-            self::enterprise => Enterprise::class,
-            self::organization => Organization::class,
-            self::project => Project::class,
-            self::connection => Connection::class,
-        };
+        return $this->enumAttribute(DepthModel::class)->model;
     }
 
     public function icon(): SvgName
     {
-        return match ($this) {
-            self::enterprise => SvgName::city,
-            self::organization => SvgName::building,
-            self::project => SvgName::folder,
-            self::connection => SvgName::link,
-        };
+        return $this->enumAttribute(DepthIcon::class)->icon;
+    }
+
+    /** @return class-string<HasTextInputField>|null The form a new subject of this depth is named on, or null where it cannot be created inside the trail. */
+    public function breadcrumbForm(): ?string
+    {
+        return $this->enumAttribute(DepthBreadcrumbForm::class)->form;
+    }
+
+    public function nav(): DepthNav
+    {
+        return $this->enumAttribute(DepthNav::class);
+    }
+
+    /** @return array<string, string> Ancestor depth value => dot path to its id on a model at this depth. */
+    public function ancestryPaths(): array
+    {
+        return $this->enumAttribute(DepthAncestry::class)->paths;
     }
 
     public function label(): string

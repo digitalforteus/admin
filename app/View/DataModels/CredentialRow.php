@@ -7,12 +7,12 @@ use App\Routes\Auth;
 use App\Sources\Db\App\PersonalAccessTokens;
 use Illuminate\Support\Carbon;
 use Zerotoprod\DataModel\Describe;
-use ZeroToProd\DbModel\ColumnType;
 
 #[Describe([Describe::nullable => true])]
 readonly class CredentialRow
 {
     use DataModel;
+    use FormatsTableCell;
 
     public const string id = 'id';
 
@@ -54,12 +54,9 @@ readonly class CredentialRow
 
     public function cell(PersonalAccessTokens $PersonalAccessTokens): string
     {
-        $value = $this->collect()->get($PersonalAccessTokens->value);
-
-        return match (true) {
-            ! is_string($value) || $value === '' => '—',
-            $PersonalAccessTokens->type() === ColumnType::timestamp->value => Carbon::parse($value)->toFormattedDateString(),
-            default => $value,
-        };
+        return $this->formattedCell(
+            $this->collect()->get($PersonalAccessTokens->value),
+            $PersonalAccessTokens->type(),
+        );
     }
 }

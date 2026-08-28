@@ -3,6 +3,7 @@
 namespace App\Routes;
 
 use App\Helpers\RendersRoute;
+use App\Plugins\AdminLink\AdminLink;
 
 /**
  * The role-gated paths, every one under one prefix.

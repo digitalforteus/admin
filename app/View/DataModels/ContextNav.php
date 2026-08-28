@@ -3,6 +3,7 @@
 namespace App\View\DataModels;
 
 use App\Helpers\Depth;
+use App\Helpers\DepthNavExtra;
 use App\Helpers\MemberRole;
 use App\Helpers\SvgName;
 use App\Models\Connection;
@@ -32,23 +33,20 @@ readonly class ContextNav implements DescribesNav
             return [];
         }
 
-        return match ($Deepest) {
-            Depth::enterprise => [self::overview(Depth::enterprise), ...self::settings(Depth::enterprise)],
-            Depth::organization => [
-                self::overview(Depth::organization),
-                self::item('Members', SvgName::user, ContextRoute::members),
-                ...self::settings(Depth::organization),
-            ],
-            Depth::project => [
-                self::overview(Depth::project),
-                self::item('Connections', SvgName::link, ContextRoute::connectionIndex),
-                ...self::settings(Depth::project),
-            ],
-            Depth::connection => [
-                self::item('Connections', SvgName::link, ContextRoute::connectionIndex),
-                ...self::plugin(),
-            ],
-        };
+        $Nav = $Deepest->nav();
+
+        /** @var list<NavItem> $items */
+        $items = [];
+
+        if ($Nav->overview) {
+            $items[] = self::overview($Deepest);
+        }
+
+        if ($Nav->extra instanceof DepthNavExtra) {
+            $items[] = self::item($Nav->extra->label, $Nav->extra->icon, $Nav->extra->route);
+        }
+
+        return [...$items, ...$Nav->trailingIsPlugin ? self::plugin() : self::settings($Deepest)];
     }
 
     private static function overview(Depth $Depth): NavItem

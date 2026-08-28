@@ -3,9 +3,6 @@
 namespace App\View\DataModels;
 
 use App\Helpers\Depth;
-use App\Modules\Enterprises\EnterpriseForm;
-use App\Modules\Organizations\Organizations\OrganizationForm;
-use App\Modules\Projects\ProjectForm;
 
 readonly class BreadcrumbFields
 {
@@ -16,11 +13,12 @@ readonly class BreadcrumbFields
      */
     public static function of(Depth $Depth): array
     {
-        return match ($Depth) {
-            Depth::enterprise => [BreadcrumbField::of(EnterpriseForm::textInput(EnterpriseForm::name))],
-            Depth::organization => [BreadcrumbField::of(OrganizationForm::textInput(OrganizationForm::name))],
-            Depth::project => [BreadcrumbField::of(ProjectForm::textInput(ProjectForm::name))],
-            Depth::connection => [],
-        };
+        $form = $Depth->breadcrumbForm();
+
+        if ($form === null) {
+            return [];
+        }
+
+        return [BreadcrumbField::of($form::textInput('name'))];
     }
 }

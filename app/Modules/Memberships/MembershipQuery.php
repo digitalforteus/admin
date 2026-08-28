@@ -5,8 +5,6 @@ namespace App\Modules\Memberships;
 use App\Helpers\Depth;
 use App\Helpers\MemberRole;
 use App\Models\Membership;
-use App\Models\Organization;
-use App\Models\Project;
 use App\Models\User;
 use App\Sources\Db\App\Memberships;
 use App\Sources\Db\App\Organizations;
@@ -295,18 +293,24 @@ readonly class MembershipQuery
             return [];
         }
 
-        return match (true) {
-            $Model instanceof Project => [
-                Depth::project->value => $id,
-                Depth::organization->value => $Model->organization_id,
-                Depth::enterprise->value => $Model->organization->enterprise_id,
-            ],
-            $Model instanceof Organization => [
-                Depth::organization->value => $id,
-                Depth::enterprise->value => $Model->enterprise_id,
-            ],
-            default => [$Depth->value => $id],
-        };
+        $ancestry = [$Depth->value => $id];
+
+        foreach ($Depth->ancestryPaths() as $ancestor => $path) {
+            $ancestry[$ancestor] = self::pathValue($Model, $path);
+        }
+
+        return $ancestry;
+    }
+
+    private static function pathValue(Model $Model, string $path): string
+    {
+        $value = $Model;
+
+        foreach (explode('.', $path) as $segment) {
+            $value = is_object($value) ? $value->{$segment} : null;
+        }
+
+        return (string) $value;
     }
 
     /** @return Builder<Membership> */

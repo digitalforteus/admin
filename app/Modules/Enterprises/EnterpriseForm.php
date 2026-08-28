@@ -4,10 +4,11 @@ namespace App\Modules\Enterprises;
 
 use App\Helpers\DataModel;
 use App\Helpers\HasTextInput;
+use App\Helpers\HasTextInputField;
 use App\Helpers\SvgName;
 use App\View\DataModels\TextInput;
 
-readonly class EnterpriseForm
+readonly class EnterpriseForm implements HasTextInputField
 {
     use DataModel;
     use HasTextInput;

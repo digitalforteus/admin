@@ -23,25 +23,36 @@ use Illuminate\Support\Str;
  */
 enum BrandLink: string
 {
+    use HasEnumAttributes;
+
+    #[BrandUrl(path: '/', attribution: true)]
     case footer_attribution = 'footer_attribution';
+
+    #[BrandUrl(path: '/', attribution: true)]
     case header_lockup = 'header_lockup';
+
+    #[BrandUrl(path: '/showcase')]
     case showcase = 'showcase';
+
+    #[BrandUrl(config: 'brand.support_email', scheme: 'mailto:')]
     case support_email = 'support_email';
 
     /** @return string The url the link points at. */
     public function url(): string
     {
         $site = rtrim(Config::string('brand.digitalforte_url'), '/');
+        $BrandUrl = $this->enumAttribute(BrandUrl::class);
+        $url = $BrandUrl->scheme.($BrandUrl->config === null
+            ? $site.$BrandUrl->path
+            : Config::string($BrandUrl->config));
 
-        return match ($this) {
-            self::support_email => 'mailto:'.Config::string('brand.support_email'),
-            self::showcase => $site.'/showcase',
-            self::footer_attribution, self::header_lockup => $site.'/?'.http_build_query([
+        return $BrandUrl->attribution
+            ? $url.'?'.http_build_query([
                 'utm_source' => Str::slug(Config::string('app.name')),
                 'utm_medium' => 'referral',
                 'utm_campaign' => 'product_branding',
                 'utm_content' => $this->value,
-            ]),
-        };
+            ])
+            : $url;
     }
 }

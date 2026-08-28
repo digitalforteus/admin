@@ -2,6 +2,7 @@
 
 namespace App\Modules\Api\Support;
 
+use App\Helpers\PhpTypeSchema;
 use Closure;
 use ReflectionClass;
 use ReflectionNamedType;
@@ -9,7 +10,6 @@ use ReflectionProperty;
 use ReflectionType;
 use ZeroToProd\LaravelOpenapi\ApiSchema;
 use ZeroToProd\SchemaValidator\Property;
-use ZeroToProd\SchemaValidator\Schema;
 
 /**  @phpstan-import-type OpenApiSchema from ApiSchema */
 trait HasResponseSchema
@@ -80,15 +80,7 @@ trait HasResponseSchema
     /** @return array<string, mixed> */
     private static function fromType(?ReflectionType $Type): array
     {
-        return [
-            Property::type => match ($Type instanceof ReflectionNamedType ? $Type->getName() : '') {
-                'int' => Property::integer,
-                'float' => Property::number,
-                'bool' => Property::boolean,
-                'array' => Schema::array,
-                default => Property::string,
-            },
-        ];
+        return PhpTypeSchema::fromName($Type instanceof ReflectionNamedType ? $Type->getName() : '')->schema();
     }
 
     /** @return array<string, mixed>|null */

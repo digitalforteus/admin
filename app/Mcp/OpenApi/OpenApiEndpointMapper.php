@@ -2,6 +2,7 @@
 
 namespace App\Mcp\OpenApi;
 
+use App\Helpers\PhpTypeSchema;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Symfony\Component\Yaml\Yaml;
@@ -228,13 +229,7 @@ class OpenApiEndpointMapper
 
             $fields[] = array_filter([
                 'name' => $name,
-                'type' => match ($type) {
-                    'integer' => 'int',
-                    'number' => 'float',
-                    'boolean' => 'bool',
-                    'array' => 'array',
-                    default => 'string',
-                },
+                'type' => PhpTypeSchema::fromSchemaType(is_string($type) ? $type : '')->value,
                 'nullable' => $nullable,
                 'required' => $request && in_array($name, is_array($required) ? $required : [], true),
                 'description' => $this->text($property, 'description'),
@@ -266,33 +261,13 @@ class OpenApiEndpointMapper
 
     private function action(string $method, string $path, ?string $operationId, string $resource): string
     {
-        $conventional = match ($method) {
-            'get' => str_ends_with($path, '}') ? 'Show' : 'Index',
-            'post' => 'Store',
-            'put', 'patch' => 'Update',
-            'delete' => 'Delete',
-            default => throw new InvalidArgumentException('Unsupported HTTP method '.$method.'.'),
-        };
+        $Action = EndpointAction::for($method, $path);
 
-        if ($operationId === null || $this->isConventionalOperation($operationId, $conventional)) {
-            return $conventional;
+        if ($operationId === null || $Action->matches($operationId)) {
+            return $Action->value;
         }
 
         return $this->specificAction($operationId, $resource);
-    }
-
-    private function isConventionalOperation(string $operationId, string $action): bool
-    {
-        $operation = strtolower($operationId);
-
-        return match ($action) {
-            'Index' => str_starts_with($operation, 'list') || str_starts_with($operation, 'getall'),
-            'Show' => str_starts_with($operation, 'get') || str_starts_with($operation, 'show'),
-            'Store' => str_starts_with($operation, 'add') || str_starts_with($operation, 'create') || str_starts_with($operation, 'store'),
-            'Update' => str_starts_with($operation, 'update'),
-            'Delete' => str_starts_with($operation, 'delete') || str_starts_with($operation, 'remove'),
-            default => false,
-        };
     }
 
     private function specificAction(?string $operationId, string $resource): string

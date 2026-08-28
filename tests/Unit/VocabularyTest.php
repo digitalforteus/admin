@@ -1,6 +1,7 @@
 <?php
 
 use App\Helpers\DataModelCast;
+use App\Helpers\PhpTypeSchema;
 use App\Helpers\Rule;
 use App\Modules\Api\Support\ObjectSchema;
 use ZeroToProd\SchemaValidator\Property;
@@ -37,5 +38,6 @@ test('a cast, a rule and a schema object each render one declaration in the voca
             Schema::type => Schema::object,
             Schema::properties => ['a' => [Property::type => Property::string]],
         ])
-        ->and(ObjectSchema::make([]))->toBe([Schema::type => Schema::object]);
+        ->and(ObjectSchema::make([]))->toBe([Schema::type => Schema::object])
+        ->and(PhpTypeSchema::fromSchemaType('unsupported'))->toBe(PhpTypeSchema::text);
 });

@@ -4,10 +4,11 @@ namespace App\Modules\Projects;
 
 use App\Helpers\DataModel;
 use App\Helpers\HasTextInput;
+use App\Helpers\HasTextInputField;
 use App\Helpers\SvgName;
 use App\View\DataModels\TextInput;
 
-readonly class ProjectForm
+readonly class ProjectForm implements HasTextInputField
 {
     use DataModel;
     use HasTextInput;

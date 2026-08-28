@@ -11,8 +11,13 @@ use App\Models\User;
 use App\Modules\Contexts\Authorize;
 use App\Modules\Contexts\Context;
 use App\Modules\Memberships\MembershipQuery;
+use App\Plugins\AdminLink\AdminLink;
+use App\Plugins\AdminLink\AdminLinkPlugin;
+use App\Plugins\DescribesPlugin;
+use App\Plugins\PluginIndex;
+use App\Plugins\RouteTags;
+use App\Plugins\TaggedRoute;
 use App\Routes\Admin;
-use App\Routes\AdminLink;
 use App\Routes\ApiRoute;
 use App\Routes\Auth;
 use App\Routes\ContextRoute;
@@ -95,8 +100,8 @@ function taggedOrders(): array
     $orders = [];
 
     foreach (AppConfig::routeIndexes() as $enum) {
-        foreach (AdminLink::links($enum) as $link) {
-            $orders[$link[AdminLink::url]] = $link[AdminLink::order];
+        foreach (RouteTags::in($enum, AdminLink::class) as $TaggedRoute) {
+            $orders[$TaggedRoute->url] = AdminLinkPlugin::order($TaggedRoute);
         }
     }
 
@@ -273,7 +278,7 @@ test('every rail, dropdown and head is built from route cases, active on its own
     $attributes = new ReflectionClass(AdminLink::class)->getAttributes(Attribute::class);
 
     expect($attributes[0]->newInstance()->flags)->toBe(Attribute::TARGET_CLASS_CONSTANT)
-        ->and(array_column(AdminLink::routes(), AdminLink::url))->toContain(
+        ->and(array_column(PluginIndex::adminLink->routes(), DescribesPlugin::url))->toContain(
             Web::robots->value,
             Web::llms->value,
             Web::sitemap->value,
@@ -287,26 +292,30 @@ test('every rail, dropdown and head is built from route cases, active on its own
     // optional, and an absent order is not a first one: the case that gives none sorts behind
     // every case that does.
     $orders = taggedOrders();
-    $listed = array_column(AdminLink::routes(), AdminLink::url);
+    $listed = array_column(PluginIndex::adminLink->routes(), DescribesPlugin::url);
 
     $sequence = array_map(static fn (string $url): int => $orders[$url], $listed);
     $ascending = $sequence;
     sort($ascending);
 
+    $Bare = RouteTags::in(RouteIndexStub::class, AdminLink::class);
+
     expect($listed)->toEqualCanonicalizing(array_keys($orders))
         ->and($listed)->toHaveSameSize($orders)
         ->and($sequence)->toBe($ascending)
         ->and(new AdminLink()->order)->toBeNull()
-        ->and(AdminLink::links(RouteIndexStub::class))->toBe([[
-            AdminLink::order => PHP_INT_MAX,
-            AdminLink::name => RouteIndexStub::bare->name,
-            AdminLink::url => RouteIndexStub::bare->value,
-        ]]);
+        ->and($Bare)->toHaveCount(1)
+        ->and($Bare[0]->name)->toBe(RouteIndexStub::bare->name)
+        ->and($Bare[0]->url)->toBe(RouteIndexStub::bare->value)
+        ->and(AdminLinkPlugin::order($Bare[0]))->toBe(PHP_INT_MAX);
 
     // An enum reports what it holds, in the order it declares it. Sorting is the job of the
     // query where every index's links meet. A case tagged in an enum the registry does not
     // name is not the application's routing, so the page does not display it.
-    $tagged = array_column(AdminLink::links(Web::class), AdminLink::name);
+    $tagged = array_map(
+        static fn (TaggedRoute $TaggedRoute): string => $TaggedRoute->name,
+        RouteTags::in(Web::class, AdminLink::class),
+    );
 
     $declared = array_values(array_filter(
         array_map(static fn (Web $Case): string => $Case->name, Web::cases()),
@@ -315,10 +324,21 @@ test('every rail, dropdown and head is built from route cases, active on its own
 
     expect($tagged)->not->toBeEmpty()
         ->and($tagged)->toBe($declared)
-        ->and(AdminLink::links(Auth::class))->toBeEmpty()
-        ->and(AdminLink::links(RouteIndexStub::class))->not->toBeEmpty()
-        ->and(array_column(AdminLink::routes(), AdminLink::url))
+        ->and(RouteTags::in(Auth::class, AdminLink::class))->toBeEmpty()
+        ->and($Bare)->not->toBeEmpty()
+        ->and(array_column(PluginIndex::adminLink->routes(), DescribesPlugin::url))
         ->not->toContain(RouteIndexStub::bare->value);
+
+    // A plugin is installed by naming it on the registry, and a page asks the registry
+    // rather than the class: every case it holds answers with a plugin declaring the
+    // attribute its tagged routes carry.
+    foreach (PluginIndex::cases() as $Plugin) {
+        expect(is_subclass_of($Plugin->plugin(), DescribesPlugin::class))->toBeTrue()
+            ->and(class_exists($Plugin->plugin()::attribute()))->toBeTrue();
+    }
+
+    expect(PluginIndex::adminLink->plugin())->toBe(AdminLinkPlugin::class)
+        ->and(AdminLinkPlugin::attribute())->toBe(AdminLink::class);
 
     $this->actingAs(User::factory()->createOne());
     app()->instance('request', Request::create(Web::home->value));
