@@ -126,28 +126,27 @@ enum ContextRoute: string
     /** The one case tagged as the given role for the given depth. */
     private static function tagged(Depth $Depth, ContextRouteRole $ContextRouteRole): self
     {
-        $matches = array_values(array_filter(
-            self::cases(),
-            static fn (self $Case): bool => self::taggedAs($Case, $Depth, $ContextRouteRole),
-        ));
-
-        /** @var self $Match Every depth carries a case for every role, so a match always exists. */
-        $Match = $matches[0];
-
-        return $Match;
+        return self::index()[$Depth->value.'.'.$ContextRouteRole->name];
     }
 
-    private static function taggedAs(self $self, Depth $Depth, ContextRouteRole $ContextRouteRole): bool
+    /** @return array<string, self> Every tagged case, keyed by "{depth}.{role}". */
+    private static function index(): array
     {
-        $Attributes = new ReflectionEnumBackedCase(self::class, $self->name)->getAttributes(ContextRouteFor::class);
+        $index = [];
 
-        if ($Attributes === []) {
-            return false;
+        foreach (self::cases() as $Case) {
+            $Attributes = new ReflectionEnumBackedCase(self::class, $Case->name)->getAttributes(ContextRouteFor::class);
+
+            if ($Attributes === []) {
+                continue;
+            }
+
+            $For = $Attributes[0]->newInstance();
+
+            $index[$For->depth->value.'.'.$For->role->name] = $Case;
         }
 
-        $For = $Attributes[0]->newInstance();
-
-        return $For->depth === $Depth && $For->role === $ContextRouteRole;
+        return $index;
     }
 
     /**
