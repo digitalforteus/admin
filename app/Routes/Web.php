@@ -3,6 +3,7 @@
 namespace App\Routes;
 
 use App\Helpers\RendersRoute;
+use App\Plugins\AdminLink\AdminLink;
 use ReflectionEnumBackedCase;
 
 /**

@@ -13,6 +13,7 @@ Always `./vendor/bin/sail …` — bare `sail` is a human shell alias and is not
 - Shared: `resources/views/components/`, `svg/`, `emails/`.
 - Routes: `app/Routes/Web.php` (public pages), `Auth.php`, `Admin.php`, `ApiRoute.php`.
 - Admin pages: `resources/views/pages/admin/<slug>/index.blade.php`, case in `app/Routes/Admin.php` as `self::prefix.'/<slug>'`, tagged `#[AdminLink]` to appear in the admin link index. Not sitemapped — `CrawlerTest` never reaches them; `AdminTest` covers them.
+- Plugins: `app/Plugins/<Name>/` — an attribute plus a `DescribesPlugin` class, installed by a case on `app/Plugins/PluginIndex.php`. `RouteTags` is the one sweep over the registered route indexes; a plugin declares its attribute and never reflects itself. `AdminLink` is the shape to copy.
 - API endpoints: one directory per operation, `app/Modules/Api/<Api>/<Thing>/<Action>/` holding Controller, Request, Response, Schema. Bound in `routes/api.php`, `api_auth.php` or `api_admin.php` as `Route::<verb>(<Enum>::<case>->value, Controller::class)`.
 - Admin form actions: `app/Modules/Admin/<Thing>/<Action>Controller.php` (`__invoke`, `readonly`, returns `RedirectResponse`), bound in `routes/web_admin.php` as `Route::<verb>(Admin::<case>->value, Controller::class)`.
 - Column schemas: `app/Sources/Db/App/<Table>.php` — a case per column, `->value` for the name, `->schema()` for the API schema. One per table in the app database, so the file for a table exists without looking.

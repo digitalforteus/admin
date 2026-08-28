@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Helpers\DataModel;
+use App\Plugins\DescribesPlugin;
+use App\Plugins\PluginIndex;
 use Illuminate\Support\Facades\DB;
 use Pest\Rector\Set\PestSetList;
 use Rector\Config\RectorConfig;
@@ -14,11 +16,14 @@ use ZeroToProd\LaravelRector\Rector\CollapseSingleLineDocblockRector;
 use ZeroToProd\LaravelRector\Rector\EnforceControllerSuffixRector;
 use ZeroToProd\LaravelRector\Rector\EnforceInvokableControllerRector;
 use ZeroToProd\LaravelRector\Rector\EnforceInvokableControllerRouteRector;
+use ZeroToProd\LaravelRector\Rector\EnforceRegisteredClassRector;
 use ZeroToProd\LaravelRector\Rector\ForbidBladeAttributeValueRector;
+use ZeroToProd\LaravelRector\Rector\ForbidClassDependencyRector;
 use ZeroToProd\LaravelRector\Rector\ForbidClassUsageRector;
 use ZeroToProd\LaravelRector\Rector\ForbidCommentPhraseRector;
 use ZeroToProd\LaravelRector\Rector\ForbidDuplicateBladeElementRector;
 use ZeroToProd\LaravelRector\Rector\ForbidKeywordUsageRector;
+use ZeroToProd\LaravelRector\Rector\ForbidNamespaceDependencyRector;
 use ZeroToProd\LaravelRector\Rector\RenameParamToMatchTypeExactCaseRector;
 
 return RectorConfig::configure()
@@ -41,6 +46,27 @@ return RectorConfig::configure()
     ->withConfiguredRule(AddReadonlyToClassWithTraitRector::class, [
         'traits' => [
             DataModel::class,
+        ],
+    ])
+    ->withConfiguredRule(EnforceRegisteredClassRector::class, [
+        EnforceRegisteredClassRector::REGISTRIES => [
+            [
+                EnforceRegisteredClassRector::REGISTRY => PluginIndex::class,
+                EnforceRegisteredClassRector::IMPLEMENTS => DescribesPlugin::class,
+            ],
+        ],
+    ])
+    ->withConfiguredRule(ForbidNamespaceDependencyRector::class, [
+        ForbidNamespaceDependencyRector::DEPENDENCIES => [
+            'App\\Plugins' => ['App\\Plugins\\*'],
+        ],
+        ForbidNamespaceDependencyRector::EXCEPT => [
+            PluginIndex::class,
+        ],
+    ])
+    ->withConfiguredRule(ForbidClassDependencyRector::class, [
+        ForbidClassDependencyRector::DEPENDENCIES => [
+            'App\\Plugins\\*' => ['Reflection*'],
         ],
     ])
     ->withConfiguredRule(ForbidClassUsageRector::class, [

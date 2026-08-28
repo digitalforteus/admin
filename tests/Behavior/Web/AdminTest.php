@@ -15,8 +15,9 @@ use App\Modules\Admin\Users\Delete\UserDeleteController;
 use App\Modules\Admin\Users\Update\UsersUpdateRequest;
 use App\Modules\Admin\Users\UsersQuery;
 use App\Modules\Admin\Users\UsersRequest;
+use App\Plugins\DescribesPlugin;
+use App\Plugins\PluginIndex;
 use App\Routes\Admin;
-use App\Routes\AdminLink;
 use App\Routes\ApiRoute;
 use App\Routes\Web;
 use App\Sources\Db\App\OauthProviders;
@@ -148,10 +149,12 @@ test('the admin pages belong to the one role there is, and list, edit, delete an
 
     // A link is broken when it resolves to nothing, which a redirect to another page
     // this application serves is not.
-    foreach (AdminLink::routes() as $link) {
-        $TestResponse->assertSee($link[AdminLink::url]);
+    foreach (PluginIndex::cases() as $Plugin) {
+        foreach ($Plugin->routes() as $link) {
+            $TestResponse->assertSee($link[DescribesPlugin::url]);
 
-        expect($this->get($link[AdminLink::url])->getStatusCode())->toBeLessThan(400);
+            expect($this->get($link[DescribesPlugin::url])->getStatusCode())->toBeLessThan(400);
+        }
     }
 
     $this->actingAs(User::factory()->createOne())

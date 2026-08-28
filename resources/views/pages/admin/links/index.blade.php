@@ -1,6 +1,7 @@
 <?php
 
-use App\Routes\AdminLink;
+use App\Plugins\DescribesPlugin;
+use App\Plugins\PluginIndex;
 use Illuminate\Support\Str;
 use Laravel\Head\Facades\Head;
 
@@ -14,13 +15,15 @@ Head::title('Links')
             <h1 class="card-title">Links</h1>
 
             <ul class="mt-4 divide-y divide-base-300">
-                @foreach(AdminLink::routes() as $link)
-                    <li class="flex items-center justify-between gap-4 py-2">
-                        <span class="text-sm font-medium" title="{{Str::headline($link[AdminLink::name])}}">{{Str::headline($link[AdminLink::name])}}</span>
-                        <a href="{{$link[AdminLink::url]}}" target="_blank" class="link link-primary font-mono text-sm">
-                            {{$link[AdminLink::url]}}
-                        </a>
-                    </li>
+                @foreach(PluginIndex::cases() as $Plugin)
+                    @foreach($Plugin->routes() as $link)
+                        <li class="flex items-center justify-between gap-4 py-2">
+                            <span class="text-sm font-medium" title="{{Str::headline($link[DescribesPlugin::name])}}">{{Str::headline($link[DescribesPlugin::name])}}</span>
+                            <a href="{{$link[DescribesPlugin::url]}}" target="_blank" class="link link-primary font-mono text-sm">
+                                {{$link[DescribesPlugin::url]}}
+                            </a>
+                        </li>
+                    @endforeach
                 @endforeach
             </ul>
         </div>
